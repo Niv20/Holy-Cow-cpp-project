@@ -21,7 +21,9 @@ void Player::move(Screen& currentScreen) {
 
     // 1. Draw the floor under the player (erase old position)
     char charUnderPlayer = currentScreen.getCharAt(position);
-    if (isdigit(charUnderPlayer)) charUnderPlayer = ' '; // Hide door numbers
+    if (isdigit(charUnderPlayer) || charUnderPlayer == '?') {
+        charUnderPlayer = ' '; // Hide door numbers and riddle markers
+    }
     position.draw(charUnderPlayer);
 
     // 2. Calculate next position
@@ -51,6 +53,7 @@ void Player::move(Screen& currentScreen) {
             position = originalPos;
         }
     }
+    // Note: '?' is not blocked - Game will handle riddle encounter
 
     // 4. Draw player at new position
     draw();
@@ -65,4 +68,8 @@ void Player::handleKey(char key) {
             return;
         }
     }
+}
+
+void Player::stop() {
+    position.setDirection(4); // STAY
 }

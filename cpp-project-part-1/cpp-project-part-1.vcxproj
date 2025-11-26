@@ -187,6 +187,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Point.cpp" />
+    <ClCompile Include="Riddle.cpp" />
     <ClCompile Include="Screen.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
@@ -197,6 +198,8 @@
     <ClInclude Include="MapData.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Point.h" />
+    <ClInclude Include="Riddle.h" />
+    <ClInclude Include="RiddleData.h" />
     <ClInclude Include="Screen.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>

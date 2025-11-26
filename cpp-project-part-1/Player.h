@@ -27,6 +27,12 @@ public:
     // Sets direction based on input
     void handleKey(char key);
 
+    // Reset movement to STAY
+    void stop();
+
+    // Is player stationary (no movement direction)?
+    bool isStationary() const { return position.diff_x == 0 && position.diff_y == 0; }
+
 	bool hasKey() const { return keyIcon != ' '; }
 
     bool canTakeObject() const {

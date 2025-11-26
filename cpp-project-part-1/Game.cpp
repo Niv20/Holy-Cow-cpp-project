@@ -1,8 +1,9 @@
 ﻿#include "Game.h"
-#include "MapData.h" // Access to the raw map data
-#include "utils.h"   // Access to gotoxy, hideCursor, cls
-#include <conio.h>   // _kbhit, _getch
-#include <windows.h> // Sleep
+#include "MapData.h"
+#include "RiddleData.h"
+#include "utils.h"
+#include <conio.h>
+#include <windows.h>
 #include <cctype>
 
 using namespace std;
@@ -14,24 +15,23 @@ Game::Game() : visibleRoomIdx(0), isRunning(true) {
 
 void Game::init() {
     // 1. Load Maps
-    world.push_back(Screen(room0_raw)); // Room 0
-    world.push_back(Screen(room1_raw)); // Room 1
-    world.push_back(Screen(room2_raw)); // Room 2
+    world.push_back(Screen(room0_raw));
+    world.push_back(Screen(room1_raw));
+    world.push_back(Screen(room2_raw));
 
     // 2. Create Players
-    // Player 1: @, keys: wdxas, Room 0
     players.push_back(Player(Point(5, 2), "wdxas", '@', 0));
-
-    // Player 2: #, keys: ilmjk, Room 0
     players.push_back(Player(Point(5, 3), "ilmjk", '#', 0));
+    
+    // 3. Load Riddles
+    vector<RiddleData> riddles = initRiddles();
+    for (auto& rd : riddles) {
+        riddlesByRoom[rd.roomIdx] = new Riddle(rd.riddle);
+    }
 }
 
 void Game::run() {
-
-	// Hide the cursor for better visuals
-    hideCursor();
-
-    // Draw initial state
+	hideCursor();
     drawEverything();
 
     while (isRunning) {
@@ -40,15 +40,17 @@ void Game::run() {
         Sleep(100);
     }
 
+    // Cleanup
+    for (auto& pair : riddlesByRoom) {
+        delete pair.second;
+    }
     cls();
 }
 
 void Game::drawEverything() {
-    cls(); // Clear screen before redraw to prevent artifacts
-    // Draw the room walls
+    cls();
     world[visibleRoomIdx].draw();
     
-    // Draw all players present in this room
     for (const auto& p : players) {
         if (p.getRoomIdx() == visibleRoomIdx) {
             p.draw();
@@ -57,18 +59,15 @@ void Game::drawEverything() {
 }
 
 void Game::handleInput() {
-
     if (_kbhit()) {
         char key = _getch();
 
-		if (key == 27) { // ESC TODO: constexpr!!!
+		if (key == ESC_KEY) {
             isRunning = false;
-			// Show pause message !!!
             return;
         }
 
         for (auto& p : players) {
-            // Only allow control if the player is visible
             if (p.getRoomIdx() == visibleRoomIdx) {
                 p.handleKey(key);
             }
@@ -79,7 +78,7 @@ void Game::handleInput() {
 void Game::update() {
     std::vector<RoomTransition> transitions;
 
-    // --- 1. Collect Moves & Transition Requests ---
+    // --- 1. Collect Moves & Check for Riddles ---
     for (auto& p : players) {
         if (p.getRoomIdx() == visibleRoomIdx) {
             p.move(world[visibleRoomIdx]);
@@ -87,7 +86,12 @@ void Game::update() {
             Point pos = p.getPosition();
             char cell = world[visibleRoomIdx].getCharAt(pos);
             
-            if (isdigit(cell)) { 
+            // Check for riddle encounter
+            if (cell == '?') {
+                handleRiddleEncounter(p);
+            }
+            // Check for room transition
+            else if (isdigit(cell)) { 
                 transitions.push_back({&p, cell - '0'});
             }
         }
@@ -99,29 +103,92 @@ void Game::update() {
     }
 }
 
+void Game::handleRiddleEncounter(Player& player) {
+
+    int roomIdx = player.getRoomIdx();
+    
+    // Check if there's a riddle in this room
+    if (riddlesByRoom.find(roomIdx) == riddlesByRoom.end()) {
+        return; // No riddle in this room
+    }
+    
+    Riddle* riddle = riddlesByRoom[roomIdx];
+    
+    // Build and display the riddle screen
+    vector<string> riddleScreenData = riddle->buildRiddleScreen(riddleScreen_raw);
+    Screen riddleScreen(riddleScreenData);
+    
+    cls();
+    riddleScreen.draw();
+    
+    // Wait for player answer
+    char answer = '\0';
+    
+    while (true) {
+        if (_kbhit()) {
+            answer = _getch();
+            
+            if (answer == ESC_KEY) {
+                // Cancel riddle - player stays in place, riddle remains
+                // Move player back to previous position
+                Point pos = player.getPosition();
+                Point prevPos = pos;
+                if (pos.diff_x != 0) prevPos.x -= pos.diff_x;
+                if (pos.diff_y != 0) prevPos.y -= pos.diff_y;
+                player.setPosition(prevPos);
+                player.stop(); // STAY
+                break; // Exit loop
+            }
+            else if (answer >= '1' && answer <= '4') {
+                // Check answer
+                if (answer == riddle->getCorrectAnswer()) {
+                    // CORRECT ANSWER
+                    pointsCount += riddle->getPoints(); // Award current point value
+                    // Remove the '?' from the map - player can pass through
+                    world[roomIdx].setCharAt(player.getPosition(), ' ');
+                    // Note: Keep previous movement direction (do NOT stop)
+                } 
+                else {
+                    // WRONG ANSWER
+                    riddle->halvePoints(); // Divide riddle points by 2
+                    heartsCount--; // Lose one heart
+                    
+                    // Move player back to previous position and stop movement
+                    Point pos = player.getPosition();
+                    Point prevPos = pos;
+                    if (pos.diff_x != 0) prevPos.x -= pos.diff_x;
+                    if (pos.diff_y != 0) prevPos.y -= pos.diff_y;
+                    player.setPosition(prevPos);
+                    player.stop(); // STAY on wrong answer
+                }
+                break; // Exit loop after answering
+            }
+        }
+    }
+    
+    // Redraw the game screen and return to loop; next update will read fresh cell
+    drawEverything();
+}
+
+// Creat by AI
 void Game::processTransitions(std::vector<RoomTransition>& transitions) {
     int lastTransitionerNextRoom = -1;
 
-    // Erase players leaving current visible room (without altering map data like door numbers)
     for (auto& trans : transitions) {
         Player* p = trans.player;
         int originRoom = p->getRoomIdx();
 
-        // Only erase if currently on the visible screen (always true by collection logic, but safe check)
         if (originRoom == visibleRoomIdx) {
             Screen& originScreen = world[originRoom];
-            // Redraw underlying tile (hide digits visually)
             char under = originScreen.getCharAt(p->getPosition());
             if (isdigit(under)) under = ' ';
             p->getPosition().draw(under);
         }
 
-        // Move player logically to next room
         int nextRoom = trans.nextRoom;
         lastTransitionerNextRoom = nextRoom;
         p->setRoomIdx(nextRoom);
 
-        // Compute spawn position based on side exited
         Point pos = p->getPosition();
         Point spawn = pos;
         const int maxX = Screen::MAX_X;
@@ -140,7 +207,6 @@ void Game::processTransitions(std::vector<RoomTransition>& transitions) {
             if (spawn.x < maxX/2) spawn.x += 1; else spawn.x -= 1;
         }
 
-        // Handle collision with occupant in destination room (simple push)
         Player* occupant = nullptr;
         for (auto& other : players) {
             if (&other == p || other.getRoomIdx() != nextRoom) continue;
@@ -171,18 +237,16 @@ void Game::processTransitions(std::vector<RoomTransition>& transitions) {
         p->setPosition(spawn);
     }
 
-    // Decide if camera should move: move only if no players remain in current visible room
     bool cameraShouldMove = true;
     for (const auto& p : players) {
         if (p.getRoomIdx() == visibleRoomIdx) {
-            cameraShouldMove = false; // Someone stayed -> keep camera
+            cameraShouldMove = false;
             break;
         }
     }
 
     if (cameraShouldMove && lastTransitionerNextRoom != -1) {
         visibleRoomIdx = lastTransitionerNextRoom;
-        drawEverything(); // Draw new room with its players
+        drawEverything();
     }
-    // Else: do nothing (camera stays, transitioned player is now hidden in its new room)
 }
