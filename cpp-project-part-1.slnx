@@ -4,5 +4,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="cpp-project-part-1/cpp-project-part-1.vcxproj" />
+  <Project Path="cpp-project-part-1/cpp-project-part-1.vcxproj" Id="4dedca84-ffb2-45df-a0bd-dcf2898bb55c" />
 </Solution>

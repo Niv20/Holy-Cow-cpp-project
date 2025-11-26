@@ -184,7 +184,6 @@
   <ItemGroup>
     <ClCompile Include="Door.cpp" />
     <ClCompile Include="Game.cpp" />
-    <ClCompile Include="Key.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Point.cpp" />

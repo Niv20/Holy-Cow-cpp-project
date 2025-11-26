@@ -14,9 +14,9 @@ Game::Game() : visibleRoomIdx(0), isRunning(true) {
 
 void Game::init() {
     // 1. Load Maps
-    world.push_back(Screen(initMap(room0_raw))); // Room 0
-    world.push_back(Screen(initMap(room1_raw))); // Room 1
-    world.push_back(Screen(initMap(room2_raw))); // Room 2
+    world.push_back(Screen(room0_raw)); // Room 0
+    world.push_back(Screen(room1_raw)); // Room 1
+    world.push_back(Screen(room2_raw)); // Room 2
 
     // 2. Create Players
     // Player 1: @, keys: wdxas, Room 0

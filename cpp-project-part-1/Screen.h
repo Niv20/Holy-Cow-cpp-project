@@ -10,7 +10,6 @@ private:
     std::vector<std::string> m_map;
 
 public:
-    // TODO: להבין לעומק מה כתוב כאן
     Screen(const std::vector<std::string>& mapData) : m_map(mapData) {}
 
     void draw() const;

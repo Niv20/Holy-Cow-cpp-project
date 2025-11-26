@@ -1,23 +1,9 @@
-#pragma once
-#pragma once
+﻿#pragma once
 #include <vector>
 #include <string>
 
 using std::vector;
 using std::string;
-
-// Function to fill the map with walls if it is too short
-inline vector<string> initMap(vector<string> map) {
-    while (map.size() < 25) { // 25 is MAX_Y
-        map.push_back(string(80, '#'));
-    }
-    for(auto& line : map) {
-        while(line.length() < 80) {
-            line += '#';
-        }
-    }
-    return map;
-}
 
 // --- ROOM DEFINITIONS ---
 
