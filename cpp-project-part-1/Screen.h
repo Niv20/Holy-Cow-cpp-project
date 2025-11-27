@@ -14,10 +14,10 @@ public:
 
     void draw() const;
 
-    // Get what is at a specific coordinate
+    // Get what is at a specific coordinate (safe)
     char getCharAt(const Point& p) const;
 
-    // Change what is at a specific coordinate
+    // Change what is at a specific coordinate (auto-pad)
     void setCharAt(const Point& p, char newChar);
 
     void erase(const Point& p);

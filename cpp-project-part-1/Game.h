@@ -6,6 +6,7 @@
 #include "Riddle.h"
 #include "Bomb.h"
 #include "Legend.h"
+#include "ScreenLoader.h"
 
 
 constexpr int ESC_KEY = 27;

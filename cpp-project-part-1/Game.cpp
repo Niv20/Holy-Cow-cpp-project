@@ -1,10 +1,10 @@
 ﻿#include "Game.h"
-#include "MapData.h"
 #include "RiddleData.h"
 #include "utils.h"
 #include "Tiles.h"
 #include <conio.h>
 #include <windows.h>
+#include <fstream>
 
 using namespace std;
 
@@ -14,10 +14,13 @@ Game::Game() : visibleRoomIdx(0), isRunning(true) {
 }
 
 void Game::init() {
-    // 1. Load Maps
-    world.push_back(Screen(room0_raw));
-    world.push_back(Screen(room1_raw));
-    world.push_back(Screen(room2_raw));
+    // 1. Load Maps strictly from .screen files
+    world = ScreenLoader::loadScreensFromFiles();
+    if (world.empty()) {
+        // No maps found -> stop the game gracefully
+        isRunning = false;
+        return;
+    }
 
     // 2. Create Players
     players.push_back(Player(Point(5, 2), "wdxase", Tiles::First_Player, 0));
@@ -49,7 +52,33 @@ void Game::init() {
     }
 }
 
+// Helper: load riddle screen template from external file (riddle.screen) only
+static const vector<string>& getRiddleTemplate() {
+    static vector<string> cached;
+    if (!cached.empty()) return cached;
+
+    ifstream f("riddle.screen");
+    if (!f.is_open()) {
+        return cached; // remain empty -> no riddle screen
+    }
+    string line; 
+    while (getline(f, line)) {
+        cached.push_back(line);
+    }
+    f.close();
+    if (!cached.empty()) {
+        string& first = cached[0];
+        if (first.size() >= 3 && (unsigned char)first[0]==0xEF && (unsigned char)first[1]==0xBB && (unsigned char)first[2]==0xBF) {
+            first.erase(0,3);
+        }
+    }
+    return cached;
+}
+
 void Game::run() {
+    SetConsoleOutputCP(65001); // UTF-8 support for screen files
+    if (!isRunning) return;
+
     hideCursor();
     drawEverything();
 
@@ -140,21 +169,20 @@ void Game::handleRiddleEncounter(Player& player) {
 
     int roomIdx = player.getRoomIdx();
     
-    // Check if there's a riddle in this room
     if (riddlesByRoom.find(roomIdx) == riddlesByRoom.end()) {
         return; // No riddle in this room
     }
     
+    const vector<string>& templateScreen = getRiddleTemplate();
+    if (templateScreen.empty()) return; // user does not want built-in template
+
     Riddle* riddle = riddlesByRoom[roomIdx];
-    
-    // Build and display the riddle screen
-    vector<string> riddleScreenData = riddle->buildRiddleScreen(riddleScreen_raw);
+    vector<string> riddleScreenData = riddle->buildRiddleScreen(templateScreen);
     Screen riddleScreen(riddleScreenData);
     
     cls();
     riddleScreen.draw();
     
-    // Wait for player answer
     char answer = '\0';
     
     while (true) {
@@ -162,44 +190,33 @@ void Game::handleRiddleEncounter(Player& player) {
             answer = _getch();
             
             if (answer == ESC_KEY) {
-                // Cancel riddle - player stays in place, riddle remains
-                // Move player back to previous position
                 Point pos = player.getPosition();
                 Point prevPos = pos;
                 if (pos.diff_x != 0) prevPos.x -= pos.diff_x;
                 if (pos.diff_y != 0) prevPos.y -= pos.diff_y;
                 player.setPosition(prevPos);
-                player.stop(); // STAY
-                break; // Exit loop
+                player.stop();
+                break;
             }
             else if (answer >= '1' && answer <= '4') {
-                // Check answer
                 if (answer == riddle->getCorrectAnswer()) {
-                    // CORRECT ANSWER
-                    pointsCount += riddle->getPoints(); // Award current point value
-                    // Remove the '?' from the map - player can pass through
+                    pointsCount += riddle->getPoints();
                     world[roomIdx].setCharAt(player.getPosition(), Tiles::Empty);
-                    // Note: Keep previous movement direction (do NOT stop)
                 } 
                 else {
-                    // WRONG ANSWER
-                    riddle->halvePoints(); // Divide riddle points by 2
-                    heartsCount--; // Lose one heart
-                    
-                    // Move player back to previous position and stop movement
+                    riddle->halvePoints();
+                    heartsCount--;
                     Point pos = player.getPosition();
                     Point prevPos = pos;
                     if (pos.diff_x != 0) prevPos.x -= pos.diff_x;
                     if (pos.diff_y != 0) prevPos.y -= pos.diff_y;
                     player.setPosition(prevPos);
-                    player.stop(); // STAY on wrong answer
+                    player.stop();
                 }
-                break; // Exit loop after answering
+                break;
             }
         }
     }
-    
-    // Redraw the game screen and return to loop; next update will read fresh cell
     drawEverything();
 }
 
@@ -285,7 +302,6 @@ void Game::processTransitions(std::vector<RoomTransition>& transitions) {
 }
 
 void Game::tickAndHandleBombs() {
-    // Tick bombs and collect those that need to explode now
     vector<Bomb> nextBombs;
     vector<Bomb> toExplode;
     nextBombs.reserve(bombs.size());
@@ -298,10 +314,8 @@ void Game::tickAndHandleBombs() {
         }
     }
 
-    // Replace with bombs that didn't explode
     bombs.swap(nextBombs);
 
-    // Explode after ticking (so we don't process a bomb twice)
     for (const auto& b : toExplode) {
         explodeBomb(b);
     }
@@ -318,23 +332,16 @@ void Game::explodeBomb(const Bomb& b) {
     int minY = max(0, center.y - radius);
     int maxY = min(Screen::MAX_Y - 1, center.y + radius);
 
-    // Affect tiles in the square range
     for (int y = minY; y <= maxY; ++y) {
         for (int x = minX; x <= maxX; ++x) {
             Point p{ x, y };
             char c = s.getCharAt(p);
-
-            // Remove special walls only (-, |)
             if (c == Tiles::Bombable_Wall_H || c == Tiles::Bombable_Wall_V) {
                 s.setCharAt(p, Tiles::Empty);
             }
-
-            // TODO: In the future, remove entire obstacle when any '*' inside range is hit
-            // if (c == Tiles::Obstacle) { ... }
         }
     }
 
-    // Affect players inside radius (reduce hearts)
     int hits = 0;
     for (auto& pl : players) {
         if (pl.getRoomIdx() != room) continue;
@@ -343,6 +350,6 @@ void Game::explodeBomb(const Bomb& b) {
             ++hits;
         }
     }
-    heartsCount -= hits; // if both hit, 2 hearts down
+    heartsCount -= hits;
     if (heartsCount < 0) heartsCount = 0;
 }

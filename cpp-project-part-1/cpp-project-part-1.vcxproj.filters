@@ -39,6 +39,9 @@
     <ClCompile Include="Riddle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ScreenLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.h">
@@ -49,9 +52,6 @@
     </ClInclude>
     <ClInclude Include="Screen.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MapData.h">
-      <Filter>Resource Files</Filter>
     </ClInclude>
     <ClInclude Include="Point.h">
       <Filter>Header Files</Filter>
@@ -80,5 +80,46 @@
     <ClInclude Include="Legend.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ScreenLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="adv-world_01.screen">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="adv-world_02.screen">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="adv-world_06.screen">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="adv-world_03.screen">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="adv-world_04.screen">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="adv-world_05.screen">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Riddle.screen">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="adv-world_07.screen">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Start.screen">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Pause.screen">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Lose.screen">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Instructions.screen">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
