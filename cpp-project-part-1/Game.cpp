@@ -28,6 +28,25 @@ void Game::init() {
     for (auto& rd : riddles) {
         riddlesByRoom[rd.roomIdx] = new Riddle(rd.riddle);
     }
+
+    // 4. Scan existing bombs drawn on maps into bombs vector
+    for (int room = 0; room < (int)world.size(); ++room) {
+        Screen& s = world[room];
+        for (int y = 0; y < Screen::MAX_Y; ++y) {
+            for (int x = 0; x < Screen::MAX_X; ++x) {
+                Point p{ x, y };
+                if (s.getCharAt(p) == Tiles::Bomb) {
+                    bombs.emplace_back(p, room, 5);
+                }
+            }
+        }
+    }
+
+    // 5. Legend init
+    legend.ensureRooms(world.size());
+    for (int room = 0; room < (int)world.size(); ++room) {
+        legend.locateLegendForRoom(room, world[room]);
+    }
 }
 
 void Game::run() {
@@ -50,6 +69,11 @@ void Game::run() {
 void Game::drawEverything() {
     cls();
     world[visibleRoomIdx].draw();
+
+    // Draw legend for the current room
+    char p1Inv = players.size() > 0 ? players[0].getCarried() : ' ';
+    char p2Inv = players.size() > 1 ? players[1].getCarried() : ' ';
+    legend.drawLegend(visibleRoomIdx, world[visibleRoomIdx], heartsCount, pointsCount, p1Inv, p2Inv);
     
     for (const auto& p : players) {
         if (p.getRoomIdx() == visibleRoomIdx) {
@@ -97,10 +121,16 @@ void Game::update() {
         }
     }
 
-    // --- 2. Process all transitions at once ---
+    // --- 2. Handle bombs ---
+    tickAndHandleBombs();
+
+    // --- 3. Process all transitions at once ---
     if (!transitions.empty()) {
         processTransitions(transitions);
     }
+
+    // 4. Refresh legend if anything changed this frame (simple redraw)
+    drawEverything();
 }
 
 void Game::handleRiddleEncounter(Player& player) {
@@ -249,4 +279,67 @@ void Game::processTransitions(std::vector<RoomTransition>& transitions) {
         visibleRoomIdx = lastTransitionerNextRoom;
         drawEverything();
     }
+}
+
+void Game::tickAndHandleBombs() {
+    // Tick bombs and collect those that need to explode now
+    vector<Bomb> nextBombs;
+    vector<Bomb> toExplode;
+    nextBombs.reserve(bombs.size());
+
+    for (auto& b : bombs) {
+        if (b.tick()) {
+            toExplode.push_back(b);
+        } else {
+            nextBombs.push_back(b);
+        }
+    }
+
+    // Replace with bombs that didn't explode
+    bombs.swap(nextBombs);
+
+    // Explode after ticking (so we don't process a bomb twice)
+    for (const auto& b : toExplode) {
+        explodeBomb(b);
+    }
+}
+
+void Game::explodeBomb(const Bomb& b) {
+    int room = b.getRoomIdx();
+    Screen& s = world[room];
+    Point center = b.getPosition();
+
+    const int radius = 3;
+    int minX = max(0, center.x - radius);
+    int maxX = min(Screen::MAX_X - 1, center.x + radius);
+    int minY = max(0, center.y - radius);
+    int maxY = min(Screen::MAX_Y - 1, center.y + radius);
+
+    // Affect tiles in the square range
+    for (int y = minY; y <= maxY; ++y) {
+        for (int x = minX; x <= maxX; ++x) {
+            Point p{ x, y };
+            char c = s.getCharAt(p);
+
+            // Remove special walls only (-, |)
+            if (c == Tiles::Bombable_Wall_H || c == Tiles::Bombable_Wall_V) {
+                s.setCharAt(p, Tiles::Empty);
+            }
+
+            // TODO: In the future, remove entire obstacle when any '*' inside range is hit
+            // if (c == Tiles::Obstacle) { ... }
+        }
+    }
+
+    // Affect players inside radius (reduce hearts)
+    int hits = 0;
+    for (auto& pl : players) {
+        if (pl.getRoomIdx() != room) continue;
+        Point pp = pl.getPosition();
+        if (pp.x >= minX && pp.x <= maxX && pp.y >= minY && pp.y <= maxY) {
+            ++hits;
+        }
+    }
+    heartsCount -= hits; // if both hit, 2 hearts down
+    if (heartsCount < 0) heartsCount = 0;
 }

@@ -39,31 +39,43 @@ void Player::move(Screen& currentScreen) {
     }
     else if (Tiles::isKey(tile)) { // Key
         if (canTakeObject()) {
-            setKeyIcon(tile);
+            setCarried(tile);
             currentScreen.setCharAt(position, Tiles::Empty);
         }
     }
     else if (Tiles::isDoor(tile)) { // Door
-        if (getKeyIcon() == std::tolower(static_cast<unsigned char>(tile))) {
+        if (getCarried() == std::tolower(static_cast<unsigned char>(tile))) {
             // Unlock the door
             currentScreen.setCharAt(position, Tiles::Empty);
-            setKeyIcon(' '); // Use the key
+            setCarried(' '); // Use the key
         }
         else {
             // Door is locked
             position = originalPos;
         }
     }
+    else if (Tiles::isBomb(tile)) { // Bomb pickup
+        if (canTakeObject()) {
+            setCarried(Tiles::Bomb);
+            currentScreen.setCharAt(position, Tiles::Empty);
+        }
+    }
+    else if (Tiles::isTorch(tile)) { // Torch pickup
+        if (canTakeObject()) {
+            setCarried(Tiles::Torch);
+            currentScreen.setCharAt(position, Tiles::Empty);
+        }
+    }
     // Note: '?' is not blocked - Game will handle riddle encounter
 
     // 3.5. Handle action (E/O): drop or pick
     if (actionRequested) {
-        char held = getHeldChar();
+        char held = getCarried();
         if (held != ' ') {
             if (!isStationary()) {
                 // After pressing and moving one tile, drop at current position
                 currentScreen.setCharAt(position, held);
-                clearHeld();
+                setCarried(' ');
             } else {
                 // Stationary: try right, left, down, up. Only place if target is empty and within bounds.
                 Point p = position;
@@ -73,7 +85,7 @@ void Player::move(Screen& currentScreen) {
                     if (q.x >= 0 && q.x < Screen::MAX_X && q.y >= 0 && q.y < Screen::MAX_Y) {
                         if (currentScreen.getCharAt(q) == Tiles::Empty) {
                             currentScreen.setCharAt(q, held);
-                            clearHeld();
+                            setCarried(' ');
                             break; // place only once
                         }
                     }
@@ -82,8 +94,8 @@ void Player::move(Screen& currentScreen) {
         } else {
             // No held item: optional future pickup by action (for now keys only if standing on one)
             char under = currentScreen.getCharAt(position);
-            if (Tiles::isKey(under) && canTakeObject()) {
-                setKeyIcon(under);
+            if ((Tiles::isKey(under) || Tiles::isBomb(under) || Tiles::isTorch(under)) && canTakeObject()) {
+                setCarried(under);
                 currentScreen.setCharAt(position, Tiles::Empty);
             }
         }

@@ -192,9 +192,11 @@
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Bomb.h" />
     <ClInclude Include="Door.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Key.h" />
+    <ClInclude Include="Legend.h" />
     <ClInclude Include="MapData.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Point.h" />

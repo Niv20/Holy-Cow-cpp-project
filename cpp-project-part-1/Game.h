@@ -4,6 +4,8 @@
 #include "Screen.h"
 #include "Player.h"
 #include "Riddle.h"
+#include "Bomb.h"
+#include "Legend.h"
 
 
 constexpr int ESC_KEY = 27;
@@ -21,8 +23,14 @@ private:
     std::map<int, Riddle*> riddlesByRoom; // Map room index to riddle
     int visibleRoomIdx;
     bool isRunning;
-	int pointsCount = 0;
+    int pointsCount = 0;
     int heartsCount = 3;
+
+    // Active bombs
+    std::vector<Bomb> bombs;
+
+    // Legend manager
+    Legend legend;
 
     // Helper methods
     void init();
@@ -31,6 +39,10 @@ private:
     void processTransitions(std::vector<RoomTransition>& transitions);
     void drawEverything();
     void handleRiddleEncounter(Player& player);
+
+    void syncBombsInRoom(int roomIdx);
+    void tickAndHandleBombs();
+    void explodeBomb(const Bomb& b);
 
 public:
     // Constructor

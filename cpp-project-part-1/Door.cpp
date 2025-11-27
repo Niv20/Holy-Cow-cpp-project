@@ -8,11 +8,11 @@ Door 'A' can be opened with key 'a', etc.
 */ 
 bool Door::tryToOpen(Player& p) {
 
-	if (p.getKeyIcon() == tolower(symbol)) {
-		isOpen = true;
-		p.setKeyIcon(' ');
-		return true;
-	}
+    if (p.getCarried() == std::tolower(static_cast<unsigned char>(symbol))) {
+        isOpen = true;
+        p.setCarried(' ');
+        return true;
+    }
 
-	return false; // key doesn't match OR player has no key
+    return false; // key doesn't match OR player has no key
 }

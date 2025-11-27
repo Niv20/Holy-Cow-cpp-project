@@ -9,26 +9,11 @@ class Player {
     char symbol;
     int currentRoomIdx;
     
-    bool hasBomb = false;
-    bool hasTorch = false;
-    char keyIcon = ' ';
+    // Single carried item character: ' ' none, 'a'..'z' key, '!' torch, '@' bomb
+    char carried = ' ';
 
     // Action handling
     bool actionRequested = false; // toggled by last key (E/O)
-
-    // Internal helpers
-    char getHeldChar() const {
-        if (keyIcon != ' ') return keyIcon;
-        if (hasBomb) return '@'; // Tiles::Bomb, avoid header include here
-        if (hasTorch) return '!'; // Tiles::Torch
-        return ' ';
-    }
-
-    void clearHeld() {
-        if (keyIcon != ' ') { keyIcon = ' '; return; }
-        if (hasBomb) { hasBomb = false; return; }
-        if (hasTorch) { hasTorch = false; return; }
-    }
 
 public:
     Player(Point startPos, const char* keySet, char sym, int startRoom);
@@ -51,12 +36,8 @@ public:
         return position.diff_x == 0 && position.diff_y == 0; 
     }
 
-    bool hasKey() const { 
-        return keyIcon != ' '; 
-    }
-
     bool canTakeObject() const {
-        return !hasKey() && !hasBomb && !hasTorch; 
+        return carried == ' '; 
     }
 
     // Getters / Setters
@@ -64,6 +45,7 @@ public:
     void setRoomIdx(int idx) { currentRoomIdx = idx; }
     Point getPosition() const { return position; }
     void setPosition(Point p) { position = p; }
-    char getKeyIcon() const { return keyIcon; }
-    void setKeyIcon(char icon) { keyIcon = icon; }
+
+    char getCarried() const { return carried; }
+    void setCarried(char ch) { carried = ch; }
 };

@@ -74,5 +74,11 @@
     <ClInclude Include="Tiles.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Bomb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Legend.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
