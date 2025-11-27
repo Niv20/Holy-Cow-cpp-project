@@ -20,8 +20,8 @@ void Game::init() {
     world.push_back(Screen(room2_raw));
 
     // 2. Create Players
-    players.push_back(Player(Point(5, 2), "wdxas", Tiles::First_Player, 0));
-    players.push_back(Player(Point(5, 3), "ilmjk", Tiles::Second_Player, 0));
+    players.push_back(Player(Point(5, 2), "wdxase", Tiles::First_Player, 0));
+    players.push_back(Player(Point(5, 3), "ilmjko", Tiles::Second_Player, 0));
     
     // 3. Load Riddles
     vector<RiddleData> riddles = initRiddles();
