@@ -1,6 +1,7 @@
 ﻿#include "Player.h"
 #include <cctype>
 #include "Screen.h"
+#include "Tiles.h"
 
 Player::Player(Point startPos, const char* keySet, char sym, int startRoom)
     : position(startPos), symbol(sym), currentRoomIdx(startRoom)
@@ -21,8 +22,8 @@ void Player::move(Screen& currentScreen) {
 
     // 1. Draw the floor under the player (erase old position)
     char charUnderPlayer = currentScreen.getCharAt(position);
-    if (isdigit(charUnderPlayer) || charUnderPlayer == '?') {
-        charUnderPlayer = ' '; // Hide door numbers and riddle markers
+    if (Tiles::isRoomTransition(charUnderPlayer) || Tiles::isRiddle(charUnderPlayer)) {
+        charUnderPlayer = Tiles::Empty; // Hide door numbers and riddle markers
     }
     position.draw(charUnderPlayer);
 
@@ -33,19 +34,19 @@ void Player::move(Screen& currentScreen) {
     // 3. Check collision
     char tile = currentScreen.getCharAt(position);
 
-    if (tile == '#') { // Wall
+    if (Tiles::isWall(tile)) { // Wall
         position = originalPos;
     }
-    else if (islower(tile)) { // Key
+    else if (Tiles::isKey(tile)) { // Key
         if (canTakeObject()) {
             setKeyIcon(tile);
-            currentScreen.setCharAt(position, ' ');
+            currentScreen.setCharAt(position, Tiles::Empty);
         }
     }
-    else if (isupper(tile)) { // Door
-        if (getKeyIcon() == tolower(tile)) {
+    else if (Tiles::isDoor(tile)) { // Door
+        if (getKeyIcon() == std::tolower(static_cast<unsigned char>(tile))) {
             // Unlock the door
-            currentScreen.setCharAt(position, ' ');
+            currentScreen.setCharAt(position, Tiles::Empty);
             setKeyIcon(' '); // Use the key
         }
         else {
@@ -62,7 +63,7 @@ void Player::move(Screen& currentScreen) {
 void Player::handleKey(char key) {
     for (int i = 0; i < NUM_KEYS; i++) {
         if (std::tolower(key) == std::tolower(keys[i])) {
-			// חמשת הכיוונים: למעלה, ימינה, למטה, שמאלה, לא זז
+            // חמשת הכיוונים: למעלה, ימינה, למטה, שמאלה, לא זז
             position.setDirection(i);
             // האחרון זה להפעיף אובייקט לבדוק לפני כן שאכן יש לי אובייקט
             return;

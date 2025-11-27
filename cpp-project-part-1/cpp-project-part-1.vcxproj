@@ -201,6 +201,7 @@
     <ClInclude Include="Riddle.h" />
     <ClInclude Include="RiddleData.h" />
     <ClInclude Include="Screen.h" />
+    <ClInclude Include="Tiles.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

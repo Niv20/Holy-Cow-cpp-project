@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cctype>
 #include "Point.h"
+#include "Tiles.h"
 
 void Screen::draw() const {
 
@@ -10,8 +11,8 @@ void Screen::draw() const {
     for (const auto& line : m_map) {
         for (char c : line) {
             // Hides the numbers (0-9) from the player
-            if (isdigit(c)) {
-                std::cout << ' ';
+            if (Tiles::isRoomTransition(c)) {
+                std::cout << Tiles::Empty;
             }
             else {
                 std::cout << c;

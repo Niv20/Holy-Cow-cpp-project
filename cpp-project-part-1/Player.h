@@ -7,7 +7,7 @@ class Player {
     Point position;
     char keys[NUM_KEYS];
     char symbol;
-    int currentRoomIdx; // Remembers which room this player is in
+    int currentRoomIdx;
     
     // TODO:!!!!!!!!!!!!!!!!!!
 	 bool hasBomb = false;
@@ -31,9 +31,13 @@ public:
     void stop();
 
     // Is player stationary (no movement direction)?
-    bool isStationary() const { return position.diff_x == 0 && position.diff_y == 0; }
+    bool isStationary() const {
+        return position.diff_x == 0 && position.diff_y == 0; 
+    }
 
-	bool hasKey() const { return keyIcon != ' '; }
+	bool hasKey() const { 
+        return keyIcon != ' '; 
+    }
 
     bool canTakeObject() const {
 		return !hasKey() && !hasBomb && !hasTorch; 

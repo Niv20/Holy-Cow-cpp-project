@@ -2,9 +2,9 @@
 #include "MapData.h"
 #include "RiddleData.h"
 #include "utils.h"
+#include "Tiles.h"
 #include <conio.h>
 #include <windows.h>
-#include <cctype>
 
 using namespace std;
 
@@ -20,8 +20,8 @@ void Game::init() {
     world.push_back(Screen(room2_raw));
 
     // 2. Create Players
-    players.push_back(Player(Point(5, 2), "wdxas", '@', 0));
-    players.push_back(Player(Point(5, 3), "ilmjk", '#', 0));
+    players.push_back(Player(Point(5, 2), "wdxas", Tiles::First_Player, 0));
+    players.push_back(Player(Point(5, 3), "ilmjk", Tiles::Second_Player, 0));
     
     // 3. Load Riddles
     vector<RiddleData> riddles = initRiddles();
@@ -31,11 +31,11 @@ void Game::init() {
 }
 
 void Game::run() {
-	hideCursor();
+    hideCursor();
     drawEverything();
 
     while (isRunning) {
-		handleInput();
+        handleInput();
         update();
         Sleep(100);
     }
@@ -62,7 +62,7 @@ void Game::handleInput() {
     if (_kbhit()) {
         char key = _getch();
 
-		if (key == ESC_KEY) {
+        if (key == ESC_KEY) {
             isRunning = false;
             return;
         }
@@ -87,11 +87,11 @@ void Game::update() {
             char cell = world[visibleRoomIdx].getCharAt(pos);
             
             // Check for riddle encounter
-            if (cell == '?') {
+            if (Tiles::isRiddle(cell)) {
                 handleRiddleEncounter(p);
             }
             // Check for room transition
-            else if (isdigit(cell)) { 
+            else if (Tiles::isRoomTransition(cell)) { 
                 transitions.push_back({&p, cell - '0'});
             }
         }
@@ -145,7 +145,7 @@ void Game::handleRiddleEncounter(Player& player) {
                     // CORRECT ANSWER
                     pointsCount += riddle->getPoints(); // Award current point value
                     // Remove the '?' from the map - player can pass through
-                    world[roomIdx].setCharAt(player.getPosition(), ' ');
+                    world[roomIdx].setCharAt(player.getPosition(), Tiles::Empty);
                     // Note: Keep previous movement direction (do NOT stop)
                 } 
                 else {
@@ -181,7 +181,7 @@ void Game::processTransitions(std::vector<RoomTransition>& transitions) {
         if (originRoom == visibleRoomIdx) {
             Screen& originScreen = world[originRoom];
             char under = originScreen.getCharAt(p->getPosition());
-            if (isdigit(under)) under = ' ';
+            if (Tiles::isRoomTransition(under)) under = Tiles::Empty;
             p->getPosition().draw(under);
         }
 
