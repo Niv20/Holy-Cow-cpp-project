@@ -20,66 +20,90 @@ void Player::erase(Screen& currentScreen) const {
 
 void Player::move(Screen& currentScreen) {
 
-    // 1. Draw the floor under the player (erase old position)
-    char charUnderPlayer = currentScreen.getCharAt(position);
-    if (Tiles::isRoomTransition(charUnderPlayer) || Tiles::isRiddle(charUnderPlayer)) {
-        charUnderPlayer = Tiles::Empty; // Hide door numbers and riddle markers
-    }
-    position.draw(charUnderPlayer);
-
-    // 2. Calculate next position
+    // Calculate next position
     Point originalPos = position;
     position.move();
 
-    // 3. Check collision
+    // If actually moved, restore the floor at the previous position to avoid flicker
+    if (originalPos.x != position.x || originalPos.y != position.y) {
+        char charUnderPlayer = currentScreen.getCharAt(originalPos);
+        if (Tiles::isRoomTransition(charUnderPlayer) || Tiles::isRiddle(charUnderPlayer)) {
+            charUnderPlayer = Tiles::Empty; // Hide door numbers and riddle markers
+        }
+        currentScreen.setCharAt(originalPos, charUnderPlayer);
+    }
+
+    // Check tile at new position
     char tile = currentScreen.getCharAt(position);
 
-    if (Tiles::isWall(tile)) { // Wall
-        position = originalPos;
-    }
-    else if (Tiles::isKey(tile)) { // Key
+    // Handle known interactive tiles first
+    if (Tiles::isKey(tile)) {
         if (canTakeObject()) {
             setCarried(tile);
             currentScreen.setCharAt(position, Tiles::Empty);
         }
     }
-    else if (Tiles::isDoor(tile)) { // Door
+    else if (Tiles::isDoor(tile)) {
         if (getCarried() == std::tolower(static_cast<unsigned char>(tile))) {
-            // Unlock the door
-            currentScreen.setCharAt(position, Tiles::Empty);
-            setCarried(' '); // Use the key
-        }
-        else {
-            // Door is locked
+            currentScreen.setCharAt(position, Tiles::Empty); // unlock
+            setCarried(' ');
+        } else {
+            // blocked by locked door
             position = originalPos;
+            position.setDirection(4);
         }
     }
-    else if (Tiles::isBomb(tile)) { // Bomb pickup
+    else if (Tiles::isBomb(tile)) {
         if (canTakeObject()) {
             setCarried(Tiles::Bomb);
             currentScreen.setCharAt(position, Tiles::Empty);
         }
     }
-    else if (Tiles::isTorch(tile)) { // Torch pickup
+    else if (Tiles::isTorch(tile)) {
         if (canTakeObject()) {
             setCarried(Tiles::Torch);
             currentScreen.setCharAt(position, Tiles::Empty);
         }
     }
-    // Note: '?' is not blocked - Game will handle riddle encounter
+    else if (Tiles::isRiddle(tile) || Tiles::isRoomTransition(tile)) {
+        // allow passing; handled by Game elsewhere
+    }
+    else if (Tiles::isWall(tile)) {
+        // blocked by wall
+        position = originalPos;
+        position.setDirection(4);
+    }
+    else if (tile == Tiles::Empty) {
+        // free space, continue
+    }
+    else {
+        // Unknown non-empty tile: block and set STAY
+        position = originalPos;
+        position.setDirection(4);
+    }
 
-    // 3.5. Handle action (E/O): drop or pick
+    // Handle action (E/O): drop or pick
     if (actionRequested) {
         char held = getCarried();
         if (held != ' ') {
             if (!isStationary()) {
-                // After pressing and moving one tile, drop at current position
-                currentScreen.setCharAt(position, held);
-                setCarried(' ');
-            } else {
-                // Stationary: try right, left, down, up. Only place if target is empty and within bounds.
+                // After pressing and moving one tile, drop adjacent (not under player)
                 Point p = position;
-                Point candidates[4] = { { p.x + 1, p.y }, { p.x - 1, p.y }, { p.x, p.y + 1 }, { p.x, p.y - 1 } };
+                Point candidates[4] = { { p.x + 1, p.y }, { p.x - 1, p.y }, { p.x, p.y - 1 }, { p.x, p.y + 1 } };
+                for (int i = 0; i < 4; ++i) {
+                    Point q = candidates[i];
+                    if (q.x >= 0 && q.x < Screen::MAX_X && q.y >= 0 && q.y < Screen::MAX_Y) {
+                        if (currentScreen.getCharAt(q) == Tiles::Empty) {
+                            currentScreen.setCharAt(q, held);
+                            setCarried(' ');
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // Stationary: try right, left, up, then down
+                Point p = position;
+                Point candidates[4] = { { p.x + 1, p.y }, { p.x - 1, p.y }, { p.x, p.y - 1 }, { p.x, p.y + 1 } };
                 for (int i = 0; i < 4; ++i) {
                     Point q = candidates[i];
                     if (q.x >= 0 && q.x < Screen::MAX_X && q.y >= 0 && q.y < Screen::MAX_Y) {
@@ -92,7 +116,7 @@ void Player::move(Screen& currentScreen) {
                 }
             }
         } else {
-            // No held item: optional future pickup by action (for now keys only if standing on one)
+            // No held item: pick if standing on collectible
             char under = currentScreen.getCharAt(position);
             if ((Tiles::isKey(under) || Tiles::isBomb(under) || Tiles::isTorch(under)) && canTakeObject()) {
                 setCarried(under);
@@ -102,7 +126,7 @@ void Player::move(Screen& currentScreen) {
         actionRequested = false; // consume action
     }
 
-    // 4. Draw player at new position
+    // Draw player at (possibly unchanged) position
     draw();
 }
 
@@ -111,7 +135,6 @@ void Player::handleKey(char key) {
         if (std::tolower(key) == std::tolower(keys[i])) {
             // חמשת הכיוונים: למעלה, ימינה, למטה, שמאלה, לא זז
             position.setDirection(i);
-            // האחרון זה להפעיף אובייקט לבדוק לפני כן שאכן יש לי אובייקט
             if (i == 5) {
                 actionRequested = true; // E/O action
             }

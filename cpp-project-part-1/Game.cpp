@@ -129,8 +129,11 @@ void Game::update() {
         processTransitions(transitions);
     }
 
-    // 4. Refresh legend if anything changed this frame (simple redraw)
-    drawEverything();
+    // Avoid full-screen redraw each frame to reduce flicker.
+    // Only refresh legend overlay without clearing screen.
+    char p1Inv = players.size() > 0 ? players[0].getCarried() : ' ';
+    char p2Inv = players.size() > 1 ? players[1].getCarried() : ' ';
+    legend.drawLegend(visibleRoomIdx, world[visibleRoomIdx], heartsCount, pointsCount, p1Inv, p2Inv);
 }
 
 void Game::handleRiddleEncounter(Player& player) {
