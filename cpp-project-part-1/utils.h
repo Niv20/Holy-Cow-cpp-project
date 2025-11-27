@@ -8,3 +8,6 @@ void hideCursor();
 
 // Clears the screen (system cls)
 void cls();
+
+// Sets console font to Raster for proper UTF-8 box-drawing display
+void setConsoleFont();

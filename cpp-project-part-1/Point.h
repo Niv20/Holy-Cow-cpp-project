@@ -22,6 +22,15 @@ struct Point {
 
     void draw(char ch) const {
         gotoxy(x, y);
-        std::cout << ch;
+        // Map CP437 player characters to UTF-8
+        if ((unsigned char)ch == 148) {
+            // ö in UTF-8
+            std::cout << "\xC3\xB6";
+        } else if ((unsigned char)ch == 129) {
+            // ü in UTF-8
+            std::cout << "\xC3\xBC";
+        } else {
+            std::cout << ch;
+        }
     }
 };

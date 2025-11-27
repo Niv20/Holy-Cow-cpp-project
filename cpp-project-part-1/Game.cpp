@@ -23,8 +23,8 @@ void Game::init() {
     }
 
     // 2. Create Players
-    players.push_back(Player(Point(5, 2), "wdxase", Tiles::First_Player, 0));
-    players.push_back(Player(Point(5, 3), "ilmjko", Tiles::Second_Player, 0));
+    players.push_back(Player(Point(53, 18), "wdxase", Tiles::First_Player, 0));
+    players.push_back(Player(Point(63, 18), "ilmjko", Tiles::Second_Player, 0));
     
     // 3. Load Riddles
     vector<RiddleData> riddles = initRiddles();
@@ -77,6 +77,7 @@ static const vector<string>& getRiddleTemplate() {
 
 void Game::run() {
     SetConsoleOutputCP(65001); // UTF-8 support for screen files
+    setConsoleFont(); // Configure Raster font for proper box-drawing characters
     if (!isRunning) return;
 
     hideCursor();
@@ -102,7 +103,7 @@ void Game::drawEverything() {
     // Draw legend for the current room
     char p1Inv = players.size() > 0 ? players[0].getCarried() : ' ';
     char p2Inv = players.size() > 1 ? players[1].getCarried() : ' ';
-    legend.drawLegend(visibleRoomIdx, world[visibleRoomIdx], heartsCount, pointsCount, p1Inv, p2Inv);
+    legend.drawLegend(visibleRoomIdx, heartsCount, pointsCount, p1Inv, p2Inv);
     
     for (const auto& p : players) {
         if (p.getRoomIdx() == visibleRoomIdx) {
@@ -162,7 +163,7 @@ void Game::update() {
     // Only refresh legend overlay without clearing screen.
     char p1Inv = players.size() > 0 ? players[0].getCarried() : ' ';
     char p2Inv = players.size() > 1 ? players[1].getCarried() : ' ';
-    legend.drawLegend(visibleRoomIdx, world[visibleRoomIdx], heartsCount, pointsCount, p1Inv, p2Inv);
+    legend.drawLegend(visibleRoomIdx, heartsCount, pointsCount, p1Inv, p2Inv);
 }
 
 void Game::handleRiddleEncounter(Player& player) {
