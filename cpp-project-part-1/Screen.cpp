@@ -5,25 +5,41 @@
 #include "Tiles.h"
 #include <iomanip>
 
+void Screen::initFromWideLines(const std::vector<std::wstring>& lines) {
+    m_grid.clear();
+    m_grid.resize(MAX_Y, std::vector<SpecialChar>(MAX_X, SpecialChar{ Tiles::Empty }));
+    int yLimit = std::min<int>(MAX_Y, (int)lines.size());
+    for (int y = 0; y < yLimit; ++y) {
+        const std::wstring& src = lines[y];
+        int xLimit = std::min<int>(MAX_X, (int)src.size());
+        for (int x = 0; x < xLimit; ++x) {
+            m_grid[y][x].ch = src[x];
+        }
+    }
+}
+
 Screen::Screen(const std::vector<std::string>& mapData) {
-    m_map.reserve(mapData.size());
+    std::vector<std::wstring> widened;
+    widened.reserve(mapData.size());
     for (auto& line : mapData) {
         int wlen = MultiByteToWideChar(CP_UTF8,0,line.c_str(),(int)line.size(),nullptr,0);
         std::wstring wline(wlen,0);
         MultiByteToWideChar(CP_UTF8,0,line.c_str(),(int)line.size(),&wline[0],wlen);
-        m_map.push_back(wline);
+        widened.push_back(wline);
     }
+    initFromWideLines(widened);
 }
 
 void Screen::draw() const {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    for (size_t y = 0; y < m_map.size(); ++y) {
+    for (int y = 0; y < MAX_Y; ++y) {
         std::wstring out;
-        out.reserve(m_map[y].size());
-        for (wchar_t c : m_map[y]) {
-            if (Tiles::isRoomTransition(c)) out.push_back(L' '); else out.push_back(c);
+        out.reserve(MAX_X);
+        for (int x = 0; x < MAX_X; ++x) {
+            wchar_t c = m_grid[y][x].ch;
+            if (Tiles::isRoomTransition(c)) c = Tiles::Empty;
+            out.push_back(c);
         }
-        if (out.size() < MAX_X) out.append(MAX_X - out.size(), L' '); else if(out.size()>MAX_X) out.resize(MAX_X);
         COORD linePos{0,(SHORT)y};
         SetConsoleCursorPosition(hOut, linePos);
         DWORD written; WriteConsoleW(hOut, out.c_str(), (DWORD)out.size(), &written, nullptr);
@@ -31,21 +47,23 @@ void Screen::draw() const {
 }
 
 wchar_t Screen::getCharAt(const Point& p) const {
-    if (p.x < 0 || p.x >= MAX_X || p.y < 0 || p.y >= MAX_Y) return L' ';
-    if (p.y >= (int)m_map.size() || p.x >= (int)m_map[p.y].size()) return L' ';
-    return m_map[p.y][p.x];
+    if (p.x < 0 || p.x >= MAX_X || p.y < 0 || p.y >= MAX_Y) return Tiles::Empty;
+    return m_grid[p.y][p.x].ch;
 }
 
 void Screen::setCharAt(const Point& p, wchar_t newChar) {
     if (p.x < 0 || p.x >= MAX_X || p.y < 0 || p.y >= MAX_Y) return;
-    if (p.y >= (int)m_map.size()) return;
-    if (p.x >= (int)m_map[p.y].size()) m_map[p.y].resize(MAX_X, L' ');
-    m_map[p.y][p.x] = newChar;
-    // Instrumentation: log every set
-    std::cerr << "[setCharAt] room=? x=" << p.x << " y=" << p.y << " char=0x" << std::hex << std::setw(4) << std::setfill('0') << (int)newChar << std::dec << " ('" << (newChar < 128 ? (char)newChar : '?') << "')" << std::endl;
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    COORD pos{(SHORT)p.x,(SHORT)p.y}; SetConsoleCursorPosition(hOut,pos);
-    DWORD written; WriteConsoleW(hOut,&newChar,1,&written,nullptr);
+    m_grid[p.y][p.x].ch = newChar; // no immediate console write
 }
 
-void Screen::erase(const Point& p) { setCharAt(p, L' '); }
+void Screen::erase(const Point& p) { setCharAt(p, Tiles::Empty); }
+
+void Screen::refreshCell(const Point& p) const {
+    if (p.x < 0 || p.x >= MAX_X || p.y < 0 || p.y >= MAX_Y) return;
+    wchar_t c = m_grid[p.y][p.x].ch;
+    if (Tiles::isRoomTransition(c)) c = Tiles::Empty;
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    COORD pos{ (SHORT)p.x, (SHORT)p.y };
+    SetConsoleCursorPosition(hOut, pos);
+    DWORD written; WriteConsoleW(hOut, &c, 1, &written, nullptr);
+}

@@ -45,6 +45,9 @@ private:
     void tickAndHandleBombs();
     void explodeBomb(const Bomb& b);
 
+    void refreshLegend();
+    void drawPlayers();
+
 public:
     // Constructor
     Game(); // The main loop

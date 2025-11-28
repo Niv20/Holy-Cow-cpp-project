@@ -2,49 +2,91 @@
 #include <cctype>
 #include "Screen.h"
 #include "Tiles.h"
+#include <windows.h>
 
-Player::Player(Point startPos, const char* keySet, char sym, int startRoom)
+Player::Player(Point startPos, const char* keySet, wchar_t sym, int startRoom)
     : position(startPos), symbol(sym), currentRoomIdx(startRoom)
 { for (int i = 0; i < NUM_KEYS; i++) keys[i] = keySet[i]; }
 
-void Player::draw() const { position.draw(symbol); }
-void Player::erase(Screen& currentScreen) const { currentScreen.erase(position); }
+void Player::draw() const {
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    COORD pos{ (SHORT)position.x, (SHORT)position.y };
+    SetConsoleCursorPosition(hOut, pos);
+    wchar_t out = symbol; DWORD written; WriteConsoleW(hOut, &out, 1, &written, nullptr);
+}
+void Player::erase(Screen& currentScreen) const { /* no direct erase */ }
 
 void Player::move(Screen& currentScreen) {
     Point originalPos = position; position.move();
     wchar_t tile = currentScreen.getCharAt(position);
+    bool blocked = false;
 
     if (Tiles::isKey(tile)) {
-        if (canTakeObject()) { setCarried((char)tile); currentScreen.setCharAt(position, Tiles::Empty); }
+        if (canTakeObject()) {
+            setCarried((char)tile);
+            currentScreen.setCharAt(position, Tiles::Empty);
+            currentScreen.refreshCell(position);
+        }
     } else if (Tiles::isDoor(tile)) {
-        if (getCarried() == std::tolower((unsigned char)tile)) { currentScreen.setCharAt(position, Tiles::Empty); setCarried(' '); }
-        else { position = originalPos; position.setDirection(4); }
+        if (getCarried() == std::tolower((unsigned char)tile)) {
+            currentScreen.setCharAt(position, Tiles::Empty);
+            currentScreen.refreshCell(position);
+            setCarried(' ');
+        } else blocked = true;
     } else if (Tiles::isBomb(tile)) {
-        if (canTakeObject()) { setCarried('@'); currentScreen.setCharAt(position, Tiles::Empty); }
+        if (canTakeObject()) { setCarried('@'); currentScreen.setCharAt(position, Tiles::Empty); currentScreen.refreshCell(position); }
     } else if (Tiles::isTorch(tile)) {
-        if (canTakeObject()) { setCarried('!'); currentScreen.setCharAt(position, Tiles::Empty); }
-    } else if (Tiles::isWall(tile)) { position = originalPos; position.setDirection(4); }
-    else if (tile == Tiles::Empty) { }
-    else if (Tiles::isRiddle(tile) || Tiles::isRoomTransition(tile)) { }
-    else { position = originalPos; position.setDirection(4); }
+        if (canTakeObject()) { setCarried('!'); currentScreen.setCharAt(position, Tiles::Empty); currentScreen.refreshCell(position); }
+    } else if (Tiles::isWall(tile)) blocked = true;
+    else if (Tiles::isRiddle(tile) || Tiles::isRoomTransition(tile) || tile == Tiles::Empty) {
+        // allowed
+    } else blocked = true;
+
+    if (blocked) { position = originalPos; position.setDirection(4); return; }
+
+    if (originalPos.x != position.x || originalPos.y != position.y) currentScreen.refreshCell(originalPos);
 
     if (actionRequested) {
         char held = getCarried();
         if (held != ' ') {
-            Point p = position; Point candidates[4] = { {p.x+1,p.y},{p.x-1,p.y},{p.x,p.y-1},{p.x,p.y+1} };
-            for (auto& q : candidates) {
-                if (q.x>=0 && q.x<Screen::MAX_X && q.y>=0 && q.y<Screen::MAX_Y) {
-                    if (currentScreen.getCharAt(q) == Tiles::Empty) { currentScreen.setCharAt(q, (wchar_t)held); setCarried(' '); break; }
+            bool dropped = false;
+            Point p = position;
+            // Drop behind movement direction
+            if (position.diff_x != 0 || position.diff_y != 0) {
+                Point drop = p;
+                if (position.diff_x == 1) drop.x = p.x - 1; // moving right -> drop left
+                else if (position.diff_x == -1) drop.x = p.x + 1; // moving left -> drop right
+                else if (position.diff_y == 1) drop.y = p.y - 1; // moving down -> drop up
+                else if (position.diff_y == -1) drop.y = p.y + 1; // moving up -> drop down
+                if (drop.x>=0 && drop.x<Screen::MAX_X && drop.y>=0 && drop.y<Screen::MAX_Y) {
+                    if (currentScreen.getCharAt(drop) == Tiles::Empty) {
+                        currentScreen.setCharAt(drop,(wchar_t)held);
+                        currentScreen.refreshCell(drop);
+                        setCarried(' '); dropped = true;
+                    }
+                }
+            }
+            // If stationary or behind cell blocked: follow preference Right, Left, Up, Down
+            if (!dropped) {
+                Point candidates[4] = { {p.x+1,p.y},{p.x-1,p.y},{p.x,p.y-1},{p.x,p.y+1} };
+                for (auto& q : candidates) {
+                    if (q.x>=0 && q.x<Screen::MAX_X && q.y>=0 && q.y<Screen::MAX_Y && currentScreen.getCharAt(q) == Tiles::Empty) {
+                        currentScreen.setCharAt(q,(wchar_t)held);
+                        currentScreen.refreshCell(q);
+                        setCarried(' '); dropped = true; break;
+                    }
                 }
             }
         } else {
+            // Pick up again if standing on item while stationary action
             wchar_t under = currentScreen.getCharAt(position);
             if ((Tiles::isKey(under) || Tiles::isBomb(under) || Tiles::isTorch(under)) && canTakeObject()) {
-                setCarried((char)under); currentScreen.setCharAt(position, Tiles::Empty);
+                setCarried((char)under); currentScreen.setCharAt(position, Tiles::Empty); currentScreen.refreshCell(position);
             }
         }
         actionRequested = false;
     }
+
     draw();
 }
 

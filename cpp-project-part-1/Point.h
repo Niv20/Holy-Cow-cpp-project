@@ -1,5 +1,5 @@
 #pragma once
-#include <iostream>
+#include <windows.h>
 #include "utils.h"
 
 // Represents a 2D point on the console
@@ -12,25 +12,21 @@ struct Point {
     Point(int _x, int _y) : x(_x), y(_y) {}
     Point() {}
 
-    void move() {
-        x += diff_x;
-        y += diff_y;
-    }
+    void move() { x += diff_x; y += diff_y; }
 
     // Sets the direction based on keyboard input (0=UP, 1=RIGHT, etc.)
     void setDirection(int dir);
 
     void draw(char ch) const {
-        gotoxy(x, y);
-        // Map CP437 player characters to UTF-8
-        if ((unsigned char)ch == 148) {
-            // ö in UTF-8
-            std::cout << "\xC3\xB6";
-        } else if ((unsigned char)ch == 129) {
-            // ü in UTF-8
-            std::cout << "\xC3\xBC";
-        } else {
-            std::cout << ch;
-        }
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        COORD pos{ (SHORT)x, (SHORT)y };
+        SetConsoleCursorPosition(hOut, pos);
+        wchar_t wc;
+        unsigned char uc = static_cast<unsigned char>(ch);
+        // Preserve legacy mapping for specific CP437 codes
+        if (uc == 148) wc = L'ö';
+        else if (uc == 129) wc = L'ü';
+        else wc = (wchar_t)uc;
+        DWORD written; WriteConsoleW(hOut, &wc, 1, &written, nullptr);
     }
 };

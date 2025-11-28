@@ -8,20 +8,20 @@ class Screen {
 public:
     enum { MAX_X = 80, MAX_Y = 25 };
 private:
-    std::vector<std::wstring> m_map; // wide map
+    struct SpecialChar { wchar_t ch; }; // single cell wrapper (can be extended later)
+    std::vector<std::vector<SpecialChar>> m_grid; // 2D grid
+
+    void initFromWideLines(const std::vector<std::wstring>& lines);
 
 public:
-    Screen(const std::vector<std::wstring>& mapData) : m_map(mapData) {}
-    // Overload: accept narrow strings (UTF-8 assumed) and widen
-    Screen(const std::vector<std::string>& mapData);
+    Screen(const std::vector<std::wstring>& mapData) { initFromWideLines(mapData); }
+    Screen(const std::vector<std::string>& mapData); // UTF-8 input
 
     void draw() const;
-
-    // Get what is at a specific coordinate (safe)
     wchar_t getCharAt(const Point& p) const;
-
-    // Change what is at a specific coordinate (auto-pad)
     void setCharAt(const Point& p, wchar_t newChar);
-
     void erase(const Point& p);
+
+    // Redraw a single cell from grid to console (no grid change)
+    void refreshCell(const Point& p) const;
 };
