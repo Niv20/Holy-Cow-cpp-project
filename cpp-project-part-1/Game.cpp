@@ -15,8 +15,13 @@ void Game::init() {
     if (world.empty()) { isRunning = false; return; }
     players.push_back(Player(Point(53, 18), "wdxase", Tiles::First_Player, 0));
     players.push_back(Player(Point(63, 18), "ilmjko", Tiles::Second_Player, 0));
+    
     vector<RiddleData> riddles = initRiddles();
-    for (auto& rd : riddles) riddlesByRoom[rd.roomIdx] = new Riddle(rd.riddle);
+    for (auto& rd : riddles) {
+        RiddleKey key{ rd.roomIdx, rd.position.x, rd.position.y };
+        riddlesByPosition[key] = new Riddle(rd.riddle);
+    }
+    
     for (int room = 0; room < (int)world.size(); ++room) {
         Screen& s = world[room];
         for (int y = 0; y < Screen::MAX_Y; ++y) for (int x = 0; x < Screen::MAX_X; ++x) {
@@ -47,7 +52,7 @@ void Game::run() {
     SetConsoleOutputCP(65001); setConsoleFont(); if (!isRunning) return;
     hideCursor(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers();
     while (isRunning) { handleInput(); update(); Sleep(60); }
-    for (auto& pair : riddlesByRoom) delete pair.second;
+    for (auto& pair : riddlesByPosition) delete pair.second;
     cls();
 }
 
@@ -123,15 +128,60 @@ void Game::handleRiddleEncounter(Player& player) {
         return;
     }
     
-    int roomIdx = player.getRoomIdx(); if (riddlesByRoom.find(roomIdx) == riddlesByRoom.end()) return; const vector<string>& templateScreen = getRiddleTemplate(); if (templateScreen.empty()) return; Riddle* riddle = riddlesByRoom[roomIdx]; vector<string> riddleScreenData = riddle->buildRiddleScreen(templateScreen); Screen riddleScreen(riddleScreenData);
-    cls(); riddleScreen.draw(); refreshLegend(); char answer = '\0';
+    int roomIdx = player.getRoomIdx();
+    Point pos = player.getPosition();
+    
+    // Try to find riddle at exact position
+    RiddleKey exactKey{ roomIdx, pos.x, pos.y };
+    Riddle* riddle = nullptr;
+    
+    if (riddlesByPosition.find(exactKey) != riddlesByPosition.end()) {
+        riddle = riddlesByPosition[exactKey];
+    } else {
+        // Fallback: find any riddle in this room
+        for (auto& pair : riddlesByPosition) {
+            if (pair.first.roomIdx == roomIdx) {
+                riddle = pair.second;
+                break;
+            }
+        }
+    }
+    
+    if (!riddle) return;
+    
+    const vector<string>& templateScreen = getRiddleTemplate(); 
+    if (templateScreen.empty()) return;
+    
+    vector<string> riddleScreenData = riddle->buildRiddleScreen(templateScreen); 
+    Screen riddleScreen(riddleScreenData);
+    cls(); riddleScreen.draw(); refreshLegend(); 
+    
+    char answer = '\0';
     while (true) {
         if (_kbhit()) {
             answer = _getch();
-            if (answer == ESC_KEY) { Point pos = player.getPosition(); Point prevPos = pos; if (pos.diff_x) prevPos.x -= pos.diff_x; if (pos.diff_y) prevPos.y -= pos.diff_y; player.setPosition(prevPos); player.stop(); break; }
+            if (answer == ESC_KEY) { 
+                Point prevPos = pos; 
+                if (pos.diff_x) prevPos.x -= pos.diff_x; 
+                if (pos.diff_y) prevPos.y -= pos.diff_y; 
+                player.setPosition(prevPos); 
+                player.stop(); 
+                break; 
+            }
             else if (answer >= '1' && answer <= '4') {
-                if (answer == riddle->getCorrectAnswer()) { pointsCount += riddle->getPoints(); world[roomIdx].setCharAt(player.getPosition(), Tiles::Empty); }
-                else { riddle->halvePoints(); heartsCount--; Point pos = player.getPosition(); Point prevPos = pos; if (pos.diff_x) prevPos.x -= pos.diff_x; if (pos.diff_y) prevPos.y -= pos.diff_y; player.setPosition(prevPos); player.stop(); }
+                if (answer == riddle->getCorrectAnswer()) { 
+                    pointsCount += riddle->getPoints(); 
+                    world[roomIdx].setCharAt(pos, Tiles::Empty); 
+                }
+                else { 
+                    riddle->halvePoints(); 
+                    heartsCount--; 
+                    Point prevPos = pos; 
+                    if (pos.diff_x) prevPos.x -= pos.diff_x; 
+                    if (pos.diff_y) prevPos.y -= pos.diff_y; 
+                    player.setPosition(prevPos); 
+                    player.stop(); 
+                }
                 break;
             }
         }

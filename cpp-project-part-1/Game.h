@@ -17,11 +17,24 @@ struct RoomTransition {
     int nextRoom;
 };
 
+// Key for riddle lookup: room index + position
+struct RiddleKey {
+    int roomIdx;
+    int x;
+    int y;
+    
+    bool operator<(const RiddleKey& other) const {
+        if (roomIdx != other.roomIdx) return roomIdx < other.roomIdx;
+        if (x != other.x) return x < other.x;
+        return y < other.y;
+    }
+};
+
 class Game {
 private:
     std::vector<Screen> world;
     std::vector<Player> players;
-    std::map<int, Riddle*> riddlesByRoom; // Map room index to riddle
+    std::map<RiddleKey, Riddle*> riddlesByPosition; // Map position to riddle
     int visibleRoomIdx;
     bool isRunning;
     int pointsCount = 0;
