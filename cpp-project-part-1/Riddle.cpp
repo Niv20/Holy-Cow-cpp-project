@@ -19,47 +19,30 @@ vector<string> Riddle::buildRiddleScreen(const vector<string>& templateScreen) c
 {
     vector<string> riddleScreen = templateScreen;
 
-    // Place question at 'q'
-    for (auto& line : riddleScreen) {
-        size_t qPos = line.find('q');
-        if (qPos != string::npos) {
-            string questionText(question);
-            if (questionText.length() > 45) questionText.resize(45);
-            for (size_t i = 0; i < questionText.length() && qPos + i < line.size(); ++i) line[qPos + i] = questionText[i];
-            break;
-        }
-    }
+    // Helper function to safely place text at specific position
+    auto placeTextAt = [&](int row, int col, const string& text, int maxLength) {
+        if (row < 0 || row >= (int)riddleScreen.size()) return;
 
-    // Helper: find placeholder character in any line, replace starting exactly at that position
-    auto replaceAtPlaceholder = [&](char placeholder, const string& text) {
-        for (size_t lineIdx = 0; lineIdx < riddleScreen.size(); ++lineIdx) {
-            auto& line = riddleScreen[lineIdx];
-            size_t pos = line.find(placeholder);
-            if (pos != string::npos) {
-                // Check if this placeholder follows the pattern "||__|| " (answer box)
-                if (pos >= 7 && line.substr(pos - 7, 7) == "||__|| ") {
-                    // Replace starting exactly at placeholder position
-                    size_t i = 0;
-                    for (; i < text.size() && pos + i < line.size(); ++i) {
-                        line[pos + i] = text[i];
-                    }
-                    // Fill remaining space with spaces until boundary
-                    size_t end = line.find('|', pos + i);
-                    if (end == string::npos) end = line.size();
-                    for (; pos + i < end; ++i) line[pos + i] = ' ';
-                    return; // done
-                }
-            }
+        string& line = riddleScreen[row];
+
+        // Place the text starting at the specified column
+        for (int i = 0; i < (int)text.length() && i < maxLength && (col + i) < (int)line.size(); ++i) {
+            line[col + i] = text[i];
         }
     };
 
-    // Template has: line 9: ||__|| A ... ||__|| C
-    //               line 15: ||__|| B ... ||__|| D
-    // Replace A with answer1, B with answer2, C with answer3, D with answer4
-    replaceAtPlaceholder('A', string(answer1));
-    replaceAtPlaceholder('B', string(answer2));
-    replaceAtPlaceholder('C', string(answer3));
-    replaceAtPlaceholder('D', string(answer4));
+    // Place question at its designated position
+    string questionText(question);
+    if (questionText.length() > 45) {
+        questionText.resize(45);
+    }
+    placeTextAt(QUESTION_ROW, QUESTION_COL, questionText, 45);
+
+    // Place answers at their designated positions
+    placeTextAt(ANSWER1_ROW, ANSWER1_COL, string(answer1), MAX_ANSWER_LENGTH);
+    placeTextAt(ANSWER2_ROW, ANSWER2_COL, string(answer2), MAX_ANSWER_LENGTH);
+    placeTextAt(ANSWER3_ROW, ANSWER3_COL, string(answer3), MAX_ANSWER_LENGTH);
+    placeTextAt(ANSWER4_ROW, ANSWER4_COL, string(answer4), MAX_ANSWER_LENGTH);
 
     return riddleScreen;
 }
