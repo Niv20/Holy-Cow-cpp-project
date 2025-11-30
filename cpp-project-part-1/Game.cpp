@@ -75,7 +75,7 @@ void Game::update() {
 
 void Game::handleRiddleEncounter(Player& player) {
     int roomIdx = player.getRoomIdx(); if (riddlesByRoom.find(roomIdx) == riddlesByRoom.end()) return; const vector<string>& templateScreen = getRiddleTemplate(); if (templateScreen.empty()) return; Riddle* riddle = riddlesByRoom[roomIdx]; vector<string> riddleScreenData = riddle->buildRiddleScreen(templateScreen); Screen riddleScreen(riddleScreenData);
-    cls(); riddleScreen.draw(); char answer = '\0';
+    cls(); riddleScreen.draw(); refreshLegend(); char answer = '\0';
     while (true) {
         if (_kbhit()) {
             answer = _getch();

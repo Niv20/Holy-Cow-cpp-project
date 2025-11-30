@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <cwctype>
 
-// This code was written by AI
+// This file was written by AI
 namespace Tiles {
     // Basic tiles (ASCII subset)
     inline constexpr wchar_t Empty = L' ';
