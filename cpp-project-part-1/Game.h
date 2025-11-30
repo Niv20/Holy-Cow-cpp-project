@@ -40,6 +40,7 @@ private:
     void processTransitions(std::vector<RoomTransition>& transitions);
     void drawEverything();
     void handleRiddleEncounter(Player& player);
+    void handlePause();
 
     void syncBombsInRoom(int roomIdx);
     void tickAndHandleBombs();
@@ -50,6 +51,11 @@ private:
 
 public:
     // Constructor
-    Game(); // The main loop
+    Game();
+    
+    // The main loop
     void run();
+    
+    // Check if player lost (hearts <= 0)
+    bool isGameLost() const { return heartsCount <= 0; }
 };

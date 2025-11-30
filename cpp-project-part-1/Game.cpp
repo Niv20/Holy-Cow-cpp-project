@@ -35,6 +35,14 @@ static const vector<string>& getRiddleTemplate() {
     return cached;
 }
 
+static const vector<string>& getPauseTemplate() {
+    static vector<string> cached; if (!cached.empty()) return cached;
+    ifstream f("Pause.screen"); if (!f.is_open()) return cached;
+    string line; while (getline(f, line)) cached.push_back(line);
+    f.close(); if (!cached.empty()) { string& first = cached[0]; if (first.size() >= 3 && (unsigned char)first[0]==0xEF && (unsigned char)first[1]==0xBB && (unsigned char)first[2]==0xBF) first.erase(0,3); }
+    return cached;
+}
+
 void Game::run() {
     SetConsoleOutputCP(65001); setConsoleFont(); if (!isRunning) return;
     hideCursor(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers();
@@ -56,12 +64,47 @@ void Game::drawPlayers() {
 void Game::handleInput() {
     if (_kbhit()) {
         char key = _getch();
-        if (key == ESC_KEY) { isRunning = false; return; }
+        if (key == ESC_KEY) { handlePause(); return; }
         for (auto& p : players) if (p.getRoomIdx() == visibleRoomIdx) p.handleKey(key);
     }
 }
 
+void Game::handlePause() {
+    const vector<string>& pauseTemplate = getPauseTemplate();
+    if (pauseTemplate.empty()) { isRunning = false; return; }
+    
+    Screen pauseScreen(pauseTemplate);
+    cls();
+    pauseScreen.draw();
+    
+    while (true) {
+        if (_kbhit()) {
+            char key = _getch();
+            if (key == ESC_KEY) {
+                // Continue the game - restore screen
+                cls();
+                world[visibleRoomIdx].draw();
+                refreshLegend();
+                drawPlayers();
+                return;
+            }
+            else if (key == 'H' || key == 'h') {
+                // Return to main menu
+                isRunning = false;
+                return;
+            }
+        }
+        Sleep(60);
+    }
+}
+
 void Game::update() {
+    // Check if game is lost
+    if (heartsCount <= 0) {
+        isRunning = false;
+        return;
+    }
+    
     vector<RoomTransition> transitions;
     for (auto& p : players) if (p.getRoomIdx() == visibleRoomIdx) {
         p.move(world[visibleRoomIdx]);
@@ -74,6 +117,12 @@ void Game::update() {
 }
 
 void Game::handleRiddleEncounter(Player& player) {
+    // Check if game is lost before showing riddle
+    if (heartsCount <= 0) {
+        isRunning = false;
+        return;
+    }
+    
     int roomIdx = player.getRoomIdx(); if (riddlesByRoom.find(roomIdx) == riddlesByRoom.end()) return; const vector<string>& templateScreen = getRiddleTemplate(); if (templateScreen.empty()) return; Riddle* riddle = riddlesByRoom[roomIdx]; vector<string> riddleScreenData = riddle->buildRiddleScreen(templateScreen); Screen riddleScreen(riddleScreenData);
     cls(); riddleScreen.draw(); refreshLegend(); char answer = '\0';
     while (true) {
@@ -87,6 +136,13 @@ void Game::handleRiddleEncounter(Player& player) {
             }
         }
     }
+    
+    // Check if game is lost after answering riddle
+    if (heartsCount <= 0) {
+        isRunning = false;
+        return;
+    }
+    
     cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers();
 }
 
@@ -97,6 +153,33 @@ void Game::processTransitions(vector<RoomTransition>& transitions) {
 
 void Game::tickAndHandleBombs() { vector<Bomb> nextBombs; vector<Bomb> toExplode; nextBombs.reserve(bombs.size()); for (auto& b : bombs) if (b.tick()) toExplode.push_back(b); else nextBombs.push_back(b); bombs.swap(nextBombs); for (const auto& b : toExplode) explodeBomb(b); }
 
-void Game::explodeBomb(const Bomb& b) { int room = b.getRoomIdx(); Screen& s = world[room]; Point center = b.getPosition(); const int radius = 3; int minX = max(0, center.x - radius), maxX = min(Screen::MAX_X - 1, center.x + radius); int minY = max(0, center.y - radius), maxY = min(Screen::MAX_Y - 1, center.y + radius); for (int y = minY; y <= maxY; ++y) for (int x = minX; x <= maxX; ++x) { Point p{ x, y }; wchar_t c = s.getCharAt(p); if (c == Tiles::Bombable_Wall_H || c == Tiles::Bombable_Wall_V) s.setCharAt(p, Tiles::Empty); } int hits = 0; for (auto& pl : players) if (pl.getRoomIdx() == room) { Point pp = pl.getPosition(); if (pp.x >= minX && pp.x <= maxX && pp.y >= minY && pp.y <= maxY) ++hits; } heartsCount -= hits; if (heartsCount < 0) heartsCount = 0; }
+void Game::explodeBomb(const Bomb& b) { 
+    int room = b.getRoomIdx(); Screen& s = world[room]; Point center = b.getPosition(); const int radius = 3; 
+    int minX = max(0, center.x - radius), maxX = min(Screen::MAX_X - 1, center.x + radius); 
+    int minY = max(0, center.y - radius), maxY = min(Screen::MAX_Y - 1, center.y + radius); 
+    
+    for (int y = minY; y <= maxY; ++y) 
+        for (int x = minX; x <= maxX; ++x) { 
+            Point p{ x, y }; wchar_t c = s.getCharAt(p); 
+            if (c == Tiles::Bombable_Wall_H || c == Tiles::Bombable_Wall_V) 
+                s.setCharAt(p, Tiles::Empty); 
+        } 
+    
+    int hits = 0; 
+    for (auto& pl : players) 
+        if (pl.getRoomIdx() == room) { 
+            Point pp = pl.getPosition(); 
+            if (pp.x >= minX && pp.x <= maxX && pp.y >= minY && pp.y <= maxY) 
+                ++hits; 
+        } 
+    
+    heartsCount -= hits; 
+    if (heartsCount < 0) heartsCount = 0; 
+    
+    // Check if game is lost after bomb explosion
+    if (heartsCount <= 0) {
+        isRunning = false;
+    }
+}
 
 void Game::drawEverything() { cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers(); }
