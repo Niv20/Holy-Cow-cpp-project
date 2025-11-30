@@ -1,7 +1,7 @@
 ﻿#include "Player.h"
 #include <cctype>
 #include "Screen.h"
-#include "Tiles.h"
+#include "Glyph.h" // was Tiles.h
 #include <windows.h>
 
 Player::Player(Point startPos, const char* keySet, wchar_t sym, int startRoom)
@@ -21,24 +21,24 @@ void Player::move(Screen& currentScreen) {
     wchar_t tile = currentScreen.getCharAt(position);
     bool blocked = false;
 
-    if (Tiles::isKey(tile)) {
+    if (Glyph::isKey(tile)) {
         if (canTakeObject()) {
             setCarried((char)tile);
-            currentScreen.setCharAt(position, Tiles::Empty);
+            currentScreen.setCharAt(position, Glyph::Empty);
             currentScreen.refreshCell(position);
         }
-    } else if (Tiles::isDoor(tile)) {
+    } else if (Glyph::isDoor(tile)) {
         if (getCarried() == std::tolower((unsigned char)tile)) {
-            currentScreen.setCharAt(position, Tiles::Empty);
+            currentScreen.setCharAt(position, Glyph::Empty);
             currentScreen.refreshCell(position);
             setCarried(' ');
         } else blocked = true;
-    } else if (Tiles::isBomb(tile)) {
-        if (canTakeObject()) { setCarried('@'); currentScreen.setCharAt(position, Tiles::Empty); currentScreen.refreshCell(position); }
-    } else if (Tiles::isTorch(tile)) {
-        if (canTakeObject()) { setCarried('!'); currentScreen.setCharAt(position, Tiles::Empty); currentScreen.refreshCell(position); }
-    } else if (Tiles::isWall(tile)) blocked = true;
-    else if (Tiles::isRiddle(tile) || tile == Tiles::Empty) {
+    } else if (Glyph::isBomb(tile)) {
+        if (canTakeObject()) { setCarried('@'); currentScreen.setCharAt(position, Glyph::Empty); currentScreen.refreshCell(position); }
+    } else if (Glyph::isTorch(tile)) {
+        if (canTakeObject()) { setCarried('!'); currentScreen.setCharAt(position, Glyph::Empty); currentScreen.refreshCell(position); }
+    } else if (Glyph::isWall(tile)) blocked = true;
+    else if (Glyph::isRiddle(tile) || tile == Glyph::Empty) {
         // allowed
     } else blocked = true;
 
@@ -59,7 +59,7 @@ void Player::move(Screen& currentScreen) {
                 else if (position.diff_y == 1) drop.y = p.y - 1; // moving down -> drop up
                 else if (position.diff_y == -1) drop.y = p.y + 1; // moving up -> drop down
                 if (drop.x>=0 && drop.x<Screen::MAX_X && drop.y>=0 && drop.y<Screen::MAX_Y) {
-                    if (currentScreen.getCharAt(drop) == Tiles::Empty) {
+                    if (currentScreen.getCharAt(drop) == Glyph::Empty) {
                         currentScreen.setCharAt(drop,(wchar_t)held);
                         currentScreen.refreshCell(drop);
                         setCarried(' '); dropped = true;
@@ -70,7 +70,7 @@ void Player::move(Screen& currentScreen) {
             if (!dropped) {
                 Point candidates[4] = { {p.x+1,p.y},{p.x-1,p.y},{p.x,p.y-1},{p.x,p.y+1} };
                 for (auto& q : candidates) {
-                    if (q.x>=0 && q.x<Screen::MAX_X && q.y>=0 && q.y<Screen::MAX_Y && currentScreen.getCharAt(q) == Tiles::Empty) {
+                    if (q.x>=0 && q.x<Screen::MAX_X && q.y>=0 && q.y<Screen::MAX_Y && currentScreen.getCharAt(q) == Glyph::Empty) {
                         currentScreen.setCharAt(q,(wchar_t)held);
                         currentScreen.refreshCell(q);
                         setCarried(' '); dropped = true; break;
@@ -80,8 +80,8 @@ void Player::move(Screen& currentScreen) {
         } else {
             // Pick up again if standing on item while stationary action
             wchar_t under = currentScreen.getCharAt(position);
-            if ((Tiles::isKey(under) || Tiles::isBomb(under) || Tiles::isTorch(under)) && canTakeObject()) {
-                setCarried((char)under); currentScreen.setCharAt(position, Tiles::Empty); currentScreen.refreshCell(position);
+            if ((Glyph::isKey(under) || Glyph::isBomb(under) || Glyph::isTorch(under)) && canTakeObject()) {
+                setCarried((char)under); currentScreen.setCharAt(position, Glyph::Empty); currentScreen.refreshCell(position);
             }
         }
         actionRequested = false;

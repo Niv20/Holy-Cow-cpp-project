@@ -197,6 +197,7 @@
     <ClInclude Include="Bomb.h" />
     <ClInclude Include="Door.h" />
     <ClInclude Include="Game.h" />
+    <ClInclude Include="Glyph.h" />
     <ClInclude Include="Key.h" />
     <ClInclude Include="Legend.h" />
     <ClInclude Include="Menu.h" />
@@ -207,7 +208,6 @@
     <ClInclude Include="RoomConnections.h" />
     <ClInclude Include="Screen.h" />
     <ClInclude Include="ScreenLoader.h" />
-    <ClInclude Include="Tiles.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>

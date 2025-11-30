@@ -74,9 +74,6 @@
     <ClInclude Include="RiddleData.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
-    <ClInclude Include="Tiles.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Bomb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -90,6 +87,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RoomConnections.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Glyph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

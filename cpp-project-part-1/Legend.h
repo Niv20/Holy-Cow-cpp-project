@@ -3,7 +3,7 @@
 #include <vector>
 #include "Screen.h"
 #include "Point.h"
-#include "Tiles.h"
+#include "Glyph.h" // renamed from Tiles.h
 
 class Legend {
     std::vector<Point> roomLegendPos; // indexed by room idx

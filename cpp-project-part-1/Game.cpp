@@ -1,7 +1,7 @@
 ﻿#include "Game.h"
 #include "RiddleData.h"
 #include "utils.h"
-#include "Tiles.h"
+#include "Glyph.h" // renamed from Tiles.h
 #include <conio.h>
 #include <windows.h>
 #include <fstream>
@@ -14,8 +14,8 @@ Game::Game() : visibleRoomIdx(0), isRunning(true), roomConnections(initRoomConne
 void Game::init() {
     world = ScreenLoader::loadScreensFromFiles();
     if (world.empty()) { isRunning = false; return; }
-    players.push_back(Player(Point(53, 18), "wdxase", Tiles::First_Player, 0));
-    players.push_back(Player(Point(63, 18), "ilmjko", Tiles::Second_Player, 0));
+    players.push_back(Player(Point(53, 18), "wdxase", Glyph::First_Player, 0));
+    players.push_back(Player(Point(63, 18), "ilmjko", Glyph::Second_Player, 0));
     
     vector<RiddleData> riddles = initRiddles();
     for (auto& rd : riddles) {
@@ -26,7 +26,7 @@ void Game::init() {
     for (int room = 0; room < (int)world.size(); ++room) {
         Screen& s = world[room];
         for (int y = 0; y < Screen::MAX_Y; ++y) for (int x = 0; x < Screen::MAX_X; ++x) {
-            Point p{ x, y }; if (s.getCharAt(p) == Tiles::Bomb) bombs.emplace_back(p, room, 5);
+            Point p{ x, y }; if (s.getCharAt(p) == Glyph::Bomb) bombs.emplace_back(p, room, 5);
         }
     }
     legend.ensureRooms(world.size());
@@ -115,7 +115,7 @@ void Game::update() {
         p.move(world[visibleRoomIdx]);
         Point pos = p.getPosition(); 
         wchar_t cell = world[visibleRoomIdx].getCharAt(pos);
-        if (Tiles::isRiddle(cell)) handleRiddleEncounter(p);
+        if (Glyph::isRiddle(cell)) handleRiddleEncounter(p);
     }
     
     checkAndProcessTransitions();
@@ -174,7 +174,7 @@ void Game::handleRiddleEncounter(Player& player) {
             else if (answer >= '1' && answer <= '4') {
                 if (answer == riddle->getCorrectAnswer()) { 
                     pointsCount += riddle->getPoints(); 
-                    world[roomIdx].setCharAt(pos, Tiles::Empty); 
+                    world[roomIdx].setCharAt(pos, Glyph::Empty); 
                 }
                 else { 
                     riddle->halvePoints(); 
@@ -308,8 +308,8 @@ void Game::explodeBomb(const Bomb& b) {
     for (int y = minY; y <= maxY; ++y) 
         for (int x = minX; x <= maxX; ++x) { 
             Point p{ x, y }; wchar_t c = s.getCharAt(p); 
-            if (c == Tiles::Bombable_Wall_H || c == Tiles::Bombable_Wall_V) 
-                s.setCharAt(p, Tiles::Empty); 
+            if (c == Glyph::Bombable_Wall_H || c == Glyph::Bombable_Wall_V) 
+                s.setCharAt(p, Glyph::Empty); 
         } 
     
     int hits = 0; 

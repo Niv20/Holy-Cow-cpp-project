@@ -2,12 +2,12 @@
 #include <iostream>
 #include <cctype>
 #include "Point.h"
-#include "Tiles.h"
+#include "Glyph.h" // was Tiles.h
 #include <iomanip>
 
 void Screen::initFromWideLines(const std::vector<std::wstring>& lines) {
     m_grid.clear();
-    m_grid.resize(MAX_Y, std::vector<SpecialChar>(MAX_X, SpecialChar{ Tiles::Empty }));
+    m_grid.resize(MAX_Y, std::vector<SpecialChar>(MAX_X, SpecialChar{ Glyph::Empty }));
     int yLimit = std::min<int>(MAX_Y, (int)lines.size());
     for (int y = 0; y < yLimit; ++y) {
         const std::wstring& src = lines[y];
@@ -46,7 +46,7 @@ void Screen::draw() const {
 }
 
 wchar_t Screen::getCharAt(const Point& p) const {
-    if (p.x < 0 || p.x >= MAX_X || p.y < 0 || p.y >= MAX_Y) return Tiles::Empty;
+    if (p.x < 0 || p.x >= MAX_X || p.y < 0 || p.y >= MAX_Y) return Glyph::Empty;
     return m_grid[p.y][p.x].ch;
 }
 
@@ -55,7 +55,7 @@ void Screen::setCharAt(const Point& p, wchar_t newChar) {
     m_grid[p.y][p.x].ch = newChar; // no immediate console write
 }
 
-void Screen::erase(const Point& p) { setCharAt(p, Tiles::Empty); }
+void Screen::erase(const Point& p) { setCharAt(p, Glyph::Empty); }
 
 void Screen::refreshCell(const Point& p) const {
     if (p.x < 0 || p.x >= MAX_X || p.y < 0 || p.y >= MAX_Y) return;
