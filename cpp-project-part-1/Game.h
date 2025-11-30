@@ -7,15 +7,10 @@
 #include "Bomb.h"
 #include "Legend.h"
 #include "ScreenLoader.h"
+#include "RoomConnections.h"
 
 
 constexpr int ESC_KEY = 27;
-
-// Holds data for a pending room transition request
-struct RoomTransition {
-    Player* player;
-    int nextRoom;
-};
 
 // Key for riddle lookup: room index + position
 struct RiddleKey {
@@ -35,6 +30,7 @@ private:
     std::vector<Screen> world;
     std::vector<Player> players;
     std::map<RiddleKey, Riddle*> riddlesByPosition; // Map position to riddle
+    RoomConnections roomConnections;
     int visibleRoomIdx;
     bool isRunning;
     int pointsCount = 0;
@@ -50,7 +46,7 @@ private:
     void init();
     void handleInput();
     void update();
-    void processTransitions(std::vector<RoomTransition>& transitions);
+    void checkAndProcessTransitions();
     void drawEverything();
     void handleRiddleEncounter(Player& player);
     void handlePause();

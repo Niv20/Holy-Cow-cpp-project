@@ -34,7 +34,6 @@ namespace Tiles {
     // Classification (wchar_t)
     inline bool isDoor(wchar_t ch) { return ch >= L'A' && ch <= L'Z'; }
     inline bool isKey(wchar_t ch) { return ch >= L'a' && ch <= L'z'; }
-    inline bool isRoomTransition(wchar_t ch) { return ch >= L'0' && ch <= L'9'; }
     inline bool isRiddle(wchar_t ch) { return ch == Riddle; }
     inline bool isBomb(wchar_t ch) { return ch == Bomb; }
     inline bool isTorch(wchar_t ch) { return ch == Torch; }

@@ -204,6 +204,7 @@
     <ClInclude Include="Point.h" />
     <ClInclude Include="Riddle.h" />
     <ClInclude Include="RiddleData.h" />
+    <ClInclude Include="RoomConnections.h" />
     <ClInclude Include="Screen.h" />
     <ClInclude Include="ScreenLoader.h" />
     <ClInclude Include="Tiles.h" />
@@ -221,6 +222,7 @@
     <None Include="Lose.screen" />
     <None Include="Pause.screen" />
     <None Include="Riddle.screen" />
+    <None Include="ROOM_CONNECTIONS_README.md" />
     <None Include="Start.screen" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -37,7 +37,6 @@ void Screen::draw() const {
         out.reserve(MAX_X);
         for (int x = 0; x < MAX_X; ++x) {
             wchar_t c = m_grid[y][x].ch;
-            if (Tiles::isRoomTransition(c)) c = Tiles::Empty;
             out.push_back(c);
         }
         COORD linePos{0,(SHORT)y};
@@ -61,7 +60,6 @@ void Screen::erase(const Point& p) { setCharAt(p, Tiles::Empty); }
 void Screen::refreshCell(const Point& p) const {
     if (p.x < 0 || p.x >= MAX_X || p.y < 0 || p.y >= MAX_Y) return;
     wchar_t c = m_grid[p.y][p.x].ch;
-    if (Tiles::isRoomTransition(c)) c = Tiles::Empty;
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     COORD pos{ (SHORT)p.x, (SHORT)p.y };
     SetConsoleCursorPosition(hOut, pos);

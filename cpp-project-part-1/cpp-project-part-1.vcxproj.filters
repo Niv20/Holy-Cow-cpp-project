@@ -89,6 +89,9 @@
     <ClInclude Include="Menu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RoomConnections.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="adv-world_01.screen">
@@ -127,5 +130,6 @@
     <None Include="Instructions.screen">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="ROOM_CONNECTIONS_README.md" />
   </ItemGroup>
 </Project>

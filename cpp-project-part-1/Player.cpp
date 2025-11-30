@@ -38,7 +38,7 @@ void Player::move(Screen& currentScreen) {
     } else if (Tiles::isTorch(tile)) {
         if (canTakeObject()) { setCarried('!'); currentScreen.setCharAt(position, Tiles::Empty); currentScreen.refreshCell(position); }
     } else if (Tiles::isWall(tile)) blocked = true;
-    else if (Tiles::isRiddle(tile) || Tiles::isRoomTransition(tile) || tile == Tiles::Empty) {
+    else if (Tiles::isRiddle(tile) || tile == Tiles::Empty) {
         // allowed
     } else blocked = true;
 

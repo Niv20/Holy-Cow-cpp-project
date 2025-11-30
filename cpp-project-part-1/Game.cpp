@@ -5,10 +5,11 @@
 #include <conio.h>
 #include <windows.h>
 #include <fstream>
+#include <map>
 
 using namespace std;
 
-Game::Game() : visibleRoomIdx(0), isRunning(true) { init(); }
+Game::Game() : visibleRoomIdx(0), isRunning(true), roomConnections(initRoomConnections()) { init(); }
 
 void Game::init() {
     world = ScreenLoader::loadScreensFromFiles();
@@ -110,15 +111,17 @@ void Game::update() {
         return;
     }
     
-    vector<RoomTransition> transitions;
     for (auto& p : players) if (p.getRoomIdx() == visibleRoomIdx) {
         p.move(world[visibleRoomIdx]);
-        Point pos = p.getPosition(); wchar_t cell = world[visibleRoomIdx].getCharAt(pos);
+        Point pos = p.getPosition(); 
+        wchar_t cell = world[visibleRoomIdx].getCharAt(pos);
         if (Tiles::isRiddle(cell)) handleRiddleEncounter(p);
-        else if (Tiles::isRoomTransition(cell)) transitions.push_back({ &p, (int)(cell - L'0') });
     }
-    tickAndHandleBombs(); if (!transitions.empty()) processTransitions(transitions);
-    refreshLegend(); drawPlayers();
+    
+    checkAndProcessTransitions();
+    tickAndHandleBombs();
+    refreshLegend(); 
+    drawPlayers();
 }
 
 void Game::handleRiddleEncounter(Player& player) {
@@ -196,9 +199,103 @@ void Game::handleRiddleEncounter(Player& player) {
     cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers();
 }
 
-void Game::processTransitions(vector<RoomTransition>& transitions) {
-    int lastTransitionerNextRoom = -1; for (auto& trans : transitions) { Player* p = trans.player; int originRoom = p->getRoomIdx(); int nextRoom = trans.nextRoom; lastTransitionerNextRoom = nextRoom; p->setRoomIdx(nextRoom); Point pos = p->getPosition(); Point spawn = pos; const int maxX = Screen::MAX_X; const int maxY = Screen::MAX_Y; bool fromLeft = (pos.x <= 1), fromRight = (pos.x >= maxX - 2), fromTop = (pos.y <= 1), fromBottom = (pos.y >= maxY - 2); if (fromLeft) spawn.x = maxX - 2; else if (fromRight) spawn.x = 1; else if (fromTop) spawn.y = maxY - 2; else if (fromBottom) spawn.y = 1; else { if (spawn.x < maxX/2) spawn.x += 1; else spawn.x -= 1; } p->setPosition(spawn); }
-    bool cameraShouldMove = true; for (const auto& p : players) if (p.getRoomIdx() == visibleRoomIdx) { cameraShouldMove = false; break; } if (cameraShouldMove && lastTransitionerNextRoom != -1) { visibleRoomIdx = lastTransitionerNextRoom; cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers(); }
+void Game::checkAndProcessTransitions() {
+    const int maxX = Screen::MAX_X;
+    const int maxY = Screen::MAX_Y;
+
+    struct TransitionInfo {
+        Player* player;
+        Direction direction;
+        int targetRoom;
+        Point originalPos; // includes diff_x/diff_y movement intent
+        int order;
+    };
+
+    std::vector<TransitionInfo> transitions;
+    int order = 0;
+
+    // Collect transitions at exact edges
+    for (auto& p : players) {
+        if (p.getRoomIdx() != visibleRoomIdx) continue;
+        Point pos = p.getPosition();
+        Direction dir = Direction::None;
+        if (pos.x <= 0) dir = Direction::Left;
+        else if (pos.x >= maxX - 1) dir = Direction::Right;
+        else if (pos.y <= 0) dir = Direction::Up;
+        else if (pos.y >= maxY - 1) dir = Direction::Down;
+        if (dir != Direction::None) {
+            int nextRoom = roomConnections.getTargetRoom(visibleRoomIdx, dir);
+            if (nextRoom != -1) transitions.push_back({ &p, dir, nextRoom, pos, order++ });
+        }
+    }
+
+    if (transitions.empty()) return;
+
+    int targetRoom = transitions[0].targetRoom;
+
+    // Clear current edge cell visuals (players were visible at edge this frame)
+    for (auto& t : transitions) world[visibleRoomIdx].refreshCell(t.originalPos);
+
+    // Base spawn positions: opposite edge, preserve perpendicular coordinate
+    std::vector<Point> spawns(transitions.size());
+    for (size_t i = 0; i < transitions.size(); ++i) {
+        const auto& t = transitions[i];
+        Point s;
+        switch (t.direction) {
+            case Direction::Left:  s = Point(maxX - 2, t.originalPos.y); break;
+            case Direction::Right: s = Point(1,        t.originalPos.y); break;
+            case Direction::Up:    s = Point(t.originalPos.x, maxY - 2); break;
+            case Direction::Down:  s = Point(t.originalPos.x, 1);        break;
+            default: s = t.originalPos; break;
+        }
+        if (s.x < 1) s.x = 1; if (s.x > maxX - 2) s.x = maxX - 2;
+        if (s.y < 1) s.y = 1; if (s.y > maxY - 2) s.y = maxY - 2;
+        spawns[i] = s;
+    }
+
+    // If multiple players share same spawn, push the earlier entrant one step forward
+    auto pushForwardOne = [&](size_t idx, const TransitionInfo& info) {
+        int dx = info.originalPos.diff_x;
+        int dy = info.originalPos.diff_y;
+        if (dx == 0 && dy == 0) {
+            // Derive from transition direction
+            switch (info.direction) {
+                case Direction::Left:  dx = -1; break;
+                case Direction::Right: dx =  1; break;
+                case Direction::Up:    dy = -1; break;
+                case Direction::Down:  dy =  1; break;
+                default: break;
+            }
+        }
+        spawns[idx].x += dx; spawns[idx].y += dy;
+        if (spawns[idx].x < 1) spawns[idx].x = 1; if (spawns[idx].x > maxX - 2) spawns[idx].x = maxX - 2;
+        if (spawns[idx].y < 1) spawns[idx].y = 1; if (spawns[idx].y > maxY - 2) spawns[idx].y = maxY - 2;
+    };
+
+    // Single pass resolution: for each pair, enforce one-ahead rule
+    for (size_t i = 0; i < spawns.size(); ++i) {
+        for (size_t j = i + 1; j < spawns.size(); ++j) {
+            if (spawns[i].x == spawns[j].x && spawns[i].y == spawns[j].y) {
+                // i entered earlier than j -> i must be one step ahead
+                pushForwardOne(i, transitions[i]);
+            }
+        }
+    }
+
+    // Apply final positions and preserve movement vectors
+    for (size_t i = 0; i < transitions.size(); ++i) {
+        Player* pl = transitions[i].player;
+        Point newPos = spawns[i];
+        newPos.diff_x = transitions[i].originalPos.diff_x;
+        newPos.diff_y = transitions[i].originalPos.diff_y;
+        pl->setRoomIdx(targetRoom);
+        pl->setPosition(newPos);
+    }
+
+    // Switch camera if no one remains in current room
+    bool cameraShouldMove = true;
+    for (const auto& p : players) if (p.getRoomIdx() == visibleRoomIdx) { cameraShouldMove = false; break; }
+    if (cameraShouldMove) { visibleRoomIdx = targetRoom; cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers(); }
 }
 
 void Game::tickAndHandleBombs() { vector<Bomb> nextBombs; vector<Bomb> toExplode; nextBombs.reserve(bombs.size()); for (auto& b : bombs) if (b.tick()) toExplode.push_back(b); else nextBombs.push_back(b); bombs.swap(nextBombs); for (const auto& b : toExplode) explodeBomb(b); }
