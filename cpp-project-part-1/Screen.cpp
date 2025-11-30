@@ -65,3 +65,7 @@ void Screen::refreshCell(const Point& p) const {
     SetConsoleCursorPosition(hOut, pos);
     DWORD written; WriteConsoleW(hOut, &c, 1, &written, nullptr);
 }
+
+void Screen::refreshCells(const std::vector<Point>& pts) const {
+    for (auto& p : pts) refreshCell(p);
+}

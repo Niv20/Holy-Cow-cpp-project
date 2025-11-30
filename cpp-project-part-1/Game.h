@@ -8,7 +8,8 @@
 #include "Legend.h"
 #include "ScreenLoader.h"
 #include "RoomConnections.h"
-
+#include "Obstacle.h"
+#include "Spring.h"
 
 constexpr int ESC_KEY = 27;
 
@@ -39,11 +40,19 @@ private:
     // Active bombs
     std::vector<Bomb> bombs;
 
+    // Obstacles scanned across all rooms
+    std::vector<Obstacle> obstacles;
+
+    // Springs scanned across all rooms
+    std::vector<SpringData> springs;
+
     // Legend manager
     Legend legend;
 
     // Helper methods
     void init();
+    void scanObstacles();
+    void scanSprings(); // new: scan all springs in all rooms
     void handleInput();
     void update();
     void checkAndProcessTransitions();
@@ -57,14 +66,17 @@ private:
 
     void refreshLegend();
     void drawPlayers();
-
 public:
-    // Constructor
     Game();
-    
-    // The main loop
     void run();
-    
-    // Check if player lost (hearts <= 0)
     bool isGameLost() const { return heartsCount <= 0; }
+
+    // Accessors used by Player for obstacle logic
+    const std::vector<Player>& getPlayers() const { return players; }
+    std::vector<Player>& getPlayersMutable() { return players; }
+    Obstacle* findObstacleAt(int roomIdx, const Point& p);
+    SpringData* findSpringAt(int roomIdx, const Point& p); // new
+    int getVisibleRoomIdx() const { return visibleRoomIdx; }
+    Screen& getScreen(int roomIdx) { return world[roomIdx]; }
+    const std::vector<Obstacle>& getObstacles() const { return obstacles; }
 };

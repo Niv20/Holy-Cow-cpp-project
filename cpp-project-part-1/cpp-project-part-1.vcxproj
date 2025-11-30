@@ -186,11 +186,13 @@
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Menu.cpp" />
+    <ClCompile Include="Obstacle.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Point.cpp" />
     <ClCompile Include="Riddle.cpp" />
     <ClCompile Include="Screen.cpp" />
     <ClCompile Include="ScreenLoader.cpp" />
+    <ClCompile Include="Spring.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -201,6 +203,7 @@
     <ClInclude Include="Key.h" />
     <ClInclude Include="Legend.h" />
     <ClInclude Include="Menu.h" />
+    <ClInclude Include="Obstacle.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Point.h" />
     <ClInclude Include="Riddle.h" />
@@ -208,6 +211,7 @@
     <ClInclude Include="RoomConnections.h" />
     <ClInclude Include="Screen.h" />
     <ClInclude Include="ScreenLoader.h" />
+    <ClInclude Include="Spring.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>

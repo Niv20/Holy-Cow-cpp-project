@@ -1,11 +1,13 @@
 ﻿#include "Game.h"
 #include "RiddleData.h"
 #include "utils.h"
-#include "Glyph.h" // renamed from Tiles.h
+#include "Glyph.h"
 #include <conio.h>
 #include <windows.h>
 #include <fstream>
 #include <map>
+#include <queue>
+#include <set>
 
 using namespace std;
 
@@ -18,10 +20,7 @@ void Game::init() {
     players.push_back(Player(Point(63, 18), "ilmjko", Glyph::Second_Player, 0));
     
     vector<RiddleData> riddles = initRiddles();
-    for (auto& rd : riddles) {
-        RiddleKey key{ rd.roomIdx, rd.position.x, rd.position.y };
-        riddlesByPosition[key] = new Riddle(rd.riddle);
-    }
+    for (auto& rd : riddles) { RiddleKey key{ rd.roomIdx, rd.position.x, rd.position.y }; riddlesByPosition[key] = new Riddle(rd.riddle); }
     
     for (int room = 0; room < (int)world.size(); ++room) {
         Screen& s = world[room];
@@ -29,8 +28,101 @@ void Game::init() {
             Point p{ x, y }; if (s.getCharAt(p) == Glyph::Bomb) bombs.emplace_back(p, room, 5);
         }
     }
-    legend.ensureRooms(world.size());
-    for (int room = 0; room < (int)world.size(); ++room) legend.locateLegendForRoom(room, world[room]);
+    legend.ensureRooms(world.size()); for (int room = 0; room < (int)world.size(); ++room) legend.locateLegendForRoom(room, world[room]);
+    scanObstacles();
+    scanSprings(); // scan springs
+}
+
+void Game::scanSprings() {
+    springs.clear();
+    for (int room = 0; room < (int)world.size(); ++room) {
+        Screen& s = world[room];
+        set<pair<int,int>> visited;
+        
+        for (int y = 0; y < Screen::MAX_Y; ++y) {
+            for (int x = 0; x < Screen::MAX_X; ++x) {
+                Point p{x, y};
+                if (visited.count({x, y})) continue;
+                if (!Glyph::isSpring(s.getCharAt(p))) continue;
+                
+                // Found a spring cell - determine if it's part of a linear spring adjacent to wall
+                // Try all 4 directions to find the wall end
+                const int dirs[4][2] = {{0,-1},{0,1},{-1,0},{1,0}}; // up down left right
+                
+                for (int d = 0; d < 4; ++d) {
+                    int dx = dirs[d][0], dy = dirs[d][1];
+                    Point check{x + dx, y + dy};
+                    wchar_t ch = s.getCharAt(check);
+                    
+                    if (Glyph::isWall(ch)) {
+                        // Found wall adjacent to this spring cell
+                        // Now walk in opposite direction to collect all spring cells
+                        vector<Point> springCells;
+                        Point cur = p;
+                        int odx = -dx, ody = -dy; // opposite direction (away from wall)
+                        
+                        while (Glyph::isSpring(s.getCharAt(cur))) {
+                            springCells.push_back(cur);
+                            visited.insert({cur.x, cur.y});
+                            cur.x += odx;
+                            cur.y += ody;
+                        }
+                        
+                        if (!springCells.empty()) {
+                            // Create spring data: cells are from wall outward
+                            springs.emplace_back(room, springCells, odx, ody, check);
+                        }
+                        break; // found the wall for this spring
+                    }
+                }
+            }
+        }
+    }
+}
+
+SpringData* Game::findSpringAt(int roomIdx, const Point& p) {
+    for (auto& sp : springs) {
+        if (sp.roomIdx == roomIdx && sp.findCellIndex(p) != -1) {
+            return &sp;
+        }
+    }
+    return nullptr;
+}
+
+void Game::scanObstacles() {
+    obstacles.clear();
+    // Build global visited per room
+    vector<vector<vector<bool>>> visited(world.size(), vector<vector<bool>>(Screen::MAX_Y, vector<bool>(Screen::MAX_X,false)));
+    for (int room = 0; room < (int)world.size(); ++room) {
+        Screen& s = world[room];
+        for (int y=0;y<Screen::MAX_Y;++y) for (int x=0;x<Screen::MAX_X;++x) {
+            if (visited[room][y][x]) continue; Point start{ x,y }; wchar_t c = s.getCharAt(start);
+            if (!Glyph::isObstacle(c)) continue;
+            // BFS across rooms: neighbors include edges moving to connected rooms when crossing borders
+            queue<pair<int,Point>> q; q.push({room,start}); visited[room][y][x]=true; vector<ObCell> component;
+            auto enqueue = [&](int r, Point p) {
+                if (r<0||r>=(int)world.size()) return; if (p.x<0||p.x>=Screen::MAX_X||p.y<0||p.y>=Screen::MAX_Y) return;
+                if (visited[r][p.y][p.x]) return; if (!Glyph::isObstacle(world[r].getCharAt(p))) return; visited[r][p.y][p.x]=true; q.push({r,p}); };
+            while(!q.empty()) {
+                auto cur = q.front(); q.pop(); int cr = cur.first; Point cp = cur.second; component.push_back({cr,cp});
+                const int dx[4]={1,-1,0,0}; const int dy[4]={0,0,1,-1};
+                for (int i=0;i<4;++i) {
+                    Point np{cp.x+dx[i], cp.y+dy[i]}; int nr = cr;
+                    // If crossing border, move to connected room and wrap to opposite edge spawn
+                    if (np.x < 0) { nr = roomConnections.getTargetRoom(cr, Direction::Left); np.x = Screen::MAX_X-1; }
+                    else if (np.x >= Screen::MAX_X) { nr = roomConnections.getTargetRoom(cr, Direction::Right); np.x = 0; }
+                    else if (np.y < 0) { nr = roomConnections.getTargetRoom(cr, Direction::Up); np.y = Screen::MAX_Y-1; }
+                    else if (np.y >= Screen::MAX_Y) { nr = roomConnections.getTargetRoom(cr, Direction::Down); np.y = 0; }
+                    if (nr == -1) continue; enqueue(nr, np);
+                }
+            }
+            obstacles.emplace_back(component);
+        }
+    }
+}
+
+Obstacle* Game::findObstacleAt(int roomIdx, const Point& p) {
+    for (auto& o : obstacles) if (o.contains(roomIdx, p)) return &o; return nullptr;
 }
 
 static const vector<string>& getRiddleTemplate() {
@@ -78,50 +170,26 @@ void Game::handleInput() {
 void Game::handlePause() {
     const vector<string>& pauseTemplate = getPauseTemplate();
     if (pauseTemplate.empty()) { isRunning = false; return; }
-    
     Screen pauseScreen(pauseTemplate);
-    cls();
-    pauseScreen.draw();
-    
+    cls(); pauseScreen.draw();
     while (true) {
         if (_kbhit()) {
             char key = _getch();
-            if (key == ESC_KEY) {
-                // Continue the game - restore screen
-                cls();
-                world[visibleRoomIdx].draw();
-                refreshLegend();
-                drawPlayers();
-                return;
-            }
-            else if (key == 'H' || key == 'h') {
-                // Return to main menu
-                isRunning = false;
-                return;
-            }
+            if (key == ESC_KEY) { cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers(); return; }
+            else if (key == 'H' || key == 'h') { isRunning = false; return; }
         }
         Sleep(60);
     }
 }
 
 void Game::update() {
-    // Check if game is lost
-    if (heartsCount <= 0) {
-        isRunning = false;
-        return;
-    }
-    
+    if (heartsCount <= 0) { isRunning = false; return; }
     for (auto& p : players) if (p.getRoomIdx() == visibleRoomIdx) {
-        p.move(world[visibleRoomIdx]);
-        Point pos = p.getPosition(); 
-        wchar_t cell = world[visibleRoomIdx].getCharAt(pos);
+        p.move(world[visibleRoomIdx], *this);
+        Point pos = p.getPosition(); wchar_t cell = world[visibleRoomIdx].getCharAt(pos);
         if (Glyph::isRiddle(cell)) handleRiddleEncounter(p);
     }
-    
-    checkAndProcessTransitions();
-    tickAndHandleBombs();
-    refreshLegend(); 
-    drawPlayers();
+    checkAndProcessTransitions(); tickAndHandleBombs(); refreshLegend(); drawPlayers();
 }
 
 void Game::handleRiddleEncounter(Player& player) {

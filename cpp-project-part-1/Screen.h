@@ -24,4 +24,7 @@ public:
 
     // Redraw a single cell from grid to console (no grid change)
     void refreshCell(const Point& p) const;
+
+    // Batch refresh for a set of cells
+    void refreshCells(const std::vector<Point>& pts) const;
 };
