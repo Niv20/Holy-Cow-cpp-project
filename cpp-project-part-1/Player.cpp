@@ -130,8 +130,23 @@ void Player::move(Screen& currentScreen, Game& game) {
                 if (&other == this) continue;
                 if (other.getRoomIdx() != currentRoomIdx) continue;
                 Point op = other.getPosition();
-                bool adjacentNow = (abs(op.x - position.x) + abs(op.y - position.y)) == 1;
-                if (!adjacentNow) continue;
+                
+                // Check adjacency relative to NEXT position (where we're moving to)
+                // This is key: both players are moving forward, so we need to check
+                // if they'll be adjacent at the obstacle, not at current positions
+                bool adjacentToNext = (abs(op.x - next.x) + abs(op.y - next.y)) == 1;
+                
+                // Also check if other player will be adjacent to next after their boost step
+                bool willBeAdjacentToNext = false;
+                if (other.getSpringBoostTicksLeft() > 0) {
+                    Point predictedOtherPos = op;
+                    predictedOtherPos.x += other.getBoostDirX();
+                    predictedOtherPos.y += other.getBoostDirY();
+                    willBeAdjacentToNext = (abs(predictedOtherPos.x - next.x) + abs(predictedOtherPos.y - next.y)) == 1;
+                }
+                
+                if (!adjacentToNext && !willBeAdjacentToNext) continue;
+                
                 int otherPushDx = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirX() : other.getPosition().diff_x;
                 int otherPushDy = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirY() : other.getPosition().diff_y;
                 if (otherPushDx == boostDirX && otherPushDy == boostDirY && !(boostDirX == 0 && boostDirY == 0)) {
@@ -151,8 +166,9 @@ void Player::move(Screen& currentScreen, Game& game) {
             // Try to push obstacles during boost using cooperative force
             if (Glyph::isObstacle(tile)) {
                 Obstacle* obs = game.findObstacleAt(currentRoomIdx, next);
-                if (obs && obs->canPush(boostDirX, boostDirY, stepForce, game)) {
-                    obs->applyPush(boostDirX, boostDirY, game);
+                // Push obstacle with same speed as player boost
+                if (obs && obs->canPush(boostDirX, boostDirY, stepForce, game, springBoostSpeed)) {
+                    obs->applyPush(boostDirX, boostDirY, game, springBoostSpeed);
                     // After pushing, next cell should now be empty; proceed to move
                 } else {
                     hitWall = true;

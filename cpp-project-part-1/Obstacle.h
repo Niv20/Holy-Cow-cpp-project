@@ -16,7 +16,7 @@ public:
         for (auto& c : cells) if (c.roomIdx==roomIdx && c.pos.x==p.x && c.pos.y==p.y) return true; return false;
     }
 
-    // Attempt push by dx,dy (one step). Requires force >= size.
-    bool canPush(int dx, int dy, int force, class Game& game) const;
-    void applyPush(int dx, int dy, class Game& game);
+    // Attempt push by dx,dy with given speed (number of steps). Requires force >= size.
+    bool canPush(int dx, int dy, int force, class Game& game, int speed = 1) const;
+    void applyPush(int dx, int dy, class Game& game, int speed = 1);
 };

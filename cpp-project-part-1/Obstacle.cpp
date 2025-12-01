@@ -13,7 +13,7 @@ static Direction dirFromDelta(int dx, int dy) {
     return Direction::None;
 }
 
-bool Obstacle::canPush(int dx, int dy, int force, Game& game) const {
+bool Obstacle::canPush(int dx, int dy, int force, Game& game, int speed) const {
     // Require enough force equal to obstacle size
     if (force < size()) return false;
 
@@ -23,13 +23,14 @@ bool Obstacle::canPush(int dx, int dy, int force, Game& game) const {
         for (const auto& c : cells) if (c.roomIdx == room && c.pos.x == p.x && c.pos.y == p.y) return true; return false;
     };
 
-    // Check every cell's destination is valid
+    // Check every cell's destination is valid for the entire speed distance
     for (auto& c : cells) {
-        int nx = c.pos.x + dx;
-        int ny = c.pos.y + dy;
+        int nx = c.pos.x + dx * speed; // multiply by speed
+        int ny = c.pos.y + dy * speed;
         int room = c.roomIdx;
 
         // Handle crossing room borders: obstacles can cross rooms
+        // Note: multi-step may cross multiple rooms, but for simplicity we handle one crossing
         if (nx < 0 || nx >= Screen::MAX_X || ny < 0 || ny >= Screen::MAX_Y) {
             Direction d = dirFromDelta(dx, dy);
             int targetRoom = game.getTargetRoom(room, d);
@@ -64,7 +65,7 @@ bool Obstacle::canPush(int dx, int dy, int force, Game& game) const {
     return true;
 }
 
-void Obstacle::applyPush(int dx, int dy, Game& game) {
+void Obstacle::applyPush(int dx, int dy, Game& game, int speed) {
     // Refresh-aware erase of old cells
     for (auto& c : cells) {
         Screen& s = game.getScreen(c.roomIdx);
@@ -72,10 +73,10 @@ void Obstacle::applyPush(int dx, int dy, Game& game) {
         s.refreshCell(c.pos); // update console immediately so obstacle doesn't appear "swallowed"
     }
 
-    // Perform movement, including room crossing
+    // Perform movement by speed steps, including room crossing
     for (auto& c : cells) {
-        int nx = c.pos.x + dx;
-        int ny = c.pos.y + dy;
+        int nx = c.pos.x + dx * speed; // multiply by speed
+        int ny = c.pos.y + dy * speed;
         int room = c.roomIdx;
 
         if (nx < 0 || nx >= Screen::MAX_X || ny < 0 || ny >= Screen::MAX_Y) {
