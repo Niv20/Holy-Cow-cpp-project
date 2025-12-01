@@ -34,9 +34,11 @@ bool Obstacle::canPush(int dx, int dy, int force, Game& game) const {
             Direction d = dirFromDelta(dx, dy);
             int targetRoom = game.getTargetRoom(room, d);
             if (targetRoom == -1) return false; // no connection -> blocked
-            // Wrap position to opposite edge
-            if (nx < 0) nx = Screen::MAX_X - 1; else if (nx >= Screen::MAX_X) nx = 0;
-            if (ny < 0) ny = Screen::MAX_Y - 1; else if (ny >= Screen::MAX_Y) ny = 0;
+            // Wrap position to 3 cells inward from opposite edge (same as applyPush)
+            if (nx < 0) nx = Screen::MAX_X - 4;
+            else if (nx >= Screen::MAX_X) nx = 3;
+            if (ny < 0) ny = Screen::MAX_Y - 4;
+            else if (ny >= Screen::MAX_Y) ny = 3;
             room = targetRoom;
         }
 
@@ -80,8 +82,11 @@ void Obstacle::applyPush(int dx, int dy, Game& game) {
             Direction d = dirFromDelta(dx, dy);
             int targetRoom = game.getTargetRoom(room, d);
             // Assuming canPush already verified targetRoom != -1
-            if (nx < 0) nx = Screen::MAX_X - 1; else if (nx >= Screen::MAX_X) nx = 0;
-            if (ny < 0) ny = Screen::MAX_Y - 1; else if (ny >= Screen::MAX_Y) ny = 0;
+            // Spawn obstacle 3 cells inward from edge
+            if (nx < 0) nx = Screen::MAX_X - 4; // 3 cells from right edge
+            else if (nx >= Screen::MAX_X) nx = 3; // 3 cells from left edge
+            if (ny < 0) ny = Screen::MAX_Y - 4; // 3 cells from bottom edge
+            else if (ny >= Screen::MAX_Y) ny = 3; // 3 cells from top edge
             room = targetRoom;
         }
 
@@ -90,10 +95,15 @@ void Obstacle::applyPush(int dx, int dy, Game& game) {
         c.roomIdx = room;
     }
 
-    // Draw obstacle at new positions and refresh to show movement
+    // Draw obstacle at new positions only if in visible room
+    int visibleRoom = game.getVisibleRoomIdx();
     for (auto& c : cells) {
         Screen& s = game.getScreen(c.roomIdx);
         s.setCharAt(c.pos, Glyph::Obstacle);
-        s.refreshCell(c.pos);
+        // Only refresh if this cell is in the currently visible room
+        if (c.roomIdx == visibleRoom) {
+            s.refreshCell(c.pos);
+        }
+        // If not visible, it will be drawn when room is switched
     }
 }
