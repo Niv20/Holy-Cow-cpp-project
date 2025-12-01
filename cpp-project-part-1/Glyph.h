@@ -35,6 +35,9 @@ namespace Glyph {
     inline constexpr wchar_t Wall_Single_TUp   = L'\x2534'; // ?
     inline constexpr wchar_t Wall_Single_Cross = L'\x253C'; // ?
 
+    // Special door glyph
+    inline constexpr wchar_t SpecialDoor = L'\x25A0'; // ?
+
     // Classification
     inline bool isDoor(wchar_t ch) { return ch >= L'A' && ch <= L'Z'; }
     inline bool isKey(wchar_t ch) { return ch >= L'a' && ch <= L'z'; }
@@ -45,6 +48,7 @@ namespace Glyph {
     inline bool isSpring(wchar_t ch) { return ch == Spring; }
     inline bool isObstacle(wchar_t ch) { return ch == Obstacle; }
     inline bool isSwitch(wchar_t ch) { return ch == Switch_Off || ch == Switch_On; }
+    inline bool isSpecialDoor(wchar_t ch) { return ch == SpecialDoor; }
 
     inline bool isWall(wchar_t ch) {
         if (ch == Wall_Single_TL || ch == Wall_Single_TR || ch == Wall_Single_BL || ch == Wall_Single_BR ||

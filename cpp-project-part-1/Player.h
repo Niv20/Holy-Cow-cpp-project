@@ -1,6 +1,7 @@
 #pragma once
 #include "Point.h"
 #include "Screen.h"
+#include "Key.h"
 
 class Player {
     static constexpr int NUM_KEYS = 6;
@@ -8,7 +9,7 @@ class Player {
     char keys[NUM_KEYS];
     wchar_t symbol;
     int currentRoomIdx;
-    char carried = ' ';
+    Key carried; // was char
     bool actionRequested = false;
 
     // Spring state
@@ -30,13 +31,14 @@ public:
     void handleKey(char key);
     void stop();
     bool isStationary() const { return position.diff_x == 0 && position.diff_y == 0; }
-    bool canTakeObject() const { return carried == ' '; }
+    Key getCarriedKey() const { return carried; }
+    char getCarried() const { return carried.get(); }
+    void setCarried(char ch) { carried = Key(ch); }
+    bool canTakeObject() const { return !carried.valid(); }
     int getRoomIdx() const { return currentRoomIdx; }
     void setRoomIdx(int idx) { currentRoomIdx = idx; }
     Point getPosition() const { return position; }
     void setPosition(Point p) { position = p; }
-    char getCarried() const { return carried; }
-    void setCarried(char ch) { carried = ch; }
 
     int getForce() const { return (springBoostTicksLeft > 0) ? springBoostSpeed : 1; }
     bool isSpringBoostActive() const { return springBoostTicksLeft > 0; }

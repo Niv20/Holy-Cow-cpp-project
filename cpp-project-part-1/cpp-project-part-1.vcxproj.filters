@@ -57,6 +57,9 @@
     <ClCompile Include="Bomb.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SpecialDoor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.h">
@@ -113,6 +116,12 @@
     <ClInclude Include="Switch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SpecialDoor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SpecialDoorsData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="adv-world_01.screen">
@@ -152,6 +161,6 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="ROOM_CONNECTIONS_README.md" />
-    <None Include="test-switch.screen" />
+    <None Include="SpecialDoors.screen" />
   </ItemGroup>
 </Project>

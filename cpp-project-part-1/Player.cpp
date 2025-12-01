@@ -397,7 +397,16 @@ void Player::move(Screen& currentScreen, Game& game) {
             }
             
             // Handle other tiles
-            if (Glyph::isObstacle(tile)) {
+            if (Glyph::isSpecialDoor(tile)) {
+                SpecialDoor* door = game.findSpecialDoorAt(currentRoomIdx, targetPos);
+                if (door && getCarried() != ' ' && door->useKey(Key(getCarried()))) {
+                    // Consume the key but do NOT remove door or pass through yet
+                    setCarried(' ');
+                    blocked = true; // still blocked until all conditions met
+                } else {
+                    blocked = true; // Always blocked by special doors until opened by game logic
+                }
+            } else if (Glyph::isObstacle(tile)) {
                 // IMPORTANT: Check for obstacle BEFORE moving player
                 Obstacle* obs = game.findObstacleAt(currentRoomIdx, targetPos);
                 if (!obs) {
@@ -543,6 +552,24 @@ void Player::move(Screen& currentScreen, Game& game) {
             // (Fresh bombs from map are picked up automatically when walked over, not via action key)
         }
         actionRequested = false;
+    }
+
+    // After movement and item handling, auto-use key on adjacent special door
+    if (getCarried() != ' ') {
+        static const int adjDx[4] = { 1, -1, 0, 0 };
+        static const int adjDy[4] = { 0, 0, 1, -1 };
+        for (int i = 0; i < 4; ++i) {
+            Point adj{ position.x + adjDx[i], position.y + adjDy[i] };
+            if (adj.x < 0 || adj.x >= Screen::MAX_X || adj.y < 0 || adj.y >= Screen::MAX_Y) continue;
+            wchar_t ch = currentScreen.getCharAt(adj);
+            if (Glyph::isSpecialDoor(ch)) {
+                auto* door = game.findSpecialDoorAt(currentRoomIdx, adj);
+                if (door && door->useKey(Key(getCarried()))) {
+                    setCarried(' ');
+                    break; // consumed one key; door remains until conditions met
+                }
+            }
+        }
     }
 
     draw();

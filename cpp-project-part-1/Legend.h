@@ -36,7 +36,7 @@ public:
         snprintf(line1, sizeof(line1), "live: %d", lives);
         snprintf(line2, sizeof(line2), "Pts: %d", points);
         char inv1 = (p1Inv == ' ') ? ' ' : p1Inv; char inv2 = (p2Inv == ' ') ? ' ' : p2Inv;
-        snprintf(line3, sizeof(line3), "Inv: a=[%c] b=[%c]", inv1, inv2);
+        snprintf(line3, sizeof(line3), "Inv: %c=[%c] %c=[%c]", '\xF6', p1Inv == ' ' ? ' ' : p1Inv, '\xFC', p2Inv == ' ' ? ' ' : p2Inv);
         auto pad16 = [](std::string& s) { if (s.size() < 16) s.append(16 - s.size(), ' '); else if (s.size() > 16) s.resize(16); };
         std::string l1(line1), l2(line2), l3(line3); pad16(l1); pad16(l2); pad16(l3);
         auto putLine = [&](int dy, const std::string& line) {

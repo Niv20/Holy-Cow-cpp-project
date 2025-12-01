@@ -3,9 +3,11 @@
 #include "utils.h"
 #include "Glyph.h"
 #include "Menu.h"
+#include "SpecialDoorsData.h"
 #include <conio.h>
 #include <windows.h>
 #include <fstream>
+#include <sstream>
 #include <map>
 #include <queue>
 #include <set>
@@ -30,6 +32,7 @@ void Game::init() {
     scanObstacles();
     scanSprings(); // scan springs
     scanSwitches(); // scan switches
+    loadSpecialDoors();
 }
 
 void Game::scanSwitches() {
@@ -220,6 +223,7 @@ void Game::update() {
         Point pos = p.getPosition(); wchar_t cell = world[visibleRoomIdx].getCharAt(pos);
         if (Glyph::isRiddle(cell)) handleRiddleEncounter(p);
     }
+    updateSpecialDoors();
     checkAndProcessTransitions(); tickAndHandleBombs(); refreshLegend(); drawPlayers();
 }
 
@@ -424,3 +428,70 @@ void Game::placeBomb(int roomIdx, const Point& pos, int delay) {
 }
 
 void Game::drawEverything() { cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers(); }
+
+void Game::loadSpecialDoors() {
+    std::vector<std::string> lines;
+    {
+        std::istringstream iss(SPECIAL_DOORS_CONFIG);
+        std::string line;
+        while (std::getline(iss, line)) lines.push_back(line);
+    }
+    if (lines.empty()) return;
+
+    SpecialDoor* currentDoor = nullptr;
+
+    auto adjustDoorPosition = [&](SpecialDoor* d) {
+        if (!d) return;
+        Screen& s = getScreen(d->roomIdx);
+        Point cfg = d->position;
+        bool inBounds = (cfg.x >= 0 && cfg.x < Screen::MAX_X && cfg.y >= 0 && cfg.y < Screen::MAX_Y);
+        bool atDoor = inBounds && s.getCharAt(cfg) == Glyph::SpecialDoor;
+        if (atDoor) return;
+        int bestDist = INT_MAX; Point bestPos = cfg; bool found = false;
+        for (int y=0;y<Screen::MAX_Y;++y) for (int x=0;x<Screen::MAX_X;++x) {
+            Point p{x,y}; if (s.getCharAt(p)==Glyph::SpecialDoor) {
+                int dist = abs(x-cfg.x)+abs(y-cfg.y); if (dist<bestDist){bestDist=dist;bestPos=p;found=true;}
+            }
+        }
+        if (found) d->position=bestPos; else d->isOpen=true;
+    };
+
+    for (auto& raw : lines) {
+        if (raw.empty() || raw[0]=='#') continue;
+        std::stringstream ss(raw); char type; ss >> type;
+        if (type=='D') {
+            if (currentDoor) { adjustDoorPosition(currentDoor); specialDoors.push_back(*currentDoor); delete currentDoor; }
+            int room,x,y; ss>>room>>x>>y; currentDoor = new SpecialDoor(room, Point(x,y));
+        } else if (type=='K' && currentDoor) {
+            char key; while (ss>>key) currentDoor->requiredKeys.push_back(Key(key));
+        } else if (type=='S' && currentDoor) {
+            int sx,sy,state; ss>>sx>>sy>>state; currentDoor->requiredSwitches.push_back({Point(sx,sy),(bool)state});
+        } else if (raw.rfind("---",0)==0) {
+            if (currentDoor) { adjustDoorPosition(currentDoor); specialDoors.push_back(*currentDoor); delete currentDoor; currentDoor=nullptr; }
+        }
+    }
+    if (currentDoor) { adjustDoorPosition(currentDoor); specialDoors.push_back(*currentDoor); delete currentDoor; }
+}
+
+void Game::updateSpecialDoors() {
+    for (auto& door : specialDoors) {
+        if (!door.isOpen && door.areConditionsMet(*this)) {
+            Screen& s = getScreen(door.roomIdx);
+            if (s.getCharAt(door.position) == Glyph::SpecialDoor) {
+                s.setCharAt(door.position, Glyph::Empty);
+                if (door.roomIdx == visibleRoomIdx) {
+                    s.refreshCell(door.position);
+                }
+            }
+        }
+    }
+}
+
+SpecialDoor* Game::findSpecialDoorAt(int roomIdx, const Point& p) {
+    for (auto& door : specialDoors) {
+        if (door.roomIdx == roomIdx && door.position.x == p.x && door.position.y == p.y) {
+            return &door;
+        }
+    }
+    return nullptr;
+}

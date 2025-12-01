@@ -11,6 +11,7 @@
 #include "Obstacle.h"
 #include "Spring.h"
 #include "Switch.h"
+#include "SpecialDoor.h"
 
 constexpr int ESC_KEY = 27;
 
@@ -53,6 +54,9 @@ private:
     // Legend manager
     Legend legend;
 
+    // Special doors scanned across all rooms
+    std::vector<SpecialDoor> specialDoors;
+
     // Helper methods
     void init();
     void scanObstacles();
@@ -64,6 +68,8 @@ private:
     void drawEverything();
     void handleRiddleEncounter(Player& player);
     void handlePause();
+    void loadSpecialDoors(); // New method to load door configs
+    void updateSpecialDoors(); // New method to check and open doors
 
     void syncBombsInRoom(int roomIdx);
     void tickAndHandleBombs();
@@ -81,6 +87,7 @@ public:
     Obstacle* findObstacleAt(int roomIdx, const Point& p);
     SpringData* findSpringAt(int roomIdx, const Point& p); // new
     SwitchData* findSwitchAt(int roomIdx, const Point& p); // new
+    SpecialDoor* findSpecialDoorAt(int roomIdx, const Point& p);
     int getVisibleRoomIdx() const { return visibleRoomIdx; }
     Screen& getScreen(int roomIdx) { return world[roomIdx]; }
     const std::vector<Obstacle>& getObstacles() const { return obstacles; }
