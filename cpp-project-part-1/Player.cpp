@@ -507,6 +507,10 @@ void Player::move(Screen& currentScreen, Game& game) {
                         currentScreen.refreshCell(drop);
                         setCarried(' ');
                         dropped = true;
+                        // If dropped bomb, activate it (start countdown)
+                        if (held == '@') {
+                            game.placeBomb(currentRoomIdx, drop, 5);
+                        }
                     }
                 }
             }
@@ -518,17 +522,25 @@ void Player::move(Screen& currentScreen, Game& game) {
                         currentScreen.refreshCell(q);
                         setCarried(' ');
                         dropped = true;
+                        // If dropped bomb, activate it (start countdown)
+                        if (held == '@') {
+                            game.placeBomb(currentRoomIdx, q, 5);
+                        }
                         break;
                     }
                 }
             }
         } else {
             wchar_t under = currentScreen.getCharAt(position);
-            if ((Glyph::isKey(under) || Glyph::isBomb(under) || Glyph::isTorch(under)) && canTakeObject()) {
+            // Can only pick up items if not already activated (bombs on ground are activated and counting down)
+            // Keys and torches can be picked up multiple times, but bombs cannot be picked up once placed
+            if ((Glyph::isKey(under) || Glyph::isTorch(under)) && canTakeObject()) {
                 setCarried((char)under);
                 currentScreen.setCharAt(position, Glyph::Empty);
                 currentScreen.refreshCell(position);
             }
+            // Bombs can only be picked up initially from map, not after being placed/activated
+            // (Fresh bombs from map are picked up automatically when walked over, not via action key)
         }
         actionRequested = false;
     }

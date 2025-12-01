@@ -1,6 +1,9 @@
 #pragma once
 #include "Point.h"
 
+// Forward declaration
+class Game;
+
 class Bomb {
     Point position;
     int roomIdx;
@@ -19,4 +22,7 @@ public:
     int getRoomIdx() const { return roomIdx; }
 
     void setPosition(Point p) { position = p; }
+    
+    // Explode: destroy weak walls, obstacles, damage players
+    void explode(Game& game);
 };

@@ -67,7 +67,6 @@ private:
 
     void syncBombsInRoom(int roomIdx);
     void tickAndHandleBombs();
-    void explodeBomb(const Bomb& b);
 
     void refreshLegend();
     void drawPlayers();
@@ -85,7 +84,18 @@ public:
     int getVisibleRoomIdx() const { return visibleRoomIdx; }
     Screen& getScreen(int roomIdx) { return world[roomIdx]; }
     const std::vector<Obstacle>& getObstacles() const { return obstacles; }
+    std::vector<Obstacle>& getObstaclesMutable() { return obstacles; }
 
     // New: expose room connection for obstacle movement
     int getTargetRoom(int fromRoom, Direction dir) const { return roomConnections.getTargetRoom(fromRoom, dir); }
+    
+    // New: place/activate a bomb at given position (starts countdown)
+    void placeBomb(int roomIdx, const Point& pos, int delay = 5);
+    
+    // New: reduce hearts (for bomb damage)
+    void reduceHearts(int amount) { 
+        heartsCount -= amount; 
+        if (heartsCount < 0) heartsCount = 0;
+        if (heartsCount <= 0) isRunning = false;
+    }
 };

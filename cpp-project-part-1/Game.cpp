@@ -2,6 +2,7 @@
 #include "RiddleData.h"
 #include "utils.h"
 #include "Glyph.h"
+#include "Menu.h"
 #include <conio.h>
 #include <windows.h>
 #include <fstream>
@@ -22,12 +23,9 @@ void Game::init() {
     vector<RiddleData> riddles = initRiddles();
     for (auto& rd : riddles) { RiddleKey key{ rd.roomIdx, rd.position.x, rd.position.y }; riddlesByPosition[key] = new Riddle(rd.riddle); }
     
-    for (int room = 0; room < (int)world.size(); ++room) {
-        Screen& s = world[room];
-        for (int y = 0; y < Screen::MAX_Y; ++y) for (int x = 0; x < Screen::MAX_X; ++x) {
-            Point p{ x, y }; if (s.getCharAt(p) == Glyph::Bomb) bombs.emplace_back(p, room, 5);
-        }
-    }
+    // Don't scan bombs from map - they are just collectible items
+    // Bombs are only activated when player drops them (via placeBomb())
+    
     legend.ensureRooms(world.size()); for (int room = 0; room < (int)world.size(); ++room) legend.locateLegendForRoom(room, world[room]);
     scanObstacles();
     scanSprings(); // scan springs
@@ -172,6 +170,12 @@ void Game::run() {
     SetConsoleOutputCP(65001); setConsoleFont(); if (!isRunning) return;
     hideCursor(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers();
     while (isRunning) { handleInput(); update(); Sleep(180); }
+    
+    // Show lose screen if player lost (hearts <= 0)
+    if (heartsCount <= 0) {
+        Menu::showLoseScreen();
+    }
+    
     for (auto& pair : riddlesByPosition) delete pair.second;
     cls();
 }
@@ -393,35 +397,30 @@ void Game::checkAndProcessTransitions() {
     if (cameraShouldMove) { visibleRoomIdx = targetRoom; cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers(); }
 }
 
-void Game::tickAndHandleBombs() { vector<Bomb> nextBombs; vector<Bomb> toExplode; nextBombs.reserve(bombs.size()); for (auto& b : bombs) if (b.tick()) toExplode.push_back(b); else nextBombs.push_back(b); bombs.swap(nextBombs); for (const auto& b : toExplode) explodeBomb(b); }
-
-void Game::explodeBomb(const Bomb& b) { 
-    int room = b.getRoomIdx(); Screen& s = world[room]; Point center = b.getPosition(); const int radius = 3; 
-    int minX = max(0, center.x - radius), maxX = min(Screen::MAX_X - 1, center.x + radius); 
-    int minY = max(0, center.y - radius), maxY = min(Screen::MAX_Y - 1, center.y + radius); 
+void Game::tickAndHandleBombs() { 
+    std::vector<Bomb> nextBombs; 
+    std::vector<Bomb> toExplode; 
+    nextBombs.reserve(bombs.size()); 
     
-    for (int y = minY; y <= maxY; ++y) 
-        for (int x = minX; x <= maxX; ++x) { 
-            Point p{ x, y }; wchar_t c = s.getCharAt(p); 
-            if (c == Glyph::Bombable_Wall_H || c == Glyph::Bombable_Wall_V) 
-                s.setCharAt(p, Glyph::Empty); 
-        } 
-    
-    int hits = 0; 
-    for (auto& pl : players) 
-        if (pl.getRoomIdx() == room) { 
-            Point pp = pl.getPosition(); 
-            if (pp.x >= minX && pp.x <= maxX && pp.y >= minY && pp.y <= maxY) 
-                ++hits; 
-        } 
-    
-    heartsCount -= hits; 
-    if (heartsCount < 0) heartsCount = 0; 
-    
-    // Check if game is lost after bomb explosion
-    if (heartsCount <= 0) {
-        isRunning = false;
+    for (auto& b : bombs) {
+        if (b.tick()) {
+            toExplode.push_back(b);
+        } else {
+            nextBombs.push_back(b);
+        }
     }
+    
+    bombs.swap(nextBombs); 
+    
+    for (auto& b : toExplode) {
+        b.explode(*this);
+    }
+}
+
+void Game::placeBomb(int roomIdx, const Point& pos, int delay) {
+    // Bomb starts counting down immediately when placed by player.
+    // Add 1 to the delay to ensure 5 full game cycles pass before explosion.
+    bombs.emplace_back(pos, roomIdx, delay + 1);
 }
 
 void Game::drawEverything() { cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers(); }
