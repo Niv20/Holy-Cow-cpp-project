@@ -6,10 +6,12 @@
 #include "Game.h"
 #include "Obstacle.h"
 #include "Spring.h"
+#include "Switch.h"
 #include <algorithm>
 
 Player::Player(Point startPos, const char* keySet, wchar_t sym, int startRoom)
     : position(startPos), symbol(sym), currentRoomIdx(startRoom)
+
 { for (int i = 0; i < NUM_KEYS; i++) keys[i] = keySet[i]; }
 
 void Player::draw() const {
@@ -33,91 +35,7 @@ void Player::inheritSpringLaunch(int speed, int ticks, int dirX, int dirY) {
 }
 
 void Player::releaseSpring(Screen& currentScreen, Game& game) {
-    if (!currentSpring || compressedCount <= 0) return;
-    
-    // Restore all spring cells visually
-    for (auto& cell : currentSpring->cells) {
-        currentScreen.setCharAt(cell, Glyph::Spring);
-        currentScreen.refreshCell(cell);
-    }
-    
-    // Launch: move exactly 'speed' cells in one step, checking each cell
-    int releaseDirX = currentSpring->dirX;
-    int releaseDirY = currentSpring->dirY;
-    int speed = compressedCount;
-    
-    // Try to move 'speed' cells, but stop at walls or bounds
-    int actualSteps = 0;
-    bool hitObstacle = false;
-    
-    for (int step = 0; step < speed; ++step) {
-        Point next = position;
-        next.x += releaseDirX;
-        next.y += releaseDirY;
-        
-        // Check bounds
-        if (next.x < 0 || next.x >= Screen::MAX_X || next.y < 0 || next.y >= Screen::MAX_Y) {
-            hitObstacle = true;
-            break;
-        }
-        
-        // Check wall
-        wchar_t tile = currentScreen.getCharAt(next);
-        if (Glyph::isWall(tile)) {
-            hitObstacle = true;
-            break;
-        }
-        
-        // Check obstacle
-        if (Glyph::isObstacle(tile)) {
-            Obstacle* obs = game.findObstacleAt(currentRoomIdx, next);
-            if (obs) {
-                if (obs->canPush(releaseDirX, releaseDirY, speed, game)) {
-                    obs->applyPush(releaseDirX, releaseDirY, game);
-                } else {
-                    hitObstacle = true;
-                    break;
-                }
-            }
-        }
-        
-        // Move to next position
-        currentScreen.refreshCell(position);
-        position = next;
-        actualSteps++;
-        
-        // Check collision with other player
-        for (auto& other : game.getPlayersMutable()) {
-            if (&other == this) continue;
-            if (other.getRoomIdx() != currentRoomIdx) continue;
-            Point op = other.getPosition();
-            if (op.x == position.x && op.y == position.y) {
-                int remainingTicks = compressedCount * compressedCount - actualSteps;
-                if (remainingTicks > 0) {
-                    other.inheritSpringLaunch(speed, remainingTicks, releaseDirX, releaseDirY);
-                }
-                break;
-            }
-        }
-    }
-    
-    // If hit obstacle, complete STAY - no boost, no direction
-    if (hitObstacle) {
-        springBoostSpeed = 0;
-        springBoostTicksLeft = 0;
-        boostDirX = 0;
-        boostDirY = 0;
-        position.setDirection(4); // Force STAY
-    } else {
-        // Set up remaining boost
-        springBoostSpeed = speed;
-        int totalTicks = compressedCount * compressedCount;
-        springBoostTicksLeft = totalTicks - actualSteps;
-        if (springBoostTicksLeft < 0) springBoostTicksLeft = 0;
-        boostDirX = releaseDirX;
-        boostDirY = releaseDirY;
-        position.setDirection(4); // Clear direction - boost controls movement
-    }
+    SpringLogic::releaseSpring(*this, currentSpring, compressedCount, currentScreen, game);
     
     // Reset spring tracking
     currentSpring = nullptr;
@@ -128,21 +46,53 @@ void Player::releaseSpring(Screen& currentScreen, Game& game) {
 void Player::move(Screen& currentScreen, Game& game) {
     Point originalPos = position;
 
-    // Calculate cooperative force
-    int appliedForce = getForce();
+    // Calculate cooperative force based on actual push direction
+    int pushDx = (springBoostTicksLeft > 0) ? boostDirX : position.diff_x;
+    int pushDy = (springBoostTicksLeft > 0) ? boostDirY : position.diff_y;
+    int appliedForce = (springBoostTicksLeft > 0) ? springBoostSpeed : 1;
     for (auto& other : game.getPlayersMutable()) {
         if (&other == this) continue;
         if (other.getRoomIdx() != currentRoomIdx) continue;
         Point op = other.getPosition();
         bool adjacent = (abs(op.x - position.x) + abs(op.y - position.y)) == 1;
-        if (adjacent && other.getPosition().diff_x == position.diff_x && other.getPosition().diff_y == position.diff_y) {
-            appliedForce += other.getForce();
+        if (!adjacent) continue;
+        int otherPushDx = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirX() : other.getPosition().diff_x;
+        int otherPushDy = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirY() : other.getPosition().diff_y;
+        if (otherPushDx == pushDx && otherPushDy == pushDy && !(pushDx == 0 && pushDy == 0)) {
+            int otherForce = (other.getSpringBoostTicksLeft() > 0) ? other.getSpringBoostSpeed() : 1;
+            appliedForce += otherForce;
         }
     }
 
     // Apply movement with boost
     int moveDx = position.diff_x;
     int moveDy = position.diff_y;
+    
+    // Check if we're on spring and trying to move perpendicular
+    if (currentSpring && (moveDx != 0 || moveDy != 0)) {
+        if (SpringLogic::handlePerpendicularMovement(*this, currentSpring, moveDx, moveDy, currentScreen, game)) {
+            // Release spring immediately and apply perpendicular movement
+            releaseSpring(currentScreen, game);
+            
+            // Now apply the perpendicular movement (at speed 1)
+            Point next = position;
+            next.x += moveDx;
+            next.y += moveDy;
+            
+            // Check if perpendicular move is valid
+            if (next.x >= 0 && next.x < Screen::MAX_X && next.y >= 0 && next.y < Screen::MAX_Y) {
+                wchar_t tile = currentScreen.getCharAt(next);
+                if (!Glyph::isWall(tile)) {
+                    currentScreen.refreshCell(position);
+                    position = next;
+                }
+            }
+            
+            currentScreen.refreshCell(originalPos);
+            draw();
+            return;
+        }
+    }
     
     if (springBoostTicksLeft > 0) {
         // Cannot move backward against boost direction
@@ -174,14 +124,74 @@ void Player::move(Screen& currentScreen, Game& game) {
                 break;
             }
             
+            // Recompute cooperative force for this step (players may change adjacency during boost)
+            int stepForce = springBoostSpeed; // self force during boost
+            for (auto& other : game.getPlayersMutable()) {
+                if (&other == this) continue;
+                if (other.getRoomIdx() != currentRoomIdx) continue;
+                Point op = other.getPosition();
+                bool adjacentNow = (abs(op.x - position.x) + abs(op.y - position.y)) == 1;
+                if (!adjacentNow) continue;
+                int otherPushDx = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirX() : other.getPosition().diff_x;
+                int otherPushDy = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirY() : other.getPosition().diff_y;
+                if (otherPushDx == boostDirX && otherPushDy == boostDirY && !(boostDirX == 0 && boostDirY == 0)) {
+                    int otherForce = (other.getSpringBoostTicksLeft() > 0) ? other.getSpringBoostSpeed() : 1;
+                    stepForce += otherForce;
+                }
+            }
+            
             wchar_t tile = currentScreen.getCharAt(next);
+            
+            // Stop at walls and non-passable tiles
             if (Glyph::isWall(tile)) {
                 hitWall = true;
                 break;
             }
             
+            // Try to push obstacles during boost using cooperative force
+            if (Glyph::isObstacle(tile)) {
+                Obstacle* obs = game.findObstacleAt(currentRoomIdx, next);
+                if (obs && obs->canPush(boostDirX, boostDirY, stepForce, game)) {
+                    obs->applyPush(boostDirX, boostDirY, game);
+                    // After pushing, next cell should now be empty; proceed to move
+                } else {
+                    hitWall = true;
+                    break;
+                }
+            }
+            
+            // Stop at doors (unless we can open them, but during boost we can't)
+            if (Glyph::isDoor(tile)) {
+                hitWall = true;
+                break;
+            }
+            
+            // Allow passing through: empty, keys, bombs, torches, riddles, switches
+            // These are passable tiles
+            
             currentScreen.refreshCell(position);
             position = next;
+            
+            // Collect items while flying through
+            if (Glyph::isKey(tile)) {
+                if (canTakeObject()) {
+                    setCarried((char)tile);
+                    currentScreen.setCharAt(position, Glyph::Empty);
+                    currentScreen.refreshCell(position);
+                }
+            } else if (Glyph::isBomb(tile)) {
+                if (canTakeObject()) {
+                    setCarried('@');
+                    currentScreen.setCharAt(position, Glyph::Empty);
+                    currentScreen.refreshCell(position);
+                }
+            } else if (Glyph::isTorch(tile)) {
+                if (canTakeObject()) {
+                    setCarried('!');
+                    currentScreen.setCharAt(position, Glyph::Empty);
+                    currentScreen.refreshCell(position);
+                }
+            }
             
             // Check collision with other player during boost
             for (auto& other : game.getPlayersMutable()) {
@@ -189,8 +199,12 @@ void Player::move(Screen& currentScreen, Game& game) {
                 if (other.getRoomIdx() != currentRoomIdx) continue;
                 Point op = other.getPosition();
                 if (op.x == position.x && op.y == position.y) {
-                    if (springBoostTicksLeft > 0) {
-                        other.inheritSpringLaunch(springBoostSpeed, springBoostTicksLeft, boostDirX, boostDirY);
+                    // Transfer remaining cycles AFTER this cycle to the other player
+                    // so both will have the same ticks next frame
+                    int remainingAfterThisCycle = springBoostTicksLeft - 1;
+                    if (remainingAfterThisCycle < 0) remainingAfterThisCycle = 0;
+                    if (remainingAfterThisCycle > 0) {
+                        other.inheritSpringLaunch(springBoostSpeed, remainingAfterThisCycle, boostDirX, boostDirY);
                     }
                     break;
                 }
@@ -207,7 +221,12 @@ void Player::move(Screen& currentScreen, Game& game) {
         } else {
             springBoostTicksLeft--;
             if (springBoostTicksLeft == 0) {
+                // Boost ended - continue at speed 1 in the same direction
                 springBoostSpeed = 0;
+                // Keep the direction active: convert boost direction to direction index
+                int dirIndex = SpringLogic::boostDirToDirectionIndex(boostDirX, boostDirY);
+                position.setDirection(dirIndex);
+                // Clear boost direction variables
                 boostDirX = 0;
                 boostDirY = 0;
             }
@@ -244,134 +263,197 @@ void Player::move(Screen& currentScreen, Game& game) {
     }
     
     // Normal movement (no boost)
-    position.x += moveDx;
-    position.y += moveDy;
-
-    wchar_t tile = currentScreen.getCharAt(position);
+    // Calculate target position
+    Point targetPos = originalPos;
+    targetPos.x += moveDx;
+    targetPos.y += moveDy;
+    
     bool blocked = false;
-
-    // Spring handling with pre-scanned data
-    if (Glyph::isSpring(tile)) {
-        SpringData* spring = game.findSpringAt(currentRoomIdx, position);
+    
+    // Check bounds
+    if (targetPos.x < 0 || targetPos.x >= Screen::MAX_X || 
+        targetPos.y < 0 || targetPos.y >= Screen::MAX_Y) {
+        blocked = true;
+    } else {
+        // Check what's at target position BEFORE moving
+        wchar_t tile = currentScreen.getCharAt(targetPos);
         
-        if (!currentSpring) {
-            // First entry to a spring
-            if (spring) {
-                currentSpring = spring;
-                entryIndex = spring->findCellIndex(position);
-                compressedCount = 1;
+        // Check for switch first
+        if (Glyph::isSwitch(tile)) {
+            SwitchData* sw = game.findSwitchAt(currentRoomIdx, targetPos);
+            if (sw) {
+                // Toggle the switch
+                sw->toggle();
                 
-                // Hide this cell
-                currentScreen.setCharAt(position, Glyph::Empty);
-                currentScreen.refreshCell(position);
+                // Update screen with new switch state
+                currentScreen.setCharAt(targetPos, sw->getDisplayChar());
+                currentScreen.refreshCell(targetPos);
                 
-                // Check if we're already at the wall
-                if (entryIndex == 0) {
-                    // Entered at wall end - release immediately
-                    releaseSpring(currentScreen, game);
-                    currentScreen.refreshCell(originalPos);
-                    draw();
-                    return;
+                // Push player back one step in opposite direction
+                Point pushBackPos = originalPos;
+                pushBackPos.x -= moveDx;
+                pushBackPos.y -= moveDy;
+                
+                // Make sure pushback position is valid
+                if (pushBackPos.x >= 0 && pushBackPos.x < Screen::MAX_X &&
+                    pushBackPos.y >= 0 && pushBackPos.y < Screen::MAX_Y) {
+                    wchar_t pushBackTile = currentScreen.getCharAt(pushBackPos);
+                    if (!Glyph::isWall(pushBackTile)) {
+                        position = pushBackPos;
+                    }
+                    // else stay at original position (position already = originalPos)
                 }
-            }
-        } else if (spring == currentSpring) {
-            // Continuing on same spring
-            int currentIndex = spring->findCellIndex(position);
-            
-            // Check direction: moving toward wall (decreasing index) or away
-            if (currentIndex >= 0 && currentIndex < entryIndex) {
-                // Moving toward wall (compressing)
-                compressedCount++;
-                currentScreen.setCharAt(position, Glyph::Empty);
-                currentScreen.refreshCell(position);
+                // else stay at original position
                 
-                // Check if reached wall (index 0)
-                if (currentIndex == 0) {
-                    // Reached wall - release!
-                    releaseSpring(currentScreen, game);
-                    currentScreen.refreshCell(originalPos);
-                    draw();
-                    return;
-                }
-            } else {
-                // Changed direction - release
-                position = originalPos;
-                releaseSpring(currentScreen, game);
+                // Force STAY - stop movement
+                position.setDirection(4);
+                
+                // Refresh cells
                 currentScreen.refreshCell(originalPos);
+                if (position.x != originalPos.x || position.y != originalPos.y) {
+                    currentScreen.refreshCell(position);
+                }
+                
                 draw();
                 return;
             }
-        } else {
-            // Moved to different spring - release old and start new
-            releaseSpring(currentScreen, game);
         }
-    } else {
-        // Not on spring anymore
-        if (currentSpring) {
-            // Was on spring but moved off - release
-            position = originalPos;
-            releaseSpring(currentScreen, game);
-            currentScreen.refreshCell(originalPos);
-            draw();
-            return;
-        }
-        
-        // Handle other tiles
-        if (Glyph::isObstacle(tile)) {
-            Obstacle* obs = game.findObstacleAt(currentRoomIdx, position);
-            if (!obs) {
-                blocked = true;
+
+        // Spring handling with pre-scanned data
+        if (Glyph::isSpring(tile)) {
+            SpringData* spring = game.findSpringAt(currentRoomIdx, targetPos);
+            
+            // Move to target first
+            position = targetPos;
+            
+            if (!currentSpring) {
+                // First entry to a spring
+                if (spring) {
+                    currentSpring = spring;
+                    entryIndex = spring->findCellIndex(position);
+                    compressedCount = 1;
+                    
+                    // Hide this cell
+                    SpringLogic::handleSpringEntry(*this, spring, position, currentScreen);
+                }
+            } else if (spring == currentSpring) {
+                // Continuing on same spring
+                int currentIndex = spring->findCellIndex(position);
+                
+                // Check direction: moving toward wall (decreasing index) or away
+                if (currentIndex >= 0 && currentIndex < entryIndex) {
+                    // Moving toward wall (compressing)
+                    if (SpringLogic::handleSpringCompression(*this, spring, currentIndex, entryIndex, position, currentScreen)) {
+                        compressedCount++;
+                        entryIndex = currentIndex;
+                    }
+                } else {
+                    // Changed direction away from wall - release
+                    position = originalPos;
+                    releaseSpring(currentScreen, game);
+                    currentScreen.refreshCell(originalPos);
+                    draw();
+                    return;
+                }
             } else {
-                int dx = position.diff_x;
-                int dy = position.diff_y;
-                if (dx == 0 && dy == 0) {
+                // Moved to different spring - release old and start new
+                releaseSpring(currentScreen, game);
+            }
+        } else {
+            // Not on spring anymore - check if we should release
+            if (currentSpring) {
+                // We tried to move off the spring
+                // Check if we're trying to move toward the wall from cell 0 (fully compressed)
+                bool tryingToReachWall = SpringLogic::shouldReleaseAtWall(targetPos, currentSpring, entryIndex, currentScreen);
+                
+                // If we tried to reach the wall from the last spring cell, release the spring
+                if (tryingToReachWall) {
+                    // Perfect! We compressed all the way and tried to move into the wall
+                    // Stay at original position
+                    releaseSpring(currentScreen, game);
+                    currentScreen.refreshCell(originalPos);
+                    draw();
+                    return;
+                }
+                
+                // Otherwise, we moved off the spring in a different direction - release
+                releaseSpring(currentScreen, game);
+            }
+            
+            // Handle other tiles
+            if (Glyph::isObstacle(tile)) {
+                // IMPORTANT: Check for obstacle BEFORE moving player
+                Obstacle* obs = game.findObstacleAt(currentRoomIdx, targetPos);
+                if (!obs) {
                     blocked = true;
                 } else {
-                    if (obs->canPush(dx, dy, appliedForce, game)) {
-                        obs->applyPush(dx, dy, game);
-                    } else {
+                    if (moveDx == 0 && moveDy == 0) {
                         blocked = true;
+                    } else {
+                        // Try to push obstacle
+                        if (obs->canPush(moveDx, moveDy, appliedForce, game)) {
+                            // Push succeeds: first push obstacle, then move player
+                            obs->applyPush(moveDx, moveDy, game);
+                            // Now move player to target (which should now be empty)
+                            wchar_t afterPush = currentScreen.getCharAt(targetPos);
+                            if (afterPush == Glyph::Empty) {
+                                position = targetPos;
+                            } else {
+                                // Race condition or bug: target not empty after push
+                                blocked = true;
+                            }
+                        } else {
+                            // Not enough force or blocked
+                            blocked = true;
+                        }
                     }
                 }
-            }
-        } else if (Glyph::isKey(tile)) {
-            if (canTakeObject()) {
-                setCarried((char)tile);
-                currentScreen.setCharAt(position, Glyph::Empty);
-                currentScreen.refreshCell(position);
-            }
-        } else if (Glyph::isDoor(tile)) {
-            if (getCarried() == std::tolower((unsigned char)tile)) {
-                currentScreen.setCharAt(position, Glyph::Empty);
-                currentScreen.refreshCell(position);
-                setCarried(' ');
+            } else if (Glyph::isWall(tile)) {
+                blocked = true;
+            } else if (Glyph::isDoor(tile)) {
+                if (getCarried() == std::tolower((unsigned char)tile)) {
+                    // Can open door
+                    position = targetPos;
+                    currentScreen.setCharAt(position, Glyph::Empty);
+                    currentScreen.refreshCell(position);
+                    setCarried(' ');
+                } else {
+                    blocked = true;
+                }
+            } else if (Glyph::isKey(tile)) {
+                position = targetPos;
+                if (canTakeObject()) {
+                    setCarried((char)tile);
+                    currentScreen.setCharAt(position, Glyph::Empty);
+                    currentScreen.refreshCell(position);
+                }
+            } else if (Glyph::isBomb(tile)) {
+                position = targetPos;
+                if (canTakeObject()) {
+                    setCarried('@');
+                    currentScreen.setCharAt(position, Glyph::Empty);
+                    currentScreen.refreshCell(position);
+                }
+            } else if (Glyph::isTorch(tile)) {
+                position = targetPos;
+                if (canTakeObject()) {
+                    setCarried('!');
+                    currentScreen.setCharAt(position, Glyph::Empty);
+                    currentScreen.refreshCell(position);
+                }
+            } else if (Glyph::isRiddle(tile) || tile == Glyph::Empty) {
+                // Allowed - move to target
+                position = targetPos;
             } else {
                 blocked = true;
             }
-        } else if (Glyph::isBomb(tile)) {
-            if (canTakeObject()) {
-                setCarried('@');
-                currentScreen.setCharAt(position, Glyph::Empty);
-                currentScreen.refreshCell(position);
-            }
-        } else if (Glyph::isTorch(tile)) {
-            if (canTakeObject()) {
-                setCarried('!');
-                currentScreen.setCharAt(position, Glyph::Empty);
-                currentScreen.refreshCell(position);
-            }
-        } else if (Glyph::isWall(tile)) {
-            blocked = true;
-        } else if (Glyph::isRiddle(tile) || tile == Glyph::Empty) {
-            // Allowed
-        } else {
-            blocked = true;
         }
     }
 
     if (blocked) {
         position = originalPos;
-        position.setDirection(4);
+        // DO NOT reset direction here - preserve diff_x/diff_y for cooperative push
+        // position.setDirection(4);
         if (currentSpring) {
             releaseSpring(currentScreen, game);
         }

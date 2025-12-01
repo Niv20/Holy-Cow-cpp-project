@@ -10,6 +10,7 @@
 #include "RoomConnections.h"
 #include "Obstacle.h"
 #include "Spring.h"
+#include "Switch.h"
 
 constexpr int ESC_KEY = 27;
 
@@ -45,6 +46,9 @@ private:
 
     // Springs scanned across all rooms
     std::vector<SpringData> springs;
+    
+    // Switches scanned across all rooms
+    std::vector<SwitchData> switches;
 
     // Legend manager
     Legend legend;
@@ -53,6 +57,7 @@ private:
     void init();
     void scanObstacles();
     void scanSprings(); // new: scan all springs in all rooms
+    void scanSwitches(); // new: scan all switches in all rooms
     void handleInput();
     void update();
     void checkAndProcessTransitions();
@@ -76,7 +81,11 @@ public:
     std::vector<Player>& getPlayersMutable() { return players; }
     Obstacle* findObstacleAt(int roomIdx, const Point& p);
     SpringData* findSpringAt(int roomIdx, const Point& p); // new
+    SwitchData* findSwitchAt(int roomIdx, const Point& p); // new
     int getVisibleRoomIdx() const { return visibleRoomIdx; }
     Screen& getScreen(int roomIdx) { return world[roomIdx]; }
     const std::vector<Obstacle>& getObstacles() const { return obstacles; }
+
+    // New: expose room connection for obstacle movement
+    int getTargetRoom(int fromRoom, Direction dir) const { return roomConnections.getTargetRoom(fromRoom, dir); }
 };

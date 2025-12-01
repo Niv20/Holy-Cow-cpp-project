@@ -31,6 +31,33 @@ void Game::init() {
     legend.ensureRooms(world.size()); for (int room = 0; room < (int)world.size(); ++room) legend.locateLegendForRoom(room, world[room]);
     scanObstacles();
     scanSprings(); // scan springs
+    scanSwitches(); // scan switches
+}
+
+void Game::scanSwitches() {
+    switches.clear();
+    for (int room = 0; room < (int)world.size(); ++room) {
+        Screen& s = world[room];
+        for (int y = 0; y < Screen::MAX_Y; ++y) {
+            for (int x = 0; x < Screen::MAX_X; ++x) {
+                Point p{x, y};
+                wchar_t ch = s.getCharAt(p);
+                if (Glyph::isSwitch(ch)) {
+                    bool isOn = (ch == Glyph::Switch_On);
+                    switches.emplace_back(room, p, isOn);
+                }
+            }
+        }
+    }
+}
+
+SwitchData* Game::findSwitchAt(int roomIdx, const Point& p) {
+    for (auto& sw : switches) {
+        if (sw.roomIdx == roomIdx && sw.pos.x == p.x && sw.pos.y == p.y) {
+            return &sw;
+        }
+    }
+    return nullptr;
 }
 
 void Game::scanSprings() {
@@ -144,7 +171,7 @@ static const vector<string>& getPauseTemplate() {
 void Game::run() {
     SetConsoleOutputCP(65001); setConsoleFont(); if (!isRunning) return;
     hideCursor(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers();
-    while (isRunning) { handleInput(); update(); Sleep(60); }
+    while (isRunning) { handleInput(); update(); Sleep(180); }
     for (auto& pair : riddlesByPosition) delete pair.second;
     cls();
 }
@@ -178,7 +205,7 @@ void Game::handlePause() {
             if (key == ESC_KEY) { cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers(); return; }
             else if (key == 'H' || key == 'h') { isRunning = false; return; }
         }
-        Sleep(60);
+        Sleep(180);
     }
 }
 

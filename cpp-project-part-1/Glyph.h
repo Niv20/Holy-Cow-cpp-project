@@ -14,6 +14,8 @@ namespace Glyph {
     inline constexpr wchar_t Obstacle = L'*';
     inline constexpr wchar_t Spring = L'#'; // new spring glyph
     inline constexpr wchar_t Riddle = L'?';
+    inline constexpr wchar_t Switch_Off = L'0'; // switch OFF state
+    inline constexpr wchar_t Switch_On = L'1'; // switch ON state
 
     // Bombable walls
     inline constexpr wchar_t Bombable_Wall_H = L'-';
@@ -41,6 +43,7 @@ namespace Glyph {
     inline bool isBombableWall(wchar_t ch) { return ch == Bombable_Wall_H || ch == Bombable_Wall_V; }
     inline bool isSpring(wchar_t ch) { return ch == Spring; }
     inline bool isObstacle(wchar_t ch) { return ch == Obstacle; }
+    inline bool isSwitch(wchar_t ch) { return ch == Switch_Off || ch == Switch_On; }
 
     inline bool isWall(wchar_t ch) {
         if (ch == Wall_Single_TL || ch == Wall_Single_TR || ch == Wall_Single_BL || ch == Wall_Single_BR ||

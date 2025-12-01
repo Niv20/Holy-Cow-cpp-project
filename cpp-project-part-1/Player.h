@@ -42,6 +42,26 @@ public:
     bool isSpringBoostActive() const { return springBoostTicksLeft > 0; }
     void inheritSpringLaunch(int speed, int ticks, int dirX, int dirY);
     
+    // Spring state accessors (for SpringLogic namespace)
+    class SpringData* getCurrentSpring() const { return currentSpring; }
+    void setCurrentSpring(class SpringData* spring) { currentSpring = spring; }
+    int getEntryIndex() const { return entryIndex; }
+    void setEntryIndex(int idx) { entryIndex = idx; }
+    int getCompressedCount() const { return compressedCount; }
+    void setCompressedCount(int count) { compressedCount = count; }
+    
+    // Boost state accessors
+    int getSpringBoostTicksLeft() const { return springBoostTicksLeft; }
+    int getSpringBoostSpeed() const { return springBoostSpeed; }
+    int getBoostDirX() const { return boostDirX; }
+    int getBoostDirY() const { return boostDirY; }
+    void setBoostState(int speed, int ticks, int dirX, int dirY) {
+        springBoostSpeed = speed;
+        springBoostTicksLeft = ticks;
+        boostDirX = dirX;
+        boostDirY = dirY;
+    }
+    
 private:
     void releaseSpring(Screen& currentScreen, class Game& game);
 };

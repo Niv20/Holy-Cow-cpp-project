@@ -55,7 +55,7 @@ MenuAction Menu::showStartMenu() {
                     return MenuAction::Exit;
             }
         }
-        Sleep(60);
+        Sleep(180);
     }
 }
 
@@ -75,7 +75,7 @@ void Menu::showInstructions() {
                 return;
             }
         }
-        Sleep(60);
+        Sleep(180);
     }
 }
 
@@ -93,6 +93,6 @@ void Menu::showLoseScreen() {
             _getch(); // Consume the key
             return;
         }
-        Sleep(60);
+        Sleep(180);
     }
 }

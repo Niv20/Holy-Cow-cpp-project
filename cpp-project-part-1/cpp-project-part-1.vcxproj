@@ -193,6 +193,7 @@
     <ClCompile Include="Screen.cpp" />
     <ClCompile Include="ScreenLoader.cpp" />
     <ClCompile Include="Spring.cpp" />
+    <ClCompile Include="Switch.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -212,6 +213,7 @@
     <ClInclude Include="Screen.h" />
     <ClInclude Include="ScreenLoader.h" />
     <ClInclude Include="Spring.h" />
+    <ClInclude Include="Switch.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
@@ -228,6 +230,7 @@
     <None Include="Riddle.screen" />
     <None Include="ROOM_CONNECTIONS_README.md" />
     <None Include="Start.screen" />
+    <None Include="test-switch.screen" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
