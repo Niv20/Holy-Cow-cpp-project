@@ -103,26 +103,43 @@ static std::vector<std::wstring> loadLevelFromFile(const std::string& filepath) 
     return board;
 }
 
+// Helper: get executable directory for robust resource loading
+static fs::path getExeDir() {
+    wchar_t buffer[MAX_PATH];
+    DWORD len = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+    if (len == 0) return fs::current_path();
+    fs::path exePath(buffer);
+    return exePath.parent_path();
+}
+
 // Static method: Load all screens from files
 std::vector<Screen> Screen::loadScreensFromFiles() {
     std::vector<std::string> mapFiles;
+    fs::path baseDir = getExeDir();
+    // Also consider parent of exe dir and current path
+    std::vector<fs::path> dirs{ baseDir, baseDir.parent_path(), fs::current_path() };
     try {
-        for (const auto& entry : fs::directory_iterator(".")) {
-            if (entry.is_regular_file()) {
-                std::string filename = entry.path().filename().string();
-                if (filename.rfind("adv-world",0)==0) {
-                    auto extPos = filename.find_last_of('.');
-                    if (extPos!=std::string::npos && filename.substr(extPos+1)=="screen") 
-                        mapFiles.push_back(filename);
+        for (const auto& dir : dirs) {
+            for (const auto& entry : fs::directory_iterator(dir)) {
+                if (entry.is_regular_file()) {
+                    std::string filename = entry.path().filename().string();
+                    if (filename.rfind("adv-world",0)==0) {
+                        auto extPos = filename.find_last_of('.');
+                        if (extPos!=std::string::npos && filename.substr(extPos+1)=="screen") 
+                            mapFiles.push_back(entry.path().string());
+                    }
                 }
             }
         }
     } catch(...) {}
     std::sort(mapFiles.begin(), mapFiles.end());
     std::vector<Screen> screens;
-    for (auto& fn : mapFiles) {
-        auto level = loadLevelFromFile(fn);
+    for (auto& fullPath : mapFiles) {
+        auto level = loadLevelFromFile(fullPath);
         if (!level.empty()) screens.emplace_back(level);
+    }
+    if (screens.empty()) {
+        std::cerr << "Error: No level screens found. Place adv-world*.screen next to the EXE or project root." << std::endl;
     }
     return screens;
 }

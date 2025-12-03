@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <filesystem>
+#include <iostream>
 
 #include "Menu.h"
 #include "Screen.h"
@@ -10,6 +12,7 @@
 
 using std::vector;
 using std::string;
+namespace fs = std::filesystem;
 
 // ============================================
 // Static caches for UI templates
@@ -23,11 +26,42 @@ namespace {
 // Private helpers
 // ============================================
 
+static fs::path getExeDir() {
+    wchar_t buffer[MAX_PATH];
+    DWORD len = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+    if (len == 0) return fs::current_path();
+    fs::path exePath(buffer);
+    return exePath.parent_path();
+}
+
+static std::ifstream tryOpenScreenFile(const std::string& baseName) {
+    // Try multiple candidate directories: exe dir, its parent, current path
+    std::vector<fs::path> candidates;
+    fs::path exeDir = getExeDir();
+    candidates.push_back(exeDir);
+    candidates.push_back(exeDir.parent_path());
+    candidates.push_back(fs::current_path());
+    for (const auto& dir : candidates) {
+        fs::path full = dir / (baseName + ".screen");
+        std::ifstream f(full.string());
+        if (f.is_open()) {
+            return f;
+        }
+    }
+    return std::ifstream();
+}
+
 vector<string> Menu::loadScreen(const string& filename) {
     string baseName = filename.substr(0, filename.find('.'));
     vector<string> lines;
-    std::ifstream f(baseName + ".screen");
-    if (!f.is_open()) return lines;
+
+    std::ifstream f = tryOpenScreenFile(baseName);
+    if (!f.is_open()) {
+        std::cerr << "Error: Failed to open UI screen file '" << baseName << ".screen' in any of: "
+                  << getExeDir().string() << ", " << getExeDir().parent_path().string() << ", "
+                  << fs::current_path().string() << std::endl;
+        return lines;
+    }
     string line;
     while (std::getline(f, line)) lines.push_back(line);
     f.close();
@@ -71,6 +105,7 @@ const vector<string>& Menu::getPauseTemplate() {
 void Menu::drawStartMenu() {
     vector<string> startScreen = loadScreen("Start.screen");
     if (startScreen.empty()) {
+        std::cerr << "Error: Start.screen not found or empty. Place .screen files next to the EXE or project root." << std::endl;
         return;
     }
     Screen screen(startScreen);
@@ -106,6 +141,7 @@ void Menu::showInstructions() {
     vector<string> instructionsScreen = loadScreen("Instructions.screen");
 
     if (instructionsScreen.empty()) {
+        std::cerr << "Error: Instructions.screen not found or empty." << std::endl;
         return;
     }
     
@@ -127,6 +163,7 @@ void Menu::showLoseScreen() {
     vector<string> loseScreen = loadScreen("Lose.screen");
 
     if (loseScreen.empty()) {
+        std::cerr << "Error: Lose.screen not found or empty." << std::endl;
         return;
     }
 
@@ -149,6 +186,7 @@ void Menu::showWinScreen() {
 
     if (winScreen.empty()) {
         // If no Win screen, just show the final room (room 7)
+        std::cerr << "Warning: Win.screen not found." << std::endl;
         return;
     }
 
