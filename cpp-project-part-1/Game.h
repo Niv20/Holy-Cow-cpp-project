@@ -12,6 +12,7 @@
 constexpr int ESC_KEY = 27;
 constexpr int GAME_TICK_DELAY_MS = 90;
 constexpr int FINAL_ROOM_INDEX = 6;
+constexpr int FINAL_ROOM_FOCUS_TICKS = 25; // ~2.25 seconds focus on final room
 
 class Game {
 
@@ -30,6 +31,7 @@ class Game {
     Legend legend;
     
     std::vector<bool> playerReachedFinalRoom; // Track which players reached final room
+    int finalRoomFocusTicks = 0; // countdown for camera focus on final room
 
     void initGame();
 

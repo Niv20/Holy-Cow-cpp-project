@@ -1,18 +1,19 @@
-﻿#include "Game.h"
-#include "utils.h"
-#include "Glyph.h"
-#include "Menu.h"
-#include <conio.h>
+﻿#include <conio.h>
 #include <windows.h>
 #include <queue>
 #include <set>
+#include <vector>
+#include <string>
+#include <utility>
+
+#include "Game.h"
+#include "utils.h"
+#include "Glyph.h"
+#include "Menu.h"
 #include "RoomConnections.h"
 #include "Player.h"
 #include "Point.h"
 #include "Riddle.h"
-#include <vector>
-#include <string>
-#include <utility>
 
 using std::vector;
 using std::string;
@@ -41,11 +42,12 @@ void Game::initGame() {
 
     Screen::scanAllScreens(world, roomConnections, riddlesByPosition, legend);
 
-    players.push_back(Player(Point(53, 18), "wdxase", Glyph::First_Player, 0));
-    players.push_back(Player(Point(63, 18), "ilmjko", Glyph::Second_Player, 0));
+    players.push_back(Player(Point(1, 5), "wdxase", Glyph::First_Player, 0));
+    players.push_back(Player(Point(1, 6), "ilmjko", Glyph::Second_Player, 0));
 
     // Initialize final room tracking for both players
     playerReachedFinalRoom.resize(players.size(), false);
+    finalRoomFocusTicks = 0;
 }
 
 /*      (__)
@@ -190,6 +192,18 @@ void Game::handleInput() {
             return; 
         }
 
+        // If both players reached final room, any key returns to start menu
+        bool allAtFinal = true;
+        for (size_t i = 0; i < players.size(); ++i) {
+            if (players[i].getRoomIdx() != FINAL_ROOM_INDEX) { allAtFinal = false; break; }
+        }
+        if (allAtFinal) {
+            // End game loop immediately
+            isRunning = false;
+            return;
+        }
+
+        // Normal input: prevent moving player who reached final room
         for (size_t i = 0; i < players.size(); ++i) {
             auto& p = players[i];
             if (p.getRoomIdx() == visibleRoomIdx && !hasPlayerReachedFinalRoom(i))
@@ -228,36 +242,49 @@ void Game::update() {
                 playerReachedFinalRoom[i] = true;
                 
                 // Player just entered final room
-                // If camera is currently on final room, switch to other player immediately
-                if (visibleRoomIdx == FINAL_ROOM_INDEX) {
-                    for (size_t j = 0; j < players.size(); ++j) {
-                        if (j != i && players[j].getRoomIdx() != FINAL_ROOM_INDEX) {
-                            visibleRoomIdx = players[j].getRoomIdx();
-                            cls();
-                            world[visibleRoomIdx].draw();
-                            refreshLegend();
-                            drawPlayers();
-                            Bomb::tickAndHandleAll(bombs, *this);
-                            return;
-                        }
-                    }
+                // Focus on final room for a brief period
+                visibleRoomIdx = FINAL_ROOM_INDEX;
+                finalRoomFocusTicks = FINAL_ROOM_FOCUS_TICKS;
+                cls();
+                world[visibleRoomIdx].draw();
+                refreshLegend();
+                drawPlayers();
+            }
+        }
+    }
+    
+    // If focusing on final room, count down and then switch to other player if exists
+    if (finalRoomFocusTicks > 0) {
+        finalRoomFocusTicks--;
+        if (finalRoomFocusTicks == 0) {
+            // Switch camera to the room where any non-final player is
+            for (size_t j = 0; j < players.size(); ++j) {
+                if (players[j].getRoomIdx() != FINAL_ROOM_INDEX) {
+                    visibleRoomIdx = players[j].getRoomIdx();
+                    cls();
+                    world[visibleRoomIdx].draw();
+                    refreshLegend();
+                    drawPlayers();
+                    break;
                 }
             }
         }
     }
     
-    // Check if both players reached final room - game wins!
+    // Check if both players reached final room - any key will now exit to start
     bool allPlayersReachedFinal = true;
-    for (size_t i = 0; i < playerReachedFinalRoom.size(); ++i) {
-        if (!playerReachedFinalRoom[i]) {
+    for (size_t i = 0; i < players.size(); ++i) {
+        if (players[i].getRoomIdx() != FINAL_ROOM_INDEX) {
             allPlayersReachedFinal = false;
             break;
         }
     }
     
     if (allPlayersReachedFinal) {
-        // End game successfully; the win screen will be shown after the loop
-        isRunning = false;
+        // Stop all updates; handleInput will catch key and exit
+        Bomb::tickAndHandleAll(bombs, *this);
+        refreshLegend(); 
+        drawPlayers();
         return;
     }
     
