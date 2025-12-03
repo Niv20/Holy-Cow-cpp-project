@@ -47,9 +47,20 @@ bool Obstacle::canPush(int dx, int dy, int force, Game& game, int speed) const {
 
         Screen& s = game.getScreen(room);
         Point np{ nx, ny };
+
+        // Block if a player is standing at the destination cell in that room
+        for (const auto& pl : game.getPlayers()) {
+            if (pl.getRoomIdx() == room) {
+                Point pp = pl.getPosition();
+                if (pp.x == np.x && pp.y == np.y) {
+                    return false;
+                }
+            }
+        }
+
         wchar_t ch = s.getCharAt(np);
 
-        // Walls always block
+        // Walls and doors always block
         if (Glyph::isWall(ch) || Glyph::isDoor(ch)) return false;
 
         // If destination has another obstacle cell:

@@ -13,7 +13,7 @@ inline T clamp_min(T a, T b) { return (a < b) ? b : a; }
 template<typename T>
 inline T clamp_max(T a, T b) { return (a > b) ? b : a; }
 
-// Explode a bomb: destroy weak walls, destroy obstacles if any cell hit, damage players
+// Explode a bomb: destroy weak walls AND damage players
 void Bomb::explode(Game& game) {
     Screen& s = game.getScreen(roomIdx);
     const int radius = 3;
@@ -44,47 +44,8 @@ void Bomb::explode(Game& game) {
         }
     }
 
-    // Destroy obstacles: if ANY cell of obstacle is in blast radius, destroy ENTIRE obstacle
-    // We need to check the obstacles in this room and mark which ones to remove
-    auto& roomData = game.getScreen(roomIdx).getDataMutable();
-    std::set<Obstacle*> obstaclesToRemove;
-
-    for (auto& obs : roomData.obstacles) {
-        bool hitByBlast = false;
-        for (const auto& cell : obs.getCells()) {
-            if (cell.roomIdx == roomIdx) {
-                Point cp = cell.pos;
-                if (cp.x >= minX && cp.x <= maxX && cp.y >= minY && cp.y <= maxY) {
-                    hitByBlast = true;
-                    break;
-                }
-            }
-        }
-        if (hitByBlast) {
-            obstaclesToRemove.insert(&obs);
-        }
-    }
-
-    // Remove hit obstacles: erase all cells from ALL screens (obstacle might span rooms)
-    for (auto* obs : obstaclesToRemove) {
-        for (const auto& cell : obs->getCells()) {
-            Screen& sc = game.getScreen(cell.roomIdx);
-            sc.setCharAt(cell.pos, Glyph::Empty);
-            if (cell.roomIdx == game.getVisibleRoomIdx()) {
-                sc.refreshCell(cell.pos);
-            }
-
-            // Also remove this obstacle from the target room's data
-            auto& targetRoomData = game.getScreen(cell.roomIdx).getDataMutable();
-            targetRoomData.obstacles.erase(
-                std::remove_if(targetRoomData.obstacles.begin(), targetRoomData.obstacles.end(),
-                    [obs](const Obstacle& o) {
-                        return &o == obs;
-                    }),
-                targetRoomData.obstacles.end()
-            );
-        }
-    }
+    // NOTE: Obstacles are NOT affected by bombs anymore per requirement.
+    // We intentionally skip any obstacle removal logic here.
 
     // Damage players: each player hit = 1 heart lost
     int hits = 0;

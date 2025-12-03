@@ -42,8 +42,8 @@ void Game::initGame() {
 
     Screen::scanAllScreens(world, roomConnections, riddlesByPosition, legend);
 
-    players.push_back(Player(Point(1, 5), "wdxase", Glyph::First_Player, 0));
-    players.push_back(Player(Point(1, 6), "ilmjko", Glyph::Second_Player, 0));
+    players.push_back(Player(Point(53, 18), "wdxase", Glyph::First_Player, 0));
+    players.push_back(Player(Point(63, 18), "ilmjko", Glyph::Second_Player, 0));
 
     // Initialize final room tracking for both players
     playerReachedFinalRoom.resize(players.size(), false);
