@@ -1,6 +1,7 @@
 #include "Menu.h"
 #include "Screen.h"
 #include "utils.h"
+#include "DataStore.h"
 #include <conio.h>
 #include <windows.h>
 #include <fstream>
@@ -8,28 +9,8 @@
 using namespace std;
 
 vector<string> Menu::loadScreen(const string& filename) {
-    vector<string> lines;
-    ifstream f(filename);
-    if (!f.is_open()) return lines;
-    
-    string line;
-    while (getline(f, line)) {
-        lines.push_back(line);
-    }
-    f.close();
-    
-    // Remove BOM if present
-    if (!lines.empty()) {
-        string& first = lines[0];
-        if (first.size() >= 3 && 
-            (unsigned char)first[0] == 0xEF && 
-            (unsigned char)first[1] == 0xBB && 
-            (unsigned char)first[2] == 0xBF) {
-            first.erase(0, 3);
-        }
-    }
-    
-    return lines;
+    // Delegate to DataStore for unified data access
+    return DataStore::loadUiScreen(filename.substr(0, filename.find('.')));
 }
 
 MenuAction Menu::showStartMenu() {

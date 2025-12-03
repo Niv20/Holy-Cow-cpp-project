@@ -4,6 +4,10 @@
 #include <vector>
 #include <string>
 
+// Forward declarations
+class Game;
+class Screen;
+
 // Defines a requirement for a switch state for a special door
 struct SwitchRequirement {
     Point pos;
@@ -20,10 +24,14 @@ public:
 
     // State tracking
     std::vector<Key> keysInserted; // keys already provided
-    bool isOpen = false;
+    mutable bool isOpen = false;
 
     SpecialDoor(int room, Point p) : roomIdx(room), position(p) {}
 
-    bool areConditionsMet(class Game& game); // check if all conditions satisfied
+    bool areConditionsMet(Game& game); // check if all conditions satisfied
     bool useKey(const Key& key);                  // attempt to insert a key
+    
+    // Static methods for managing all special doors
+    static void scanAndPopulate(std::vector<Screen>& world);
+    static void updateAll(Game& game);
 };

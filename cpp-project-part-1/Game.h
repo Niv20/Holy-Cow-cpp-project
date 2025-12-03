@@ -1,26 +1,20 @@
 #pragma once
 #include <vector>
 #include <map>
+
 #include "Screen.h"
 #include "Player.h"
 #include "Riddle.h"
 #include "Bomb.h"
 #include "Legend.h"
-#include "ScreenLoader.h"
 #include "RoomConnections.h"
-#include "Obstacle.h"
-#include "Spring.h"
-#include "Switch.h"
-#include "SpecialDoor.h"
 
 constexpr int ESC_KEY = 27;
 
-// Key for riddle lookup: room index + position
 struct RiddleKey {
     int roomIdx;
     int x;
     int y;
-    
     bool operator<(const RiddleKey& other) const {
         if (roomIdx != other.roomIdx) return roomIdx < other.roomIdx;
         if (x != other.x) return x < other.x;
@@ -29,77 +23,71 @@ struct RiddleKey {
 };
 
 class Game {
-private:
+
     std::vector<Screen> world;
     std::vector<Player> players;
-    std::map<RiddleKey, Riddle*> riddlesByPosition; // Map position to riddle
     RoomConnections roomConnections;
+
     int visibleRoomIdx;
     bool isRunning;
     int pointsCount = 0;
     int heartsCount = 3;
 
-    // Active bombs
     std::vector<Bomb> bombs;
+    std::map<RiddleKey, Riddle*> riddlesByPosition;
 
-    // Obstacles scanned across all rooms
-    std::vector<Obstacle> obstacles;
-
-    // Springs scanned across all rooms
-    std::vector<SpringData> springs;
-    
-    // Switches scanned across all rooms
-    std::vector<SwitchData> switches;
-
-    // Legend manager
     Legend legend;
 
-    // Special doors scanned across all rooms
-    std::vector<SpecialDoor> specialDoors;
+    void initGame();
 
-    // Helper methods
-    void init();
-    void scanObstacles();
-    void scanSprings(); // new: scan all springs in all rooms
-    void scanSwitches(); // new: scan all switches in all rooms
     void handleInput();
     void update();
-    void checkAndProcessTransitions();
+
+    void drawPlayers();
     void drawEverything();
-    void handleRiddleEncounter(Player& player);
+    void refreshLegend();
+
+    void checkAndProcessTransitions();
+
     void handlePause();
-    void loadSpecialDoors(); // New method to load door configs
-    void updateSpecialDoors(); // New method to check and open doors
+    void handleRiddleEncounter(Player& player);
+
+    // Scan/load helpers
+    void scanObstacles();
+    void scanLegend();
+    void scanRiddles();
 
     void syncBombsInRoom(int roomIdx);
     void tickAndHandleBombs();
-
-    void refreshLegend();
-    void drawPlayers();
+    
 public:
-    Game();
-    void run();
-    bool isGameLost() const { return heartsCount <= 0; }
 
-    // Accessors used by Player for obstacle logic
+    Game();
+
+    void run();
+
+    bool isGameLost() const { 
+        return heartsCount <= 0; 
+    }
+
+    static void runApp();
+
     const std::vector<Player>& getPlayers() const { return players; }
     std::vector<Player>& getPlayersMutable() { return players; }
-    Obstacle* findObstacleAt(int roomIdx, const Point& p);
-    SpringData* findSpringAt(int roomIdx, const Point& p); // new
-    SwitchData* findSwitchAt(int roomIdx, const Point& p); // new
-    SpecialDoor* findSpecialDoorAt(int roomIdx, const Point& p);
-    int getVisibleRoomIdx() const { return visibleRoomIdx; }
-    Screen& getScreen(int roomIdx) { return world[roomIdx]; }
-    const std::vector<Obstacle>& getObstacles() const { return obstacles; }
-    std::vector<Obstacle>& getObstaclesMutable() { return obstacles; }
 
-    // New: expose room connection for obstacle movement
+    Obstacle* findObstacleAt(int roomIdx, const Point& p);
+    SpringData* findSpringAt(int roomIdx, const Point& p);
+    SwitchData* findSwitchAt(int roomIdx, const Point& p);
+    SpecialDoor* findSpecialDoorAt(int roomIdx, const Point& p);
+
+    int getVisibleRoomIdx() const { return visibleRoomIdx; }
+    int getWorldSize() const { return (int)world.size(); }
+    Screen& getScreen(int roomIdx) { return world[roomIdx]; }
+
     int getTargetRoom(int fromRoom, Direction dir) const { return roomConnections.getTargetRoom(fromRoom, dir); }
     
-    // New: place/activate a bomb at given position (starts countdown)
     void placeBomb(int roomIdx, const Point& pos, int delay = 5);
     
-    // New: reduce hearts (for bomb damage)
     void reduceHearts(int amount) { 
         heartsCount -= amount; 
         if (heartsCount < 0) heartsCount = 0;

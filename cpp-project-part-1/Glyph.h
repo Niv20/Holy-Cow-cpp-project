@@ -1,7 +1,6 @@
 #pragma once
 #include <cwctype>
 
-// Formerly Tiles.h renamed to Glyph.h; namespace renamed Tiles->Glyph
 namespace Glyph {
     // Basic glyphs (ASCII subset)
     inline constexpr wchar_t Empty = L' ';

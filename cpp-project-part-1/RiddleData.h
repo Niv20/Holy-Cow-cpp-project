@@ -8,6 +8,11 @@
 using std::vector;
 using std::string;
 
+//         (__)  
+// '\------(oo)
+//   ||    (__) 
+//   ||w--||    
+
 // Structure to hold riddle data with room and position association
 struct RiddleData {
     int roomIdx;
@@ -29,7 +34,7 @@ inline vector<RiddleData> initRiddles() {
             "cow-culator",
             "their fingers",
             "abacus",
-            '2'  // cow-culator is correct
+            '2'  // cow-culator is correct!
         )
     });
     

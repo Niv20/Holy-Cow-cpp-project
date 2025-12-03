@@ -4,6 +4,7 @@
 #include "Glyph.h"
 #include "Obstacle.h"
 #include <algorithm>
+#include <set>
 
 // Helper to avoid Windows.h min/max macro conflict
 template<typename T>
@@ -44,10 +45,11 @@ void Bomb::explode(Game& game) {
     }
     
     // 2. Destroy obstacles: if ANY cell of obstacle is in blast radius, destroy ENTIRE obstacle
-    std::vector<Obstacle*> obstaclesToRemove;
-    auto& obstacles = game.getObstaclesMutable();
+    // We need to check the obstacles in this room and mark which ones to remove
+    auto& roomData = game.getScreen(roomIdx).getDataMutable();
+    std::set<Obstacle*> obstaclesToRemove;
     
-    for (auto& obs : obstacles) {
+    for (auto& obs : roomData.obstacles) {
         bool hitByBlast = false;
         for (const auto& cell : obs.getCells()) {
             if (cell.roomIdx == roomIdx) {
@@ -59,11 +61,11 @@ void Bomb::explode(Game& game) {
             }
         }
         if (hitByBlast) {
-            obstaclesToRemove.push_back(&obs);
+            obstaclesToRemove.insert(&obs);
         }
     }
     
-    // Remove hit obstacles: erase all cells from screen
+    // Remove hit obstacles: erase all cells from ALL screens (obstacle might span rooms)
     for (auto* obs : obstaclesToRemove) {
         for (const auto& cell : obs->getCells()) {
             Screen& sc = game.getScreen(cell.roomIdx);
@@ -71,16 +73,18 @@ void Bomb::explode(Game& game) {
             if (cell.roomIdx == game.getVisibleRoomIdx()) {
                 sc.refreshCell(cell.pos);
             }
+            
+            // Also remove this obstacle from the target room's data
+            auto& targetRoomData = game.getScreen(cell.roomIdx).getDataMutable();
+            targetRoomData.obstacles.erase(
+                std::remove_if(targetRoomData.obstacles.begin(), targetRoomData.obstacles.end(),
+                    [obs](const Obstacle& o) { 
+                        return &o == obs; 
+                    }),
+                targetRoomData.obstacles.end()
+            );
         }
     }
-    
-    // Remove obstacles from vector
-    obstacles.erase(
-        std::remove_if(obstacles.begin(), obstacles.end(), [&](const Obstacle& o) {
-            return std::find(obstaclesToRemove.begin(), obstaclesToRemove.end(), &o) != obstaclesToRemove.end();
-        }),
-        obstacles.end()
-    );
     
     // 3. Damage players: each player hit = 1 heart lost
     int hits = 0;
