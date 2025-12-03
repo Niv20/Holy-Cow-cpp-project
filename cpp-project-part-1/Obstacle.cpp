@@ -3,6 +3,8 @@
 #include "Glyph.h"
 #include "Game.h"
 #include "RoomConnections.h"
+#include <queue>
+#include <set>
 
 // Helper: map dx,dy to Direction for room crossing
 static Direction dirFromDelta(int dx, int dy) {
@@ -107,4 +109,104 @@ void Obstacle::applyPush(int dx, int dy, Game& game, int speed) {
         }
         // If not visible, it will be drawn when room is switched
     }
+}
+
+// Written by AI
+void Obstacle::scanAllObstacles(std::vector<Screen>& world, const RoomConnections& roomConnections) {
+    using std::vector;
+    using std::queue;
+    using std::pair;
+    using std::set;
+    
+    // Clear all obstacles first
+    for (int room = 0; room < (int)world.size(); ++room) {
+        world[room].getDataMutable().obstacles.clear();
+    }
+
+    vector<vector<vector<bool>>> visited(world.size(), 
+        vector<vector<bool>>(Screen::MAX_Y, vector<bool>(Screen::MAX_X, false)));
+    
+    for (int room = 0; room < (int)world.size(); ++room) {
+        Screen& s = world[room];
+        for (int y = 0; y < Screen::MAX_Y; ++y) {
+            for (int x = 0; x < Screen::MAX_X; ++x) {
+                if (visited[room][y][x]) continue;
+                
+                Point start{ x, y };
+                wchar_t c = s.getCharAt(start);
+                if (!Glyph::isObstacle(c)) continue;
+                
+                queue<pair<int, Point>> q;
+                q.push({ room, start });
+                visited[room][y][x] = true;
+                vector<ObCell> component;
+                
+                auto enqueue = [&](int r, Point p) {
+                    if (r < 0 || r >= (int)world.size()) return;
+                    if (p.x < 0 || p.x >= Screen::MAX_X || p.y < 0 || p.y >= Screen::MAX_Y) return;
+                    if (visited[r][p.y][p.x]) return;
+                    if (!Glyph::isObstacle(world[r].getCharAt(p))) return;
+                    visited[r][p.y][p.x] = true;
+                    q.push({ r, p });
+                };
+                
+                while (!q.empty()) {
+                    auto cur = q.front();
+                    q.pop();
+                    int cr = cur.first;
+                    Point cp = cur.second;
+                    component.push_back({ cr, cp });
+                    
+                    const int dx[4] = { 1, -1, 0, 0 };
+                    const int dy[4] = { 0, 0, 1, -1 };
+                    
+                    for (int i = 0; i < 4; ++i) {
+                        Point np{ cp.x + dx[i], cp.y + dy[i] };
+                        int nr = cr;
+                        
+                        if (np.x < 0) {
+                            nr = roomConnections.getTargetRoom(cr, Direction::Left);
+                            np.x = Screen::MAX_X - 1;
+                        }
+                        else if (np.x >= Screen::MAX_X) {
+                            nr = roomConnections.getTargetRoom(cr, Direction::Right);
+                            np.x = 0;
+                        }
+                        else if (np.y < 0) {
+                            nr = roomConnections.getTargetRoom(cr, Direction::Up);
+                            np.y = Screen::MAX_Y - 1;
+                        }
+                        else if (np.y >= Screen::MAX_Y) {
+                            nr = roomConnections.getTargetRoom(cr, Direction::Down);
+                            np.y = 0;
+                        }
+                        
+                        if (nr == -1) continue;
+                        enqueue(nr, np);
+                    }
+                }
+
+                Obstacle obs(component);
+
+                set<int> roomsInvolved;
+                for (const auto& cell : component) {
+                    roomsInvolved.insert(cell.roomIdx);
+                }
+                for (int involvedRoom : roomsInvolved) {
+                    world[involvedRoom].getDataMutable().obstacles.push_back(obs);
+                }
+            }
+        }
+    }
+}
+
+// Static: Find obstacle at position
+Obstacle* Obstacle::findAt(Screen& screen, int roomIdx, const Point& p) {
+    auto& data = screen.getDataMutable();
+    for (auto& o : data.obstacles) {
+        if (o.contains(roomIdx, p)) {
+            return &o;
+        }
+    }
+    return nullptr;
 }

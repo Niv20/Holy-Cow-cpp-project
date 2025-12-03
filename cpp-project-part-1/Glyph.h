@@ -1,6 +1,6 @@
 #pragma once
-#include <cwctype>
 
+// Written by AI
 namespace Glyph {
     // Basic glyphs (ASCII subset)
     inline constexpr wchar_t Empty = L' ';
@@ -22,20 +22,20 @@ namespace Glyph {
     inline constexpr wchar_t Bombable_Wall_Caret = L'^'; // weak wall (caret)
 
     // Unicode box drawing
-    inline constexpr wchar_t Wall_Single_TL = L'\x250C'; // ?
-    inline constexpr wchar_t Wall_Single_TR = L'\x2510'; // ?
-    inline constexpr wchar_t Wall_Single_BL = L'\x2514'; // ?
-    inline constexpr wchar_t Wall_Single_BR = L'\x2518'; // ?
-    inline constexpr wchar_t Wall_Single_H  = L'\x2500'; // ?
-    inline constexpr wchar_t Wall_Single_V  = L'\x2502'; // ?
-    inline constexpr wchar_t Wall_Single_TRgt = L'\x251C'; // ?
-    inline constexpr wchar_t Wall_Single_TLft = L'\x2524'; // ?
-    inline constexpr wchar_t Wall_Single_TDown = L'\x252C'; // ?
-    inline constexpr wchar_t Wall_Single_TUp   = L'\x2534'; // ?
-    inline constexpr wchar_t Wall_Single_Cross = L'\x253C'; // ?
+    inline constexpr wchar_t Wall_Single_TL = L'\x250C';
+    inline constexpr wchar_t Wall_Single_TR = L'\x2510';
+    inline constexpr wchar_t Wall_Single_BL = L'\x2514';
+    inline constexpr wchar_t Wall_Single_BR = L'\x2518';
+    inline constexpr wchar_t Wall_Single_H  = L'\x2500';
+    inline constexpr wchar_t Wall_Single_V  = L'\x2502';
+    inline constexpr wchar_t Wall_Single_TRgt = L'\x251C'; 
+    inline constexpr wchar_t Wall_Single_TLft = L'\x2524'; 
+    inline constexpr wchar_t Wall_Single_TDown = L'\x252C';
+    inline constexpr wchar_t Wall_Single_TUp   = L'\x2534';
+    inline constexpr wchar_t Wall_Single_Cross = L'\x253C';
 
     // Special door glyph
-    inline constexpr wchar_t SpecialDoor = L'\x25A0'; // ?
+    inline constexpr wchar_t SpecialDoor = L'\x25A0';
 
     // Classification
     inline bool isDoor(wchar_t ch) { return ch >= L'A' && ch <= L'Z'; }

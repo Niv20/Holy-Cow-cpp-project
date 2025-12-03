@@ -34,4 +34,7 @@ public:
     // Static methods for managing all special doors
     static void scanAndPopulate(std::vector<Screen>& world);
     static void updateAll(Game& game);
+    
+    // Static: Find special door at position in a screen
+    static SpecialDoor* findAt(Screen& screen, const Point& p);
 };

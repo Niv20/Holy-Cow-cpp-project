@@ -9,6 +9,11 @@
 #include <sstream>
 #include <algorithm>
 #include <set>
+#include "SpecialDoor.h"
+#include "Obstacle.h"
+#include "Riddle.h"
+#include "Legend.h"
+#include "RoomConnections.h"
 
 namespace fs = std::filesystem;
 
@@ -172,9 +177,26 @@ void Screen::scanScreenData(int roomIdx) {
     }
 }
 
-// Static method: Scan all screens in the world
-void Screen::scanAllScreens(std::vector<Screen>& world) {
+// Static method: Scan ALL data for all screens
+void Screen::scanAllScreens(std::vector<Screen>& world, 
+                             const RoomConnections& roomConnections,
+                             std::map<RiddleKey, Riddle*>& riddlesByPosition,
+                             Legend& legend) {
+    
+    // 1. Scan springs and switches in each screen
     for (size_t room = 0; room < world.size(); ++room) {
         world[room].scanScreenData((int)room);
     }
+    
+    // 2. Scan special doors (global configuration)
+    SpecialDoor::scanAndPopulate(world);
+    
+    // 3. Scan obstacles (BFS across rooms)
+    Obstacle::scanAllObstacles(world, roomConnections);
+    
+    // 4. Scan riddles (global configuration)
+    Riddle::scanAllRiddles(riddlesByPosition);
+    
+    // 5. Scan legends (find 'L' in each screen)
+    Legend::scanAllLegends(world, legend);
 }

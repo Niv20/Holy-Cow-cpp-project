@@ -1,8 +1,8 @@
 #pragma once
 #include <windows.h>
-#include "utils.h"
 
-// Represents a 2D point on the console
+// This file is based on Amir's tirgol
+
 struct Point {
     int x = 1;
     int y = 1;

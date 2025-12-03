@@ -41,6 +41,9 @@ struct SpringData {
         }
         return -1;
     }
+    
+    // Static: Find spring at position in a screen
+    static SpringData* findAt(Screen& screen, const Point& p);
 };
 
 // Spring logic helper functions
@@ -73,5 +76,5 @@ class SpringViz {
     // Runtime-only visualization controller, not stored globally
 public:
     // Compute collapsed cells along a linear run of '#' from contact point toward wall
-    static std::vector<Point> computeCollapsed(const class Screen& s, const Point& contact, int dirX, int dirY, int count);
+    static std::vector<Point> computeCollapsed(const Screen& s, const Point& contact, int dirX, int dirY, int count);
 };

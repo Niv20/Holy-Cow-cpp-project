@@ -1,16 +1,9 @@
 ﻿#include "Game.h"
-#include "RiddleData.h"
 #include "utils.h"
 #include "Glyph.h"
 #include "Menu.h"
-#include "SpecialDoorsData.h"
-#include "Resources.h"
-#include "DataStore.h"
 #include <conio.h>
 #include <windows.h>
-#include <fstream>
-#include <sstream>
-#include <map>
 #include <queue>
 #include <set>
 #include "RoomConnections.h"
@@ -18,27 +11,47 @@
 #include "Point.h"
 #include "Riddle.h"
 #include <vector>
+#include <string>
+#include <utility>
 
-using namespace std;
+using std::vector;
+using std::string;
+using std::queue;
+using std::pair;
+using std::set;
+
+
+/*      (__)
+'\------(oo)    Constructor
+  ||    (__)
+  ||w--||                */
 
 Game::Game() : visibleRoomIdx(0), isRunning(true), roomConnections(initRoomConnections()) { 
     initGame(); 
 }
 
 void Game::initGame() {
-    // Use DataStore abstraction (currently delegates to Screen loader)
-    world = DataStore::loadWorldScreens();
-    if (world.empty()) { isRunning = false; return; }
-    players.push_back(Player(Point(53, 18), "wdxase", Glyph::First_Player, 0));
-    players.push_back(Player(Point(63, 18), "ilmjko", Glyph::Second_Player, 0));
 
-    Screen::scanAllScreens(world);
-    scanLegend();
-    scanRiddles();
-    scanObstacles();
-    SpecialDoor::scanAndPopulate(world);
+    world = Screen::loadScreensFromFiles();
+ 
+    if (world.empty()) { 
+        isRunning = false; 
+        return; 
+    }
+
+    Screen::scanAllScreens(world, roomConnections, riddlesByPosition, legend);
+
+    players.push_back(Player(Point(78, 1), "wdxase", Glyph::First_Player, 0));
+    players.push_back(Player(Point(77, 1), "ilmjko", Glyph::Second_Player, 0));
+    
+    // Initialize final room tracking for both players
+    playerReachedFinalRoom.resize(players.size(), false);
 }
 
+/*      (__)
+'\------(oo)    Start the application
+  ||    (__)
+  ||w--||                           */
 
 void Game::runApp() {
 
@@ -49,99 +62,29 @@ void Game::runApp() {
         MenuAction action = Menu::showStartMenu();
         switch (action) {
 
-        case MenuAction::NewGame: {
-            Game game; game.run();
-            if (game.isGameLost()) { Menu::showLoseScreen(); }
-            break;
-        }
-
-        case MenuAction::Instructions: {
-            Menu::showInstructions();
-            break;
-        }
-
-        case MenuAction::Exit: {
-            exitProgram = true;
-            break;
-        }
-
-        case MenuAction::Continue: break;
-        case MenuAction::None: break;
-        }
-    }
-}
-
-void Game::scanLegend() {
-    legend.ensureRooms(world.size());
-    for (int room = 0; room < (int)world.size(); ++room) {
-        legend.locateLegendForRoom(room, world[room]);
-    }
-}
-
-void Game::scanRiddles() {
-    vector<RiddleData> riddles = initRiddles();
-    for (auto& rd : riddles) {
-        RiddleKey key{ rd.roomIdx, rd.position.x, rd.position.y };
-        riddlesByPosition[key] = new Riddle(rd.riddle);
-    }
-}
-
-void Game::scanObstacles() {
-    // Clear all screen obstacles first
-    for (int room = 0; room < (int)world.size(); ++room) {
-        world[room].getDataMutable().obstacles.clear();
-    }
-    
-    // Build global visited per room
-    vector<vector<vector<bool>>> visited(world.size(), vector<vector<bool>>(Screen::MAX_Y, vector<bool>(Screen::MAX_X,false)));
-    for (int room = 0; room < (int)world.size(); ++room) {
-        Screen& s = world[room];
-        for (int y=0;y<Screen::MAX_Y;++y) for (int x=0;x<Screen::MAX_X;++x) {
-            if (visited[room][y][x]) continue; Point start{ x,y }; wchar_t c = s.getCharAt(start);
-            if (!Glyph::isObstacle(c)) continue;
-            // BFS across rooms: neighbors include edges moving to connected rooms when crossing borders
-            queue<pair<int,Point>> q; q.push({room,start}); visited[room][y][x]=true; vector<ObCell> component;
-            auto enqueue = [&](int r, Point p) {
-                if (r<0||r>=(int)world.size()) return; if (p.x<0||p.x>=Screen::MAX_X||p.y<0||p.y>=Screen::MAX_Y) return;
-                if (visited[r][p.y][p.x]) return; if (!Glyph::isObstacle(world[r].getCharAt(p))) return; visited[r][p.y][p.x]=true; q.push({r,p}); };
-            while(!q.empty()) {
-                auto cur = q.front(); q.pop(); int cr = cur.first; Point cp = cur.second; component.push_back({cr,cp});
-                const int dx[4]={1,-1,0,0}; const int dy[4]={0,0,1,-1};
-                for (int i=0;i<4;++i) {
-                    Point np{cp.x+dx[i], cp.y+dy[i]}; int nr = cr;
-                    // If crossing border, move to connected room and wrap to opposite edge spawn
-                    if (np.x < 0) { nr = roomConnections.getTargetRoom(cr, Direction::Left); np.x = Screen::MAX_X-1; }
-                    else if (np.x >= Screen::MAX_X) { nr = roomConnections.getTargetRoom(cr, Direction::Right); np.x = 0; }
-                    else if (np.y < 0) { nr = roomConnections.getTargetRoom(cr, Direction::Up); np.y = Screen::MAX_Y-1; }
-                    else if (np.y >= Screen::MAX_Y) { nr = roomConnections.getTargetRoom(cr, Direction::Down); np.y = 0; }
-                    if (nr == -1) continue; enqueue(nr, np);
-                }
+            case MenuAction::NewGame: {
+                Game game; game.start();
+                if (game.isGameLost()) { Menu::showLoseScreen(); }
+                break;
             }
-            
-            // Create the obstacle
-            Obstacle obs(component);
-            
-            // Add this obstacle to all rooms it appears in
-            set<int> roomsInvolved;
-            for (const auto& cell : component) {
-                roomsInvolved.insert(cell.roomIdx);
+
+            case MenuAction::Instructions: {
+                Menu::showInstructions();
+                break;
             }
-            for (int involvedRoom : roomsInvolved) {
-                world[involvedRoom].getDataMutable().obstacles.push_back(obs);
+
+            case MenuAction::Exit: {
+                exitProgram = true;
+                break;
             }
+
+            case MenuAction::Continue: break;
+            case MenuAction::None: break;
         }
     }
 }
 
-Obstacle* Game::findObstacleAt(int roomIdx, const Point& p) {
-    auto& data = world[roomIdx].getDataMutable();
-    for (auto& o : data.obstacles) {
-        if (o.contains(roomIdx, p)) return &o;
-    }
-    return nullptr;
-}
-
-void Game::run() {
+void Game::start() {
 
     if (!isRunning) return;
 
@@ -154,17 +97,72 @@ void Game::run() {
     drawPlayers();
 
     while (isRunning) { 
-        handleInput(); 
+        handleInput();
+        if (!isRunning) break;
         update(); 
-        Sleep(180); 
+        Sleep(GAME_TICK_DELAY_MS); 
     }
+    
+    cls();
     
     if (heartsCount <= 0) {
         Menu::showLoseScreen();
     }
+    else {
+        // Check if both players reached final room (win condition)
+        bool allPlayersWon = true;
+        for (bool reached : playerReachedFinalRoom) {
+            if (!reached) {
+                allPlayersWon = false;
+                break;
+            }
+        }
+        
+        if (allPlayersWon) {
+            Menu::showWinScreen();
+        }
+    }
     
     for (auto& pair : riddlesByPosition) delete pair.second;
+}
+
+
+void Game::handlePause() {
+
+    const vector<string>& pauseTemplate = Menu::getPauseTemplate();
+
+    if (pauseTemplate.empty()) {
+        isRunning = false;
+        return;
+    }
+
+    Screen pauseScreen(pauseTemplate);
+
     cls();
+    pauseScreen.draw();
+
+    while (true) {
+
+        if (_kbhit()) {
+
+            char key = _getch();
+
+            if (key == ESC_KEY) {
+                cls();
+                world[visibleRoomIdx].draw();
+                refreshLegend();
+                drawPlayers();
+                return;
+            }
+            else if (key == 'H' || key == 'h') {
+                cls();
+                isRunning = false;
+                return;
+            }
+        }
+
+        Sleep(GAME_TICK_DELAY_MS);
+    }
 }
 
 
@@ -175,101 +173,101 @@ void Game::refreshLegend() {
 }
 
 void Game::drawPlayers() {
-    for (const auto& p : players) if (p.getRoomIdx() == visibleRoomIdx) p.draw();
-}
-
-void Game::handleInput() {
-    if (_kbhit()) {
-        char key = _getch();
-        if (key == ESC_KEY) { handlePause(); return; }
-        for (auto& p : players) if (p.getRoomIdx() == visibleRoomIdx) p.handleKey(key);
+    for (const auto& p : players) {
+        if (p.getRoomIdx() == visibleRoomIdx)
+            p.draw();
     }
 }
 
-void Game::handlePause() {
-    const vector<string>& pauseTemplate = Resources::getPauseTemplate();
-    if (pauseTemplate.empty()) { isRunning = false; return; }
-    Screen pauseScreen(pauseTemplate);
-    cls(); pauseScreen.draw();
-    while (true) {
-        if (_kbhit()) {
-            char key = _getch();
-            if (key == ESC_KEY) { cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers(); return; }
-            else if (key == 'H' || key == 'h') { isRunning = false; return; }
+void Game::handleInput() {
+
+    if (_kbhit()) {
+
+        char key = _getch();
+
+        if (key == ESC_KEY) { 
+            handlePause(); 
+            return; 
         }
-        Sleep(180);
+
+        for (size_t i = 0; i < players.size(); ++i) {
+            auto& p = players[i];
+            if (p.getRoomIdx() == visibleRoomIdx && !hasPlayerReachedFinalRoom(i))
+                p.handleKey(key);
+        }
     }
 }
 
 void Game::update() {
-    if (heartsCount <= 0) { isRunning = false; return; }
-    for (auto& p : players) if (p.getRoomIdx() == visibleRoomIdx) {
-        p.move(world[visibleRoomIdx], *this);
-        Point pos = p.getPosition(); wchar_t cell = world[visibleRoomIdx].getCharAt(pos);
-        if (Glyph::isRiddle(cell)) handleRiddleEncounter(p);
-    }
-    SpecialDoor::updateAll(*this);
-    checkAndProcessTransitions(); tickAndHandleBombs(); refreshLegend(); drawPlayers();
-}
 
-void Game::handleRiddleEncounter(Player& player) {
-    if (heartsCount <= 0) { isRunning = false; return; }
-    int roomIdx = player.getRoomIdx();
-    Point pos = player.getPosition();
-    RiddleKey exactKey{ roomIdx, pos.x, pos.y };
-    Riddle* riddle = nullptr;
-    if (riddlesByPosition.find(exactKey) != riddlesByPosition.end()) {
-        riddle = riddlesByPosition[exactKey];
-    } else {
-        for (auto& pair : riddlesByPosition) {
-            if (pair.first.roomIdx == roomIdx) { riddle = pair.second; break; }
+    if (heartsCount <= 0) { 
+        isRunning = false; 
+        return; 
+    }
+
+    // Move all players
+    for (size_t i = 0; i < players.size(); ++i) {
+        auto& p = players[i];
+
+        if (p.getRoomIdx() == visibleRoomIdx) {
+            p.move(world[visibleRoomIdx], *this);
+            Point pos = p.getPosition();
+            wchar_t cell = world[visibleRoomIdx].getCharAt(pos);
+            if (Glyph::isRiddle(cell))
+                Riddle::handleEncounter(p, riddlesByPosition, *this);
         }
     }
-    if (!riddle) return;
-
-    const vector<string>& templateScreen = Resources::getRiddleTemplate(); 
-    if (templateScreen.empty()) return;
-
-    vector<string> riddleScreenData = riddle->buildRiddleScreen(templateScreen); 
-    Screen riddleScreen(riddleScreenData);
-    cls(); riddleScreen.draw(); refreshLegend(); 
-
-    char answer = '\0';
-    while (true) {
-        if (_kbhit()) {
-            answer = _getch();
-            if (answer == ESC_KEY) { 
-                Point prevPos = pos; 
-                if (pos.diff_x) prevPos.x -= pos.diff_x; 
-                if (pos.diff_y) prevPos.y -= pos.diff_y; 
-                player.setPosition(prevPos); 
-                player.stop(); 
-                break; 
-            }
-            else if (answer >= '1' && answer <= '4') {
-                if (answer == riddle->getCorrectAnswer()) { 
-                    pointsCount += riddle->getPoints(); 
-                    world[roomIdx].setCharAt(pos, Glyph::Empty); 
-                }
-                else { 
-                    riddle-> halvePoints(); 
-                    heartsCount--; 
-                    Point prevPos = pos; 
-                    if (pos.diff_x) prevPos.x -= pos.diff_x; 
-                    if (pos.diff_y) prevPos.y -= pos.diff_y; 
-                    player.setPosition(prevPos); 
-                    player.stop(); 
-                }
-                break;
-            }
-        }
-    }
-
-    if (heartsCount <= 0) { isRunning = false; return; }
     
-    cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers();
+    SpecialDoor::updateAll(*this);
+    checkAndProcessTransitions(); 
+    
+    // Update final room tracking AFTER transitions
+    for (size_t i = 0; i < players.size(); ++i) {
+        if (players[i].getRoomIdx() == FINAL_ROOM_INDEX) {
+            if (!playerReachedFinalRoom[i]) {
+                playerReachedFinalRoom[i] = true;
+                
+                // Player just entered final room
+                // If camera is currently on final room, switch to other player immediately
+                if (visibleRoomIdx == FINAL_ROOM_INDEX) {
+                    for (size_t j = 0; j < players.size(); ++j) {
+                        if (j != i && players[j].getRoomIdx() != FINAL_ROOM_INDEX) {
+                            visibleRoomIdx = players[j].getRoomIdx();
+                            cls();
+                            world[visibleRoomIdx].draw();
+                            refreshLegend();
+                            drawPlayers();
+                            Bomb::tickAndHandleAll(bombs, *this);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Check if both players reached final room - game wins!
+    bool allPlayersReachedFinal = true;
+    for (size_t i = 0; i < playerReachedFinalRoom.size(); ++i) {
+        if (!playerReachedFinalRoom[i]) {
+            allPlayersReachedFinal = false;
+            break;
+        }
+    }
+    
+    if (allPlayersReachedFinal) {
+        drawEverything(); // Draw the final state
+        Sleep(1000); // Pause for a second to show the final screen
+        isRunning = false; // End game successfully
+        return;
+    }
+    
+    Bomb::tickAndHandleAll(bombs, *this);
+    refreshLegend(); 
+    drawPlayers();
 }
 
+// Written by AI !!!
 void Game::checkAndProcessTransitions() {
     const int maxX = Screen::MAX_X;
     const int maxY = Screen::MAX_Y;
@@ -282,30 +280,39 @@ void Game::checkAndProcessTransitions() {
         int order;
     };
 
-    std::vector<TransitionInfo> transitions;
+    vector<TransitionInfo> transitions;
     int order = 0;
 
+    // Detect transitions when crossing an edge
     for (auto& p : players) {
         if (p.getRoomIdx() != visibleRoomIdx) continue;
         Point pos = p.getPosition();
         Direction dir = Direction::None;
-        if (pos.x <= 0) dir = Direction::Left;
-        else if (pos.x >= maxX - 1) dir = Direction::Right;
-        else if (pos.y <= 0) dir = Direction::Up;
-        else if (pos.y >= maxY - 1) dir = Direction::Down;
+        if (pos.x <= 0)
+            dir = Direction::Left;
+        else if (pos.x >= maxX - 1)
+            dir = Direction::Right;
+        else if (pos.y <= 0)
+            dir = Direction::Up;
+        else if (pos.y >= maxY - 1)
+            dir = Direction::Down;
+
         if (dir != Direction::None) {
             int nextRoom = roomConnections.getTargetRoom(visibleRoomIdx, dir);
             if (nextRoom != -1) transitions.push_back({ &p, dir, nextRoom, pos, order++ });
         }
     }
 
-    if (transitions.empty()) return;
+    if (transitions.empty())
+        return;
 
-    int targetRoom = transitions[0].targetRoom;
+    // Erase players from current room at their original positions to prevent wrap ghosting
+    for (auto& t : transitions)
+        world[visibleRoomIdx].refreshCell(t.originalPos);
 
-    for (auto& t : transitions) world[visibleRoomIdx].refreshCell(t.originalPos);
+    // Compute spawn positions per player based on their direction and target room
+    vector<Point> spawns(transitions.size());
 
-    std::vector<Point> spawns(transitions.size());
     for (size_t i = 0; i < transitions.size(); ++i) {
         const auto& t = transitions[i];
         Point s;
@@ -314,104 +321,85 @@ void Game::checkAndProcessTransitions() {
             case Direction::Right: s = Point(1,        t.originalPos.y); break;
             case Direction::Up:    s = Point(t.originalPos.x, maxY - 2); break;
             case Direction::Down:  s = Point(t.originalPos.x, 1);        break;
-            default: s = t.originalPos; break;
+            default:               s = t.originalPos; break;
         }
         if (s.x < 1) s.x = 1; if (s.x > maxX - 2) s.x = maxX - 2;
         if (s.y < 1) s.y = 1; if (s.y > maxY - 2) s.y = maxY - 2;
         spawns[i] = s;
     }
 
-    auto pushForwardOne = [&](size_t idx, const TransitionInfo& info) {
-        int dx = info.originalPos.diff_x;
-        int dy = info.originalPos.diff_y;
-        if (dx == 0 && dy == 0) {
-            switch (info.direction) {
-                case Direction::Left:  dx = -1; break;
-                case Direction::Right: dx =  1; break;
-                case Direction::Up:    dy = -1; break;
-                case Direction::Down:  dy =  1; break;
-                default: break;
-            }
-        }
-        spawns[idx].x += dx; spawns[idx].y += dy;
-        if (spawns[idx].x < 1) spawns[idx].x = 1; if (spawns[idx].x > maxX - 2) spawns[idx].x = maxX - 2;
-        if (spawns[idx].y < 1) spawns[idx].y = 1; if (spawns[idx].y > maxY - 2) spawns[idx].y = maxY - 2;
-    };
-
-    for (size_t i = 0; i < spawns.size(); ++i) {
+    // Spread colliding spawns based on direction
+    for (size_t i = 0; i < transitions.size(); ++i) {
         for (size_t j = i + 1; j < spawns.size(); ++j) {
             if (spawns[i].x == spawns[j].x && spawns[i].y == spawns[j].y) {
-                pushForwardOne(i, transitions[i]);
+                Direction dir = transitions[i].direction;
+                if (dir == Direction::Left || dir == Direction::Right) {
+                    spawns[j].y += 1;
+                    if (spawns[j].y > maxY - 2) spawns[j].y = maxY - 2;
+                } else if (dir == Direction::Up || dir == Direction::Down) {
+                    spawns[j].x += 1;
+                    if (spawns[j].x > maxX - 2) spawns[j].x = maxX - 2;
+                }
             }
         }
     }
 
+    // Apply transitions per player
     for (size_t i = 0; i < transitions.size(); ++i) {
         Player* pl = transitions[i].player;
         Point newPos = spawns[i];
         newPos.diff_x = transitions[i].originalPos.diff_x;
         newPos.diff_y = transitions[i].originalPos.diff_y;
-        pl->setRoomIdx(targetRoom);
+        pl->setRoomIdx(transitions[i].targetRoom);
         pl->setPosition(newPos);
     }
 
-    bool cameraShouldMove = true;
-    for (const auto& p : players) if (p.getRoomIdx() == visibleRoomIdx) { cameraShouldMove = false; break; }
-    if (cameraShouldMove) { visibleRoomIdx = targetRoom; cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers(); }
-}
-
-void Game::tickAndHandleBombs() { 
-    std::vector<Bomb> nextBombs; 
-    std::vector<Bomb> toExplode; 
-    nextBombs.reserve(bombs.size()); 
-    
-    for (auto& b : bombs) {
-        if (b.tick()) {
-            toExplode.push_back(b);
-        } else {
-            nextBombs.push_back(b);
+    // Camera logic:
+    bool anyPlayerRemainsInCurrentRoom = false;
+    for (const auto& p : players) {
+        if (p.getRoomIdx() == visibleRoomIdx) {
+            anyPlayerRemainsInCurrentRoom = true;
+            break;
         }
     }
-    
-    bombs.swap(nextBombs); 
-    
-    for (auto& b : toExplode) {
-        b.explode(*this);
+    if (anyPlayerRemainsInCurrentRoom) {
+        return;
     }
+
+    int focusRoom = transitions.back().targetRoom;
+    visibleRoomIdx = focusRoom;
+    drawEverything();
 }
+
+void Game::drawEverything() { 
+    cls(); 
+    world[visibleRoomIdx].draw(); 
+    refreshLegend(); 
+    drawPlayers(); 
+}
+
+/*      (__)
+'\------(oo)    Convenience Wrappers 
+  ||    (__)
+  ||w--||                         */
+
 
 void Game::placeBomb(int roomIdx, const Point& pos, int delay) {
-    bombs.emplace_back(pos, roomIdx, delay + 1);
+    Bomb::place(bombs, roomIdx, pos, delay);
 }
 
-void Game::drawEverything() { cls(); world[visibleRoomIdx].draw(); refreshLegend(); drawPlayers(); }
-
-SpringData* Game::findSpringAt(int roomIdx, const Point& p) {
-    auto& data = world[roomIdx].getDataMutable();
-    for (auto& sp : data.springs) {
-        if (sp.findCellIndex(p) != -1) {
-            return &sp;
-        }
-    }
-    return nullptr;
+struct SpringData* Game::findSpringAt(int roomIdx, const Point& p) {
+    return SpringData::findAt(world[roomIdx], p);
 }
 
-SwitchData* Game::findSwitchAt(int roomIdx, const Point& p) {
-    auto& data = world[roomIdx].getDataMutable();
-    for (auto& sw : data.switches) {
-        if (sw.pos.x == p.x && sw.pos.y == p.y) {
-            return &sw;
-        }
-    }
-    return nullptr;
+struct SwitchData* Game::findSwitchAt(int roomIdx, const Point& p) {
+    return SwitchData::findAt(world[roomIdx], p);
 }
 
 SpecialDoor* Game::findSpecialDoorAt(int roomIdx, const Point& p) {
-    auto& dataDoors = world[roomIdx].getDataMutable().doors;
-    for (auto& door : dataDoors) {
-        if (door.position.x == p.x && door.position.y == p.y) {
-            return &door;
-        }
-    }
-    return nullptr;
+    return SpecialDoor::findAt(world[roomIdx], p);
+}
+
+Obstacle* Game::findObstacleAt(int roomIdx, const Point& p) {
+    return Obstacle::findAt(world[roomIdx], roomIdx, p);
 }

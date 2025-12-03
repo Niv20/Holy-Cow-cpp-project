@@ -2,7 +2,10 @@
 #include "Point.h"
 #include <vector>
 
-struct ObCell { int roomIdx; Point pos; };
+struct ObCell { 
+    int roomIdx; 
+    Point pos; 
+};
 
 // Represents an obstacle made of contiguous '*' cells (4-neighborhood), possibly across rooms.
 class Obstacle {
@@ -19,4 +22,10 @@ public:
     // Attempt push by dx,dy with given speed (number of steps). Requires force >= size.
     bool canPush(int dx, int dy, int force, class Game& game, int speed = 1) const;
     void applyPush(int dx, int dy, class Game& game, int speed = 1);
+    
+    // Static method to scan all obstacles in the world
+    static void scanAllObstacles(std::vector<class Screen>& world, const class RoomConnections& roomConnections);
+    
+    // Static: Find obstacle at position in a screen
+    static Obstacle* findAt(class Screen& screen, int roomIdx, const Point& p);
 };

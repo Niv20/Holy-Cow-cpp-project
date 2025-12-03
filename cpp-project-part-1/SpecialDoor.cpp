@@ -3,7 +3,7 @@
 #include "Switch.h"
 #include "Screen.h"
 #include "Glyph.h"
-#include "DataStore.h"
+#include "SpecialDoorsData.h"
 #include <algorithm>
 #include <sstream>
 #include <climits>
@@ -39,11 +39,13 @@ void SpecialDoor::scanAndPopulate(std::vector<Screen>& world) {
     }
     
     std::vector<std::string> lines;
-    {
-        std::istringstream iss(DataStore::loadSpecialDoorsConfig());
-        std::string line;
-        while (std::getline(iss, line)) lines.push_back(line);
+    std::string config(SPECIAL_DOORS_CONFIG);
+    std::istringstream iss(config);
+    std::string line;
+    while (std::getline(iss, line)) {
+        lines.push_back(line);
     }
+    
     if (lines.empty()) return;
 
     SpecialDoor* currentDoor = nullptr;
@@ -114,4 +116,15 @@ void SpecialDoor::updateAll(Game& game) {
             }
         }
     }
+}
+
+// Static: Find special door at position
+SpecialDoor* SpecialDoor::findAt(Screen& screen, const Point& p) {
+    auto& dataDoors = screen.getDataMutable().doors;
+    for (auto& door : dataDoors) {
+        if (door.position.x == p.x && door.position.y == p.y) {
+            return &door;
+        }
+    }
+    return nullptr;
 }

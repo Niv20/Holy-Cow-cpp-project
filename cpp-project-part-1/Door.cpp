@@ -14,5 +14,5 @@ bool Door::tryToOpen(Player& p) {
         return true;
     }
 
-    return false; // key doesn't match OR player has no key
+    return false; // key doesn't match ORRRRRR player has no key
 }

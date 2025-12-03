@@ -5,6 +5,17 @@
 #include "Glyph.h"
 #include "Obstacle.h"
 
+// Static: Find spring at position
+SpringData* SpringData::findAt(Screen& screen, const Point& p) {
+    auto& data = screen.getDataMutable();
+    for (auto& sp : data.springs) {
+        if (sp.findCellIndex(p) != -1) {
+            return &sp;
+        }
+    }
+    return nullptr;
+}
+
 namespace SpringLogic {
 
 void releaseSpring(Player& player, SpringData* spring, int compressedCount, 

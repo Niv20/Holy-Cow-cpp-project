@@ -9,11 +9,11 @@ class Player {
     char keys[NUM_KEYS];
     wchar_t symbol;
     int currentRoomIdx;
-    Key carried; // was char
+    Key carried;
     bool actionRequested = false;
 
     // Spring state
-    class SpringData* currentSpring = nullptr; // which spring we're on
+    struct SpringData* currentSpring = nullptr; // which spring we're on
     int entryIndex = -1; // which cell index we entered at
     int compressedCount = 0; // how many cells compressed so far
     
@@ -26,7 +26,6 @@ class Player {
 public:
     Player(Point startPos, const char* keySet, wchar_t sym, int startRoom);
     void draw() const;
-    void erase(Screen& currentScreen) const;
     void move(Screen& currentScreen, class Game& game);
     void handleKey(char key);
     void stop();
@@ -45,8 +44,8 @@ public:
     void inheritSpringLaunch(int speed, int ticks, int dirX, int dirY);
     
     // Spring state accessors (for SpringLogic namespace)
-    class SpringData* getCurrentSpring() const { return currentSpring; }
-    void setCurrentSpring(class SpringData* spring) { currentSpring = spring; }
+    struct SpringData* getCurrentSpring() const { return currentSpring; }
+    void setCurrentSpring(struct SpringData* spring) { currentSpring = spring; }
     int getEntryIndex() const { return entryIndex; }
     void setEntryIndex(int idx) { entryIndex = idx; }
     int getCompressedCount() const { return compressedCount; }

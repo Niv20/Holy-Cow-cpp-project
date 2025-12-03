@@ -10,17 +10,8 @@
 #include "RoomConnections.h"
 
 constexpr int ESC_KEY = 27;
-
-struct RiddleKey {
-    int roomIdx;
-    int x;
-    int y;
-    bool operator<(const RiddleKey& other) const {
-        if (roomIdx != other.roomIdx) return roomIdx < other.roomIdx;
-        if (x != other.x) return x < other.x;
-        return y < other.y;
-    }
-};
+constexpr int GAME_TICK_DELAY_MS = 90;
+constexpr int FINAL_ROOM_INDEX = 6;
 
 class Game {
 
@@ -37,6 +28,8 @@ class Game {
     std::map<RiddleKey, Riddle*> riddlesByPosition;
 
     Legend legend;
+    
+    std::vector<bool> playerReachedFinalRoom; // Track which players reached final room
 
     void initGame();
 
@@ -50,34 +43,24 @@ class Game {
     void checkAndProcessTransitions();
 
     void handlePause();
-    void handleRiddleEncounter(Player& player);
-
-    // Scan/load helpers
-    void scanObstacles();
-    void scanLegend();
-    void scanRiddles();
-
-    void syncBombsInRoom(int roomIdx);
-    void tickAndHandleBombs();
     
 public:
-
+    
     Game();
 
-    void run();
+    void start();
+    static void runApp();
 
     bool isGameLost() const { 
         return heartsCount <= 0; 
     }
 
-    static void runApp();
-
     const std::vector<Player>& getPlayers() const { return players; }
     std::vector<Player>& getPlayersMutable() { return players; }
 
     Obstacle* findObstacleAt(int roomIdx, const Point& p);
-    SpringData* findSpringAt(int roomIdx, const Point& p);
-    SwitchData* findSwitchAt(int roomIdx, const Point& p);
+    struct SpringData* findSpringAt(int roomIdx, const Point& p);
+    struct SwitchData* findSwitchAt(int roomIdx, const Point& p);
     SpecialDoor* findSpecialDoorAt(int roomIdx, const Point& p);
 
     int getVisibleRoomIdx() const { return visibleRoomIdx; }
@@ -92,5 +75,29 @@ public:
         heartsCount -= amount; 
         if (heartsCount < 0) heartsCount = 0;
         if (heartsCount <= 0) isRunning = false;
+    }
+    
+    void addPoints(int amount) { 
+        pointsCount += amount; 
+    }
+    
+    // Public helpers for Riddle class
+    void refreshLegendPublic() { refreshLegend(); }
+    void drawEverythingPublic() { drawEverything(); }
+    
+    // Access to riddles map for Riddle class
+    std::map<RiddleKey, Riddle*>& getRiddlesByPosition() { return riddlesByPosition; }
+    
+    // Check if player reached final room
+    bool hasPlayerReachedFinalRoom(size_t playerIdx) const {
+        if (playerIdx >= playerReachedFinalRoom.size()) return false;
+        return playerReachedFinalRoom[playerIdx];
+    }
+    
+    // Mark player as reached final room
+    void setPlayerReachedFinalRoom(size_t playerIdx, bool reached) {
+        if (playerIdx < playerReachedFinalRoom.size()) {
+            playerReachedFinalRoom[playerIdx] = reached;
+        }
     }
 };

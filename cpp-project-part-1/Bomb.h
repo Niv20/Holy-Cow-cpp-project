@@ -1,7 +1,8 @@
 #pragma once
 #include "Point.h"
+#include <vector>
 
-// Forward declaration
+// Forward declaration!
 class Game;
 
 class Bomb {
@@ -25,4 +26,8 @@ public:
     
     // Explode: destroy weak walls, obstacles, damage players
     void explode(Game& game);
+    
+    // Static methods for managing all bombs
+    static void tickAndHandleAll(std::vector<Bomb>& bombs, Game& game);
+    static void place(std::vector<Bomb>& bombs, int roomIdx, const Point& pos, int delay = 5);
 };

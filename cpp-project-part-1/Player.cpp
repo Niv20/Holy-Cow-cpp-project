@@ -7,12 +7,22 @@
 #include "Obstacle.h"
 #include "Spring.h"
 #include "Switch.h"
-#include <algorithm>
+
+/*      (__)
+'\------(oo)    Constructor
+  ||    (__)
+  ||w--||                */
 
 Player::Player(Point startPos, const char* keySet, wchar_t sym, int startRoom)
-    : position(startPos), symbol(sym), currentRoomIdx(startRoom)
+    : position(startPos), symbol(sym), currentRoomIdx(startRoom) { 
+    for (int i = 0; i < NUM_KEYS; i++) 
+        keys[i] = keySet[i]; 
+}
 
-{ for (int i = 0; i < NUM_KEYS; i++) keys[i] = keySet[i]; }
+/*      (__)
+'\------(oo)    Basic functions
+  ||    (__)
+  ||w--||                    */
 
 void Player::draw() const {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -21,29 +31,18 @@ void Player::draw() const {
     wchar_t out = symbol; DWORD written; WriteConsoleW(hOut, &out, 1, &written, nullptr);
 }
 
-void Player::erase(Screen& currentScreen) const { /* no direct erase */ }
-
-void Player::inheritSpringLaunch(int speed, int ticks, int dirX, int dirY) {
-    springBoostSpeed = speed;
-    springBoostTicksLeft = ticks;
-    boostDirX = dirX;
-    boostDirY = dirY;
-    currentSpring = nullptr;
-    compressedCount = 0;
-    // Clear movement direction to prevent interference
-    position.setDirection(4); // STAY
-}
-
-void Player::releaseSpring(Screen& currentScreen, Game& game) {
-    SpringLogic::releaseSpring(*this, currentSpring, compressedCount, currentScreen, game);
-    
-    // Reset spring tracking
-    currentSpring = nullptr;
-    compressedCount = 0;
-    entryIndex = -1;
+void Player::stop() {
+    position.setDirection(4);
 }
 
 void Player::move(Screen& currentScreen, Game& game) {
+    // Check if player reached final room - if so, prevent all movement
+    if (currentRoomIdx == FINAL_ROOM_INDEX) {
+        // Player reached final room - cannot move anymore
+        position.setDirection(4); // Force STAY
+        return;
+    }
+    
     Point originalPos = position;
 
     // Calculate cooperative force based on actual push direction
@@ -585,6 +584,27 @@ void Player::handleKey(char key) {
     }
 }
 
-void Player::stop() {
-    position.setDirection(4);
+/*      (__)
+'\------(oo)    Spring functions
+  ||    (__)
+  ||w--||                     */
+
+void Player::inheritSpringLaunch(int speed, int ticks, int dirX, int dirY) {
+    springBoostSpeed = speed;
+    springBoostTicksLeft = ticks;
+    boostDirX = dirX;
+    boostDirY = dirY;
+    currentSpring = nullptr;
+    compressedCount = 0;
+    // Clear movement direction to prevent interference
+    position.setDirection(4); // STAY
+}
+
+void Player::releaseSpring(Screen& currentScreen, Game& game) {
+    SpringLogic::releaseSpring(*this, currentSpring, compressedCount, currentScreen, game);
+
+    // Reset spring tracking
+    currentSpring = nullptr;
+    compressedCount = 0;
+    entryIndex = -1;
 }

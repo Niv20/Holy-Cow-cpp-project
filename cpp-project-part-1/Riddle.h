@@ -1,6 +1,18 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <map>
+
+struct RiddleKey {
+    int roomIdx;
+    int x;
+    int y;
+    bool operator<(const RiddleKey& other) const {
+        if (roomIdx != other.roomIdx) return roomIdx < other.roomIdx;
+        if (x != other.x) return x < other.x;
+        return y < other.y;
+    }
+};
 
 class Riddle {
 	// TODO: Why static?
@@ -40,4 +52,12 @@ public:
 	char getCorrectAnswer() const { return correctAnswer; }
 	int getPoints() const { return points; }
 	void halvePoints() { points /= 2; }
+	
+	// Static method to scan all riddles from RiddleData
+	static void scanAllRiddles(std::map<RiddleKey, Riddle*>& riddlesByPosition);
+	
+	// Static method to handle riddle encounter with a player
+	static void handleEncounter(class Player& player, 
+	                             std::map<RiddleKey, Riddle*>& riddlesByPosition,
+	                             class Game& game);
 };

@@ -6,10 +6,10 @@
 #include <algorithm>
 #include <set>
 
+// Written by AI
 // Helper to avoid Windows.h min/max macro conflict
 template<typename T>
 inline T clamp_min(T a, T b) { return (a < b) ? b : a; }
-
 template<typename T>
 inline T clamp_max(T a, T b) { return (a > b) ? b : a; }
 
@@ -17,20 +17,20 @@ inline T clamp_max(T a, T b) { return (a > b) ? b : a; }
 void Bomb::explode(Game& game) {
     Screen& s = game.getScreen(roomIdx);
     const int radius = 3;
-    
+
     // First, remove the bomb '@' from the screen
     s.setCharAt(position, Glyph::Empty);
     if (roomIdx == game.getVisibleRoomIdx()) {
         s.refreshCell(position);
     }
-    
+
     // Calculate blast area (distance 3 in all directions, including diagonally)
     int minX = clamp_min(0, position.x - radius);
     int maxX = clamp_max(Screen::MAX_X - 1, position.x + radius);
     int minY = clamp_min(0, position.y - radius);
     int maxY = clamp_max(Screen::MAX_Y - 1, position.y + radius);
-    
-    // 1. Destroy weak walls (~, -, |) in blast radius
+
+    // Destroy weak walls (^) in blast radius
     for (int y = minY; y <= maxY; ++y) {
         for (int x = minX; x <= maxX; ++x) {
             Point p{ x, y };
@@ -43,12 +43,12 @@ void Bomb::explode(Game& game) {
             }
         }
     }
-    
-    // 2. Destroy obstacles: if ANY cell of obstacle is in blast radius, destroy ENTIRE obstacle
+
+    // Destroy obstacles: if ANY cell of obstacle is in blast radius, destroy ENTIRE obstacle
     // We need to check the obstacles in this room and mark which ones to remove
     auto& roomData = game.getScreen(roomIdx).getDataMutable();
     std::set<Obstacle*> obstaclesToRemove;
-    
+
     for (auto& obs : roomData.obstacles) {
         bool hitByBlast = false;
         for (const auto& cell : obs.getCells()) {
@@ -64,7 +64,7 @@ void Bomb::explode(Game& game) {
             obstaclesToRemove.insert(&obs);
         }
     }
-    
+
     // Remove hit obstacles: erase all cells from ALL screens (obstacle might span rooms)
     for (auto* obs : obstaclesToRemove) {
         for (const auto& cell : obs->getCells()) {
@@ -73,20 +73,20 @@ void Bomb::explode(Game& game) {
             if (cell.roomIdx == game.getVisibleRoomIdx()) {
                 sc.refreshCell(cell.pos);
             }
-            
+
             // Also remove this obstacle from the target room's data
             auto& targetRoomData = game.getScreen(cell.roomIdx).getDataMutable();
             targetRoomData.obstacles.erase(
                 std::remove_if(targetRoomData.obstacles.begin(), targetRoomData.obstacles.end(),
-                    [obs](const Obstacle& o) { 
-                        return &o == obs; 
+                    [obs](const Obstacle& o) {
+                        return &o == obs;
                     }),
                 targetRoomData.obstacles.end()
             );
         }
     }
-    
-    // 3. Damage players: each player hit = 1 heart lost
+
+    // Damage players: each player hit = 1 heart lost
     int hits = 0;
     for (auto& pl : game.getPlayersMutable()) {
         if (pl.getRoomIdx() == roomIdx) {
@@ -96,6 +96,32 @@ void Bomb::explode(Game& game) {
             }
         }
     }
-    
+
     game.reduceHearts(hits);
+}
+
+// Static: Tick all bombs and handle explosions
+void Bomb::tickAndHandleAll(std::vector<Bomb>& bombs, Game& game) {
+    std::vector<Bomb> nextBombs;
+    std::vector<Bomb> toExplode;
+    nextBombs.reserve(bombs.size());
+
+    for (auto& b : bombs) {
+        if (b.tick()) {
+            toExplode.push_back(b);
+        } else {
+            nextBombs.push_back(b);
+        }
+    }
+
+    bombs.swap(nextBombs);
+
+    for (auto& b : toExplode) {
+        b.explode(game);
+    }
+}
+
+// Static: Place a new bomb
+void Bomb::place(std::vector<Bomb>& bombs, int roomIdx, const Point& pos, int delay) {
+    bombs.emplace_back(pos, roomIdx, delay + 1);
 }

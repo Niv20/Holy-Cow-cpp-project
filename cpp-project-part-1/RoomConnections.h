@@ -54,29 +54,26 @@ inline RoomConnections initRoomConnections() {
 
     // Room 0 connections
     roomData.push_back({ 0, Direction::Right, 1 });
-    
+    roomData.push_back({ 0, Direction::Left, 6 });
+
     // Room 1 connections
+    roomData.push_back({ 1, Direction::Right, 2 });
     roomData.push_back({ 1, Direction::Left, 0 });
-    roomData.push_back({ 1, Direction::Down, 2 });
     
     // Room 2 connections
-    roomData.push_back({ 2, Direction::Up, 1 });
-    roomData.push_back({ 2, Direction::Right, 3 });
+    roomData.push_back({ 2, Direction::Up, 3 });
+    roomData.push_back({ 2, Direction::Down, 4 });
+    roomData.push_back({ 2, Direction::Right, 5 });
+    roomData.push_back({ 1, Direction::Left, 1 });
     
     // Room 3 connections
-    roomData.push_back({ 3, Direction::Left, 2 });
-    roomData.push_back({ 3, Direction::Down, 4 });
+    roomData.push_back({ 3, Direction::Down, 2 });
     
     // Room 4 connections
-    roomData.push_back({ 4, Direction::Up, 3 });
-    roomData.push_back({ 4, Direction::Right, 5 });
+    roomData.push_back({ 4, Direction::Up, 2 });
     
     // Room 5 connections
-    roomData.push_back({ 5, Direction::Left, 4 });
-    roomData.push_back({ 5, Direction::Down, 6 });
-    
-    // Room 6 connections
-    roomData.push_back({ 6, Direction::Up, 5 });
-    
+    roomData.push_back({ 5, Direction::Left, 2 });
+        
     return RoomConnections(roomData);
 }

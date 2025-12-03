@@ -1,12 +1,19 @@
 ﻿#pragma once
 #include <vector>
 #include <string>
+#include <map>
 #include <windows.h>
 #include "Point.h"
 #include "Spring.h"
 #include "Switch.h"
 #include "SpecialDoor.h"
 #include "Obstacle.h"
+
+// Forward declarations
+class Legend;
+class RoomConnections;
+class Riddle;
+struct RiddleKey;
 
 class Screen {
 public:
@@ -42,7 +49,12 @@ public:
 
     // Static methods for loading and scanning screens
     static std::vector<Screen> loadScreensFromFiles();
-    static void scanAllScreens(std::vector<Screen>& world);
+    
+    // Scan ALL data for all screens: springs, switches, doors, obstacles, riddles, legends
+    static void scanAllScreens(std::vector<Screen>& world, 
+                                const RoomConnections& roomConnections,
+                                std::map<RiddleKey, Riddle*>& riddlesByPosition,
+                                Legend& legend);
     
     // Scan this screen's data (springs, switches)
     void scanScreenData(int roomIdx);

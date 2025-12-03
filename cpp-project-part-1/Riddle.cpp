@@ -1,4 +1,12 @@
 #include "Riddle.h"
+#include "RiddleData.h"
+#include "Player.h"
+#include "Game.h"
+#include "Screen.h"
+#include "Menu.h"
+#include "Glyph.h"
+#include "utils.h"
+#include <conio.h>
 #include <cstring>
 #include <string>
 
@@ -45,4 +53,92 @@ vector<string> Riddle::buildRiddleScreen(const vector<string>& templateScreen) c
     placeTextAt(ANSWER4_ROW, ANSWER4_COL, string(answer4), MAX_ANSWER_LENGTH);
 
     return riddleScreen;
+}
+
+void Riddle::scanAllRiddles(map<RiddleKey, Riddle*>& riddlesByPosition) {
+    vector<RiddleData> riddles = initRiddles();
+    for (auto& rd : riddles) {
+        RiddleKey key{ rd.roomIdx, rd.position.x, rd.position.y };
+        riddlesByPosition[key] = new Riddle(rd.riddle);
+    }
+}
+
+void Riddle::handleEncounter(Player& player, 
+                              map<RiddleKey, Riddle*>& riddlesByPosition,
+                              Game& game) {
+    
+    int roomIdx = player.getRoomIdx();
+    Point pos = player.getPosition();
+
+    // Find the riddle at this position
+    RiddleKey exactKey{ roomIdx, pos.x, pos.y };
+    Riddle* riddle = nullptr;
+
+    if (riddlesByPosition.find(exactKey) != riddlesByPosition.end()) {
+        riddle = riddlesByPosition[exactKey];
+    } else {
+        for (auto& pair : riddlesByPosition) {
+            if (pair.first.roomIdx == roomIdx) { 
+                riddle = pair.second; 
+                break; 
+            }
+        }
+    }
+
+    if (!riddle) return;
+
+    // Get riddle template screen
+    const vector<string>& templateScreen = Menu::getRiddleTemplate(); 
+    if (templateScreen.empty()) return;
+
+    // Build and display riddle screen
+    vector<string> riddleScreenData = riddle->buildRiddleScreen(templateScreen); 
+    Screen riddleScreen(riddleScreenData);
+    
+    cls(); 
+    riddleScreen.draw();
+    
+    // Refresh legend (need to call through game)
+    game.refreshLegendPublic();
+
+    // Wait for player answer
+    char answer = '\0';
+    while (true) {
+        if (_kbhit()) {
+            answer = _getch();
+            
+            // ESC - cancel riddle
+            if (answer == 27) { 
+                Point prevPos = pos; 
+                if (pos.diff_x) prevPos.x -= pos.diff_x; 
+                if (pos.diff_y) prevPos.y -= pos.diff_y; 
+                player.setPosition(prevPos); 
+                player.stop(); 
+                break; 
+            }
+            // Answer 1-4
+            else if (answer >= '1' && answer <= '4') {
+                if (answer == riddle->getCorrectAnswer()) { 
+                    // Correct answer
+                    game.addPoints(riddle->getPoints());
+                    game.getScreen(roomIdx).setCharAt(pos, Glyph::Empty);
+                }
+                else { 
+                    // Wrong answer
+                    riddle->halvePoints(); 
+                    game.reduceHearts(1);
+                    Point prevPos = pos; 
+                    if (pos.diff_x) prevPos.x -= pos.diff_x; 
+                    if (pos.diff_y) prevPos.y -= pos.diff_y; 
+                    player.setPosition(prevPos); 
+                    player.stop(); 
+                }
+                break;
+            }
+        }
+    }
+
+    // Redraw game screen
+    cls(); 
+    game.drawEverythingPublic();
 }
