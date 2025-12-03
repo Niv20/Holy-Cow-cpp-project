@@ -8,9 +8,9 @@
 │ │      #      │  Spring            │              She is trapped!            │
 │ │      *      │  Obstacle          │                                         │
 │ │      @      │  Bomb              │         Work together to find the       │
-│ │      W      │  Weak Wall         │        correct Key to set her free.     │
-│ │      !      │  Torch             │                                         │
+│ │      !      │  Torch             │        correct Key to set her free.     │
 │ │      ?      │  Riddle            │                                         │
+│ │     0 1     │  On/Off Switc      │                                         │
 │ └─────────────┴────────────────────┘            Press ESC to return          │
 │ ┌──────────────┬─────────┬─────────┐                                         │
 │ │   PLAYERS    │    ö    │    ü    │                                         │
