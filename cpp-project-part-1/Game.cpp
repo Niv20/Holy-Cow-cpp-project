@@ -14,6 +14,7 @@
 #include "Player.h"
 #include "Point.h"
 #include "Riddle.h"
+#include "Obstacle.h"
 
 using std::vector;
 using std::string;
@@ -428,4 +429,9 @@ SpecialDoor* Game::findSpecialDoorAt(int roomIdx, const Point& p) {
 
 Obstacle* Game::findObstacleAt(int roomIdx, const Point& p) {
     return Obstacle::findAt(world[roomIdx], roomIdx, p);
+}
+
+// Rescan obstacles across all rooms to keep obstacle instances in sync after moves
+void Game::rescanObstacles() {
+    Obstacle::scanAllObstacles(world, roomConnections);
 }

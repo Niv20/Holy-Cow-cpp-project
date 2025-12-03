@@ -418,6 +418,8 @@ void Player::move(Screen& currentScreen, Game& game) {
                         if (obs->canPush(moveDx, moveDy, appliedForce, game)) {
                             // Push succeeds: first push obstacle, then move player
                             obs->applyPush(moveDx, moveDy, game);
+                            // Rescan obstacles to refresh instances across rooms after movement
+                            game.rescanObstacles();
                             // Now move player to target (which should now be empty)
                             wchar_t afterPush = currentScreen.getCharAt(targetPos);
                             if (afterPush == Glyph::Empty) {

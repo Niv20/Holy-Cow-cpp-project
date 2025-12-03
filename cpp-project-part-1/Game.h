@@ -102,4 +102,7 @@ public:
             playerReachedFinalRoom[playerIdx] = reached;
         }
     }
+
+    // Rescan obstacles across all rooms to keep obstacle instances in sync after moves
+    void rescanObstacles();
 };
