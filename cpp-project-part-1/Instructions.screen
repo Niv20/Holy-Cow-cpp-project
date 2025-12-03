@@ -2,9 +2,9 @@
 │ ┌─────────────┬────────────────────┐                                         │
 │ │    GLYPH    │    DESCRIPTION     │                                         │
 │ ├─────────────┼────────────────────┤                   Oh no!                │
-│ │     ö ü     │  Players           │                                         │
+│ │  a b c ...  │  Key               │                                         │
 │ │  A B C ...  │  Door              │            The herd has moved,          │
-│ │  a b c ...  │  Key               │        but one cow was left behind.     │
+│ │      ■      │  special door      │        but one cow was left behind.     │
 │ │      #      │  Spring            │              She is trapped!            │
 │ │      *      │  Obstacle          │                                         │
 │ │      @      │  Bomb              │         Work together to find the       │
@@ -13,7 +13,7 @@
 │ │      ?      │  Riddle            │                                         │
 │ └─────────────┴────────────────────┘            Press ESC to return          │
 │ ┌──────────────┬─────────┬─────────┐                                         │
-│ │    GLYPH     │    ö    │    ü    │                                         │
+│ │   PLAYERS    │    ö    │    ü    │                                         │
 │ ├──────────────┼─────────┼─────────┤                  /)  (\                 │
 │ │   MOVE UP    │    W    │    I    │             .-._((,~~.))_.-,            │
 │ │  MOVE RIGHT  │    D    │    L    │              `=.   99   ,='             │

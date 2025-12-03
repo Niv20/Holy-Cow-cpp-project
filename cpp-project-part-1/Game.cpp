@@ -41,9 +41,9 @@ void Game::initGame() {
 
     Screen::scanAllScreens(world, roomConnections, riddlesByPosition, legend);
 
-    players.push_back(Player(Point(78, 1), "wdxase", Glyph::First_Player, 0));
-    players.push_back(Player(Point(77, 1), "ilmjko", Glyph::Second_Player, 0));
-    
+    players.push_back(Player(Point(53, 18), "wdxase", Glyph::First_Player, 0));
+    players.push_back(Player(Point(63, 18), "ilmjko", Glyph::Second_Player, 0));
+
     // Initialize final room tracking for both players
     playerReachedFinalRoom.resize(players.size(), false);
 }
@@ -256,9 +256,8 @@ void Game::update() {
     }
     
     if (allPlayersReachedFinal) {
-        drawEverything(); // Draw the final state
-        Sleep(1000); // Pause for a second to show the final screen
-        isRunning = false; // End game successfully
+        // End game successfully; the win screen will be shown after the loop
+        isRunning = false;
         return;
     }
     

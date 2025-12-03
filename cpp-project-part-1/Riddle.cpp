@@ -48,8 +48,9 @@ vector<string> Riddle::buildRiddleScreen(const vector<string>& templateScreen) c
 
     // Place answers at their designated positions
     placeTextAt(ANSWER1_ROW, ANSWER1_COL, string(answer1), MAX_ANSWER_LENGTH);
-    placeTextAt(ANSWER2_ROW, ANSWER2_COL, string(answer2), MAX_ANSWER_LENGTH);
-    placeTextAt(ANSWER3_ROW, ANSWER3_COL, string(answer3), MAX_ANSWER_LENGTH);
+    // Swap visual positions of answers 2 and 3:
+    placeTextAt(ANSWER3_ROW, ANSWER3_COL, string(answer2), MAX_ANSWER_LENGTH);
+    placeTextAt(ANSWER2_ROW, ANSWER2_COL, string(answer3), MAX_ANSWER_LENGTH);
     placeTextAt(ANSWER4_ROW, ANSWER4_COL, string(answer4), MAX_ANSWER_LENGTH);
 
     return riddleScreen;
