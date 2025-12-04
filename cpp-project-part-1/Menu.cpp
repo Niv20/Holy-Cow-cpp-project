@@ -51,6 +51,27 @@ static std::ifstream tryOpenScreenFile(const std::string& baseName) {
     return std::ifstream();
 }
 
+// Print Goodbye ASCII art at top left and leave console as-is
+static void printGoodbyeArt() {
+    cls();
+    const wchar_t* lines[] = {
+        L"               \x250C\x2500\x2500\x2500\x2500\x2500\x2500\x2500\x2500\x2500\x2500\x2510",
+        L"               \x2502 Goodbye! \x2502",
+        L"               \x2514\x2500\x2500\x2500\x2500\x2500\x2500\x2500\x2500\x2500\x2500\x2518",
+        L"              /            ",
+        L"        (__)               ",
+        L"'\x5C------(oo)               ",
+        L"  ||    (__)               ",
+        L"  ||w--||                  "
+    };
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    for (int i = 0; i < (int)(sizeof(lines)/sizeof(lines[0])); ++i) {
+        COORD pos{0, (SHORT)i};
+        SetConsoleCursorPosition(hOut, pos);
+        DWORD written; WriteConsoleW(hOut, lines[i], (DWORD)wcslen(lines[i]), &written, nullptr);
+    }
+}
+
 vector<string> Menu::loadScreen(const string& filename) {
     string baseName = filename.substr(0, filename.find('.'));
     vector<string> lines;
@@ -129,6 +150,8 @@ MenuAction Menu::showStartMenu() {
                 case '8':
                     return MenuAction::Instructions;
                 case '9':
+                    // Exit: clear screen, print goodbye art, then exit program
+                    printGoodbyeArt();
                     return MenuAction::Exit;
             }
         }
