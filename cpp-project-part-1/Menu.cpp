@@ -174,7 +174,7 @@ void Menu::showInstructions() {
     
     while (true) {
         if (_kbhit()) {
-            _getch();
+            (void)_getch();
             return;
         }
         Sleep(180);
@@ -196,7 +196,7 @@ void Menu::showLoseScreen() {
     
     while (true) {
         if (_kbhit()) {
-            _getch();
+            (void)_getch();
             return;
         }
         Sleep(180);
@@ -219,7 +219,7 @@ void Menu::showWinScreen() {
     
     while (true) {
         if (_kbhit()) {
-            _getch();
+            (void)_getch();
             return;
         }
         Sleep(180);
