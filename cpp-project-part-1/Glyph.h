@@ -1,11 +1,11 @@
-#pragma once
+ï»¿#pragma once
 
 // Written by AI
 namespace Glyph {
     // Basic glyphs (ASCII subset)
     inline constexpr wchar_t Empty = L' ';
-    inline constexpr wchar_t First_Player = L'\x00F6'; // ö
-    inline constexpr wchar_t Second_Player = L'\x00FC'; // ü
+    inline constexpr wchar_t First_Player = L'\x263A'; // â˜º (White Smiling Face)
+    inline constexpr wchar_t Second_Player = L'\x263B'; // â˜» (Black Smiling Face)
 
     // Collectables
     inline constexpr wchar_t Bomb = L'@';

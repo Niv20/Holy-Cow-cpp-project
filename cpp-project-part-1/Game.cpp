@@ -58,11 +58,16 @@ void Game::initGame() {
 
 void Game::runApp() {
 
-    bool exitProgram = false;
+// Initialize console settings once at the start of the application
+SetConsoleOutputCP(65001); 
+setConsoleFont(); 
+hideCursor();
 
-    while (!exitProgram) {
+bool exitProgram = false;
 
-        MenuAction action = Menu::showStartMenu();
+while (!exitProgram) {
+
+    MenuAction action = Menu::showStartMenu();
         switch (action) {
 
             case MenuAction::NewGame: {
@@ -89,15 +94,11 @@ void Game::runApp() {
 
 void Game::start() {
 
-    if (!isRunning) return;
+if (!isRunning) return;
 
-    SetConsoleOutputCP(65001); 
-    setConsoleFont(); 
-    hideCursor(); 
-
-    world[visibleRoomIdx].draw(); 
-    refreshLegend(); 
-    drawPlayers();
+world[visibleRoomIdx].draw(); 
+refreshLegend(); 
+drawPlayers();
 
     while (isRunning) { 
         handleInput();

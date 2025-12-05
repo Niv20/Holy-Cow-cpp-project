@@ -1,6 +1,7 @@
 #include "Legend.h"
 #include <string>
 #include <vector>
+#include <windows.h>
 #include "Screen.h"
 #include "Point.h"
 
@@ -52,14 +53,15 @@ void Legend::drawLegend(int roomIdx, int lives, int points, char p1Inv, char p2I
 
     char line1[32];
     char line2[32];
-    char line3[32];
 
     snprintf(line1, sizeof(line1), "live: %d", lives);
     snprintf(line2, sizeof(line2), "Pts: %d", points);
 
-    snprintf(line3, sizeof(line3), "Inv: %c=[%c] %c=[%c]", 
-             '\xF6', p1Inv == ' ' ? ' ' : p1Inv, 
-             '\xFC', p2Inv == ' ' ? ' ' : p2Inv);
+    // Build line 3 with Unicode player icons using wide strings
+    wchar_t wline3[32];
+    swprintf(wline3, 32, L"Inv: %lc=[%c] %lc=[%c]", 
+             L'\x263A', p1Inv == ' ' ? ' ' : p1Inv, 
+             L'\x263B', p2Inv == ' ' ? ' ' : p2Inv);
 
     auto pad16 = [](std::string& s) {
         if (s.size() < 16)
@@ -68,10 +70,9 @@ void Legend::drawLegend(int roomIdx, int lives, int points, char p1Inv, char p2I
             s.resize(16);
     };
 
-    std::string l1(line1), l2(line2), l3(line3); 
+    std::string l1(line1), l2(line2); 
     pad16(l1); 
-    pad16(l2); 
-    pad16(l3);
+    pad16(l2);
 
     auto putLine = [&](int dy, const std::string& line) {
         for (int i = 0; i < 16; ++i) {
@@ -82,9 +83,31 @@ void Legend::drawLegend(int roomIdx, int lives, int points, char p1Inv, char p2I
         }
     };
 
+    auto putWideLine = [&](int dy, const wchar_t* wline) {
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        int len = (int)wcslen(wline);
+        if (len > 16) len = 16;
+        for (int i = 0; i < len; ++i) {
+            Point p{ origin.x + i, origin.y + dy };
+            if (p.x >= 0 && p.x < Screen::MAX_X && p.y >= 0 && p.y < Screen::MAX_Y) {
+                COORD pos{ (SHORT)p.x, (SHORT)p.y };
+                SetConsoleCursorPosition(hOut, pos);
+                DWORD written;
+                WriteConsoleW(hOut, &wline[i], 1, &written, nullptr);
+            }
+        }
+        // Pad remaining with spaces
+        for (int i = len; i < 16; ++i) {
+            Point p{ origin.x + i, origin.y + dy };
+            if (p.x >= 0 && p.x < Screen::MAX_X && p.y >= 0 && p.y < Screen::MAX_Y) {
+                p.draw(' ');
+            }
+        }
+    };
+
     putLine(0, l1);
     putLine(1, l2);
-    putLine(2, l3);
+    putWideLine(2, wline3);
 }
 
 // Static method to scan all legends in the world
