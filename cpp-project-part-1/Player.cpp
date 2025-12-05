@@ -199,6 +199,8 @@ void Player::move(Screen& currentScreen, Game& game) {
                     setCarried('@');
                     currentScreen.setCharAt(position, Glyph::Empty);
                     currentScreen.refreshCell(position);
+                    // Remove bomb from active bombs list (reset timer)
+                    game.removeBombAt(currentRoomIdx, position);
                 }
             } else if (Glyph::isTorch(tile)) {
                 if (canTakeObject()) {
@@ -261,6 +263,8 @@ void Player::move(Screen& currentScreen, Game& game) {
                 setCarried('@');
                 currentScreen.setCharAt(position, Glyph::Empty);
                 currentScreen.refreshCell(position);
+                // Remove bomb from active bombs list (reset timer)
+                game.removeBombAt(currentRoomIdx, position);
             }
         } else if (Glyph::isTorch(tile)) {
             if (canTakeObject()) {
@@ -459,6 +463,8 @@ void Player::move(Screen& currentScreen, Game& game) {
                     setCarried('@');
                     currentScreen.setCharAt(position, Glyph::Empty);
                     currentScreen.refreshCell(position);
+                    // Remove bomb from active bombs list (reset timer)
+                    game.removeBombAt(currentRoomIdx, position);
                 }
             } else if (Glyph::isTorch(tile)) {
                 position = targetPos;

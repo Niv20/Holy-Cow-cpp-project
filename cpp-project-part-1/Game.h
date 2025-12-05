@@ -72,6 +72,7 @@ public:
     int getTargetRoom(int fromRoom, Direction dir) const { return roomConnections.getTargetRoom(fromRoom, dir); }
     
     void placeBomb(int roomIdx, const Point& pos, int delay = 5);
+    void removeBombAt(int roomIdx, const Point& pos);
     
     void reduceHearts(int amount) { 
         heartsCount -= amount; 

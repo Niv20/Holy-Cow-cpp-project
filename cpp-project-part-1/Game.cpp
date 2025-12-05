@@ -416,6 +416,19 @@ void Game::placeBomb(int roomIdx, const Point& pos, int delay) {
     Bomb::place(bombs, roomIdx, pos, delay);
 }
 
+void Game::removeBombAt(int roomIdx, const Point& pos) {
+    // Remove bomb at specific position (when player picks it up)
+    bombs.erase(
+        std::remove_if(bombs.begin(), bombs.end(),
+            [roomIdx, &pos](const Bomb& b) {
+                return b.getRoomIdx() == roomIdx && 
+                       b.getPosition().x == pos.x && 
+                       b.getPosition().y == pos.y;
+            }),
+        bombs.end()
+    );
+}
+
 struct SpringData* Game::findSpringAt(int roomIdx, const Point& p) {
     return SpringData::findAt(world[roomIdx], p);
 }
