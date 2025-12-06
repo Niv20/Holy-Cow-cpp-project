@@ -531,7 +531,7 @@ void Player::move(Screen& currentScreen, Game& game) {
                 }
             }
             if (!dropped) {
-                Point candidates[4] = { {p.x + 1, p.y}, {p.x - 1, p.y}, {p.x, p.y - 1}, {p.x, p.y + 1} };
+                Point candidates[4] = { {p.x, p.y - 1}, {p.x, p.y + 1}, {p.x + 1, p.y}, {p.x - 1, p.y} };
                 for (auto& q : candidates) {
                     if (q.x >= 0 && q.x < Screen::MAX_X && q.y >= 0 && q.y < Screen::MAX_Y && currentScreen.getCharAt(q) == Glyph::Empty) {
                         currentScreen.setCharAt(q, (wchar_t)held);
