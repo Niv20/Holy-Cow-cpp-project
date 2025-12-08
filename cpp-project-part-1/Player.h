@@ -4,13 +4,14 @@
 #include "Key.h"
 
 class Player {
-    static constexpr int NUM_KEYS = 6;
-    Point position;
-    char keys[NUM_KEYS];
-    wchar_t symbol;
-    int currentRoomIdx;
-    Key carried;
-    bool actionRequested = false;
+static constexpr int NUM_KEYS = 6;
+Point position;
+bool movedThisFrame = false; // Track if player moved this frame
+char keys[NUM_KEYS];
+wchar_t symbol;
+int currentRoomIdx;
+Key carried;
+bool actionRequested = false;
 
     // Spring state
     struct SpringData* currentSpring = nullptr; // which spring we're on
@@ -38,6 +39,10 @@ public:
     void setRoomIdx(int idx) { currentRoomIdx = idx; }
     Point getPosition() const { return position; }
     void setPosition(Point p) { position = p; }
+    
+    // Track if player moved this frame
+    bool hasMoved() const { return movedThisFrame; }
+    void setMoved(bool moved) { movedThisFrame = moved; }
 
     int getForce() const { return (springBoostTicksLeft > 0) ? springBoostSpeed : 1; }
     bool isSpringBoostActive() const { return springBoostTicksLeft > 0; }

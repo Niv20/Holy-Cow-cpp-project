@@ -36,14 +36,17 @@ void Player::stop() {
 }
 
 void Player::move(Screen& currentScreen, Game& game) {
-    // Check if player reached final room - if so, prevent all movement
-    if (currentRoomIdx == FINAL_ROOM_INDEX) {
-        // Player reached final room - cannot move anymore
-        position.setDirection(4); // Force STAY
-        return;
-    }
+// Reset moved flag at start
+movedThisFrame = false;
     
-    Point originalPos = position;
+// Check if player reached final room - if so, prevent all movement
+if (currentRoomIdx == FINAL_ROOM_INDEX) {
+    // Player reached final room - cannot move anymore
+    position.setDirection(4); // Force STAY
+    return;
+}
+    
+Point originalPos = position;
 
     // Calculate cooperative force based on actual push direction
     int pushDx = (springBoostTicksLeft > 0) ? boostDirX : position.diff_x;
@@ -88,7 +91,6 @@ void Player::move(Screen& currentScreen, Game& game) {
             }
             
             currentScreen.refreshCell(originalPos);
-            draw();
             return;
         }
     }
@@ -277,7 +279,6 @@ void Player::move(Screen& currentScreen, Game& game) {
         if (originalPos.x != position.x || originalPos.y != position.y) {
             currentScreen.refreshCell(originalPos);
         }
-        draw();
         return; // Done with boost movement
     }
     
@@ -333,7 +334,6 @@ void Player::move(Screen& currentScreen, Game& game) {
                     currentScreen.refreshCell(position);
                 }
                 
-                draw();
                 return;
             }
         }
@@ -367,11 +367,10 @@ void Player::move(Screen& currentScreen, Game& game) {
                         entryIndex = currentIndex;
                     }
                 } else {
-                    // Changed direction away from wall - release
+                // Changed direction away from wall - release
                     position = originalPos;
                     releaseSpring(currentScreen, game);
                     currentScreen.refreshCell(originalPos);
-                    draw();
                     return;
                 }
             } else {
@@ -391,7 +390,6 @@ void Player::move(Screen& currentScreen, Game& game) {
                     // Stay at original position
                     releaseSpring(currentScreen, game);
                     currentScreen.refreshCell(originalPos);
-                    draw();
                     return;
                 }
                 
@@ -497,7 +495,6 @@ void Player::move(Screen& currentScreen, Game& game) {
         position = originalPos;
         releaseSpring(currentScreen, game);
         currentScreen.refreshCell(originalPos);
-        draw();
         return;
     }
 
@@ -578,8 +575,6 @@ void Player::move(Screen& currentScreen, Game& game) {
             }
         }
     }
-
-    draw();
 }
 
 void Player::handleKey(char key) {

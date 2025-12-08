@@ -177,9 +177,41 @@ void Game::refreshLegend() {
 }
 
 void Game::drawPlayers() {
-    for (const auto& p : players) {
-        if (p.getRoomIdx() == visibleRoomIdx)
-            p.draw();
+    // Collect positions of players in current room
+    std::vector<std::pair<Point, size_t>> playerPositions;
+    for (size_t i = 0; i < players.size(); ++i) {
+        if (players[i].getRoomIdx() == visibleRoomIdx) {
+            playerPositions.push_back({players[i].getPosition(), i});
+        }
+    }
+    
+    // Draw players, handling overlapping positions
+    std::set<std::pair<int,int>> drawnPositions;
+    for (const auto& [pos, idx] : playerPositions) {
+        auto posKey = std::make_pair(pos.x, pos.y);
+        if (drawnPositions.count(posKey) == 0) {
+            // Check if another player is at the same position
+            bool overlapping = false;
+            for (const auto& [otherPos, otherIdx] : playerPositions) {
+                if (otherIdx != idx && otherPos.x == pos.x && otherPos.y == pos.y) {
+                    overlapping = true;
+                    break;
+                }
+            }
+            
+            if (overlapping) {
+                // Draw a combined symbol when players overlap
+                HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+                COORD c{ (SHORT)pos.x, (SHORT)pos.y };
+                SetConsoleCursorPosition(hOut, c);
+                wchar_t combined = L'\x25C9'; // ◉ - filled circle to show both players
+                DWORD written;
+                WriteConsoleW(hOut, &combined, 1, &written, nullptr);
+            } else {
+                players[idx].draw();
+            }
+            drawnPositions.insert(posKey);
+        }
     }
 }
 
@@ -233,6 +265,9 @@ void Game::update() {
                 Riddle::handleEncounter(p, riddlesByPosition, *this);
         }
     }
+    
+    // Draw all players once after all moves complete (prevents flickering when overlapping)
+    drawPlayers();
     
     SpecialDoor::updateAll(*this);
     checkAndProcessTransitions(); 
