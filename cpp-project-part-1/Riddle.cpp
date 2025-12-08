@@ -10,7 +10,9 @@
 #include <cstring>
 #include <string>
 
-using namespace std;
+using std::vector;
+using std::string;
+using std::map;
 
 Riddle::Riddle(const char q[], const char a1[], const char a2[], const char a3[], const char a4[], char correct)
 {
@@ -23,6 +25,7 @@ Riddle::Riddle(const char q[], const char a1[], const char a2[], const char a3[]
     points = 100;
 }
 
+// Written by AI!!!!!!!!!!
 vector<string> Riddle::buildRiddleScreen(const vector<string>& templateScreen) const
 {
     vector<string> riddleScreen = templateScreen;

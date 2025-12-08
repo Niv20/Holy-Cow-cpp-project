@@ -15,6 +15,8 @@
 #include "Legend.h"
 #include "RoomConnections.h"
 
+// This file written by AI
+
 namespace fs = std::filesystem;
 
 void Screen::initFromWideLines(const std::vector<std::wstring>& lines) {

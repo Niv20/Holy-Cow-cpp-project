@@ -145,7 +145,7 @@ MenuAction Menu::showStartMenu() {
                 case '1':
                     return MenuAction::NewGame;
                 case '2':
-                    // TODO: TARGIL 2!!!!!!!!!!!!!!!!!!!!!!!!!
+                    // TODO: TARGIL 2!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                     break;
                 case '8':
                     return MenuAction::Instructions;

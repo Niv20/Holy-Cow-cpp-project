@@ -8,6 +8,8 @@
 #include <sstream>
 #include <climits>
 
+// This file written by AI
+
 bool SpecialDoor::areConditionsMet(Game& game) {
     if (isOpen) return true;
     if (keysInserted.size() != requiredKeys.size()) return false;

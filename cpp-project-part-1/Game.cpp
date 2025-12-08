@@ -295,7 +295,7 @@ void Game::update() {
     drawPlayers();
 }
 
-// Written by AI !!!
+// Written by AI! Thanks Gemini :)
 void Game::checkAndProcessTransitions() {
     const int maxX = Screen::MAX_X;
     const int maxY = Screen::MAX_Y;
@@ -356,17 +356,63 @@ void Game::checkAndProcessTransitions() {
         spawns[i] = s;
     }
 
-    // Spread colliding spawns based on direction
-    for (size_t i = 0; i < transitions.size(); ++i) {
-        for (size_t j = i + 1; j < spawns.size(); ++j) {
-            if (spawns[i].x == spawns[j].x && spawns[i].y == spawns[j].y) {
-                Direction dir = transitions[i].direction;
+    // Helper to check if a position is valid for spawning
+    auto isValidSpawn = [&](const Point& p, int roomIdx, const vector<Point>& existingSpawns, size_t upToIdx) {
+        // Check bounds
+        if (p.x < 1 || p.x > maxX - 2 || p.y < 1 || p.y > maxY - 2)
+            return false;
+        // Check not a wall
+        wchar_t ch = world[roomIdx].getCharAt(p);
+        if (Glyph::isWall(ch))
+            return false;
+        // Check not colliding with earlier spawns in this transition batch
+        for (size_t k = 0; k < upToIdx; ++k) {
+            if (existingSpawns[k].x == p.x && existingSpawns[k].y == p.y)
+                return false;
+        }
+        // Check not colliding with any player already in target room
+        for (const auto& pl : players) {
+            if (pl.getRoomIdx() == roomIdx) {
+                Point plPos = pl.getPosition();
+                if (plPos.x == p.x && plPos.y == p.y)
+                    return false;
+            }
+        }
+        return true;
+    };
+
+    // Ensure no two players spawn at the same position, and no spawn on existing player
+    for (size_t idx = 0; idx < spawns.size(); ++idx) {
+        int roomIdx = transitions[idx].targetRoom;
+        Direction dir = transitions[idx].direction;
+        
+        // Check if current spawn is valid
+        if (!isValidSpawn(spawns[idx], roomIdx, spawns, idx)) {
+            // Need to find alternative position
+            bool placed = false;
+            
+            // Try offsets in perpendicular direction first, then along entry direction
+            for (int offset = 1; offset <= 10 && !placed; ++offset) {
+                Point candidates[4];
                 if (dir == Direction::Left || dir == Direction::Right) {
-                    spawns[j].y += 1;
-                    if (spawns[j].y > maxY - 2) spawns[j].y = maxY - 2;
-                } else if (dir == Direction::Up || dir == Direction::Down) {
-                    spawns[j].x += 1;
-                    if (spawns[j].x > maxX - 2) spawns[j].x = maxX - 2;
+                    // Entry is horizontal, try vertical offsets first
+                    candidates[0] = Point(spawns[idx].x, spawns[idx].y + offset);
+                    candidates[1] = Point(spawns[idx].x, spawns[idx].y - offset);
+                    candidates[2] = Point(spawns[idx].x + offset, spawns[idx].y);
+                    candidates[3] = Point(spawns[idx].x - offset, spawns[idx].y);
+                } else {
+                    // Entry is vertical, try horizontal offsets first
+                    candidates[0] = Point(spawns[idx].x + offset, spawns[idx].y);
+                    candidates[1] = Point(spawns[idx].x - offset, spawns[idx].y);
+                    candidates[2] = Point(spawns[idx].x, spawns[idx].y + offset);
+                    candidates[3] = Point(spawns[idx].x, spawns[idx].y - offset);
+                }
+                
+                for (int c = 0; c < 4 && !placed; ++c) {
+                    if (isValidSpawn(candidates[c], roomIdx, spawns, idx)) {
+                        spawns[idx] = candidates[c];
+                        placed = true;
+                    }
                 }
             }
         }

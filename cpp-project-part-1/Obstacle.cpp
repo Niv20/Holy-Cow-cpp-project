@@ -78,6 +78,7 @@ bool Obstacle::canPush(int dx, int dy, int force, Game& game, int speed) const {
     return true;
 }
 
+// Written by AI!!!!!!!! Thanks ChatGPT
 void Obstacle::applyPush(int dx, int dy, Game& game, int speed) {
     // Refresh-aware erase of old cells
     for (auto& c : cells) {
@@ -122,7 +123,7 @@ void Obstacle::applyPush(int dx, int dy, Game& game, int speed) {
     }
 }
 
-// Written by AI
+
 void Obstacle::scanAllObstacles(std::vector<Screen>& world, const RoomConnections& roomConnections) {
     using std::vector;
     using std::queue;

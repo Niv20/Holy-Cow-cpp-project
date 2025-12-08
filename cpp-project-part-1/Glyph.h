@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-// Written by AI
+// Written by AI!!!!!!!!!!!!!!!!!
 namespace Glyph {
     // Basic glyphs (ASCII subset)
     inline constexpr wchar_t Empty = L' ';
