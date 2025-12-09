@@ -72,7 +72,6 @@ while (!exitProgram) {
 
             case MenuAction::NewGame: {
                 Game game; game.start();
-                if (game.isGameLost()) { Menu::showLoseScreen(); }
                 break;
             }
 
