@@ -248,26 +248,52 @@ void Game::handleInput() {
 
 void Game::update() {
 
-    if (heartsCount <= 0) { 
-        isRunning = false; 
-        return; 
+if (heartsCount <= 0) { 
+    isRunning = false; 
+    return; 
+}
+
+// Track player rooms before movement to detect teleportation
+std::vector<int> roomsBefore;
+for (const auto& p : players) {
+    roomsBefore.push_back(p.getRoomIdx());
+}
+
+// Move all players
+for (size_t i = 0; i < players.size(); ++i) {
+    auto& p = players[i];
+
+    if (p.getRoomIdx() == visibleRoomIdx) {
+        p.move(world[visibleRoomIdx], *this);
+        Point pos = p.getPosition();
+        wchar_t cell = world[visibleRoomIdx].getCharAt(pos);
+        if (Glyph::isRiddle(cell))
+            Riddle::handleEncounter(p, riddlesByPosition, *this);
     }
-
-    // Move all players
-    for (size_t i = 0; i < players.size(); ++i) {
-        auto& p = players[i];
-
-        if (p.getRoomIdx() == visibleRoomIdx) {
-            p.move(world[visibleRoomIdx], *this);
-            Point pos = p.getPosition();
-            wchar_t cell = world[visibleRoomIdx].getCharAt(pos);
-            if (Glyph::isRiddle(cell))
-                Riddle::handleEncounter(p, riddlesByPosition, *this);
+}
+    
+// Check for teleportation (room changed without edge transition)
+for (size_t i = 0; i < players.size(); ++i) {
+    int roomBefore = roomsBefore[i];
+    int roomAfter = players[i].getRoomIdx();
+    if (roomBefore != roomAfter && roomBefore == visibleRoomIdx) {
+        // Player teleported to a different room - update camera
+        bool anyPlayerInCurrentRoom = false;
+        for (const auto& p : players) {
+            if (p.getRoomIdx() == visibleRoomIdx) {
+                anyPlayerInCurrentRoom = true;
+                break;
+            }
+        }
+        if (!anyPlayerInCurrentRoom) {
+            visibleRoomIdx = roomAfter;
+            drawEverything();
         }
     }
+}
     
-    // Draw all players once after all moves complete (prevents flickering when overlapping)
-    drawPlayers();
+// Draw all players once after all moves complete (prevents flickering when overlapping)
+drawPlayers();
     
     SpecialDoor::updateAll(*this);
     checkAndProcessTransitions(); 

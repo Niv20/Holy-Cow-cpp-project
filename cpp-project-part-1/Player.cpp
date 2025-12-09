@@ -7,6 +7,7 @@
 #include "Obstacle.h"
 #include "Spring.h"
 #include "Switch.h"
+#include "SpecialDoor.h"
 
 /*      (__)
 '\------(oo)    Constructor
@@ -400,12 +401,21 @@ Point originalPos = position;
             // Handle other tiles
             if (Glyph::isSpecialDoor(tile)) {
                 SpecialDoor* door = game.findSpecialDoorAt(currentRoomIdx, targetPos);
-                if (door && getCarried() != ' ' && door->useKey(Key(getCarried()))) {
-                    // Consume the key but do NOT remove door or pass through yet
-                    setCarried(' ');
-                    blocked = true; // still blocked until all conditions met
+                if (door) {
+                    // Check if door is open and is a teleport door
+                    if (door->isOpen && door->targetRoomIdx >= 0) {
+                        // Allow passing through - teleportation will happen after movement
+                        position = targetPos;
+                        blocked = false;
+                    } else if (getCarried() != ' ' && door->useKey(Key(getCarried()))) {
+                        // Consume the key but do NOT remove door or pass through yet
+                        setCarried(' ');
+                        blocked = true; // still blocked until all conditions met
+                    } else {
+                        blocked = true; // Blocked until conditions met
+                    }
                 } else {
-                    blocked = true; // Always blocked by special doors until opened by game logic
+                    blocked = true;
                 }
             } else if (Glyph::isObstacle(tile)) {
                 // IMPORTANT: Check for obstacle BEFORE moving player
@@ -574,6 +584,16 @@ Point originalPos = position;
                 }
             }
         }
+    }
+    
+    // Check for teleportation through opened special door
+    SpecialDoor* teleportDoor = game.findSpecialDoorAt(currentRoomIdx, position);
+    if (teleportDoor && teleportDoor->isOpen && teleportDoor->targetRoomIdx >= 0) {
+        // Teleport player to target room and position
+        currentScreen.refreshCell(position);
+        currentRoomIdx = teleportDoor->targetRoomIdx;
+        position = teleportDoor->targetPosition;
+        // Trigger screen change if needed - Game will handle camera in update()
     }
 }
 

@@ -82,6 +82,11 @@ void SpecialDoor::scanAndPopulate(std::vector<Screen>& world) {
             char key; while (ss>>key) currentDoor->requiredKeys.push_back(Key(key));
         } else if (type=='S' && currentDoor) {
             int sx,sy,state; ss>>sx>>sy>>state; currentDoor->requiredSwitches.push_back({Point(sx,sy),(bool)state});
+        } else if (type=='T' && currentDoor) {
+            // Teleport destination: T targetRoom targetX targetY
+            int tRoom, tX, tY; ss>>tRoom>>tX>>tY;
+            currentDoor->targetRoomIdx = tRoom;
+            currentDoor->targetPosition = Point(tX, tY);
         } else if (raw.rfind("---",0)==0) {
             if (currentDoor) { 
                 adjustDoorPosition(currentDoor); 
@@ -108,11 +113,15 @@ void SpecialDoor::updateAll(Game& game) {
         
         for (auto& door : doors) {
             if (!door.isOpen && door.areConditionsMet(game)) {
-                Screen& doorScreen = game.getScreen(door.roomIdx);
-                if (doorScreen.getCharAt(door.position) == Glyph::SpecialDoor) {
-                    doorScreen.setCharAt(door.position, Glyph::Empty);
-                    if (door.roomIdx == visibleRoomIdx) {
-                        doorScreen.refreshCell(door.position);
+                // Only remove the door glyph if it's NOT a teleport door
+                // Teleport doors stay visible so players can use them multiple times
+                if (door.targetRoomIdx < 0) {
+                    Screen& doorScreen = game.getScreen(door.roomIdx);
+                    if (doorScreen.getCharAt(door.position) == Glyph::SpecialDoor) {
+                        doorScreen.setCharAt(door.position, Glyph::Empty);
+                        if (door.roomIdx == visibleRoomIdx) {
+                            doorScreen.refreshCell(door.position);
+                        }
                     }
                 }
             }
