@@ -204,7 +204,7 @@ void Game::drawPlayers() {
                 HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
                 COORD c{ (SHORT)pos.x, (SHORT)pos.y };
                 SetConsoleCursorPosition(hOut, c);
-                wchar_t combined = L'\x25C9'; // ◉ - filled circle to show both players
+                wchar_t combined = L'O'; // Simple ASCII char to show both players (works on all systems)
                 DWORD written;
                 WriteConsoleW(hOut, &combined, 1, &written, nullptr);
             } else {
