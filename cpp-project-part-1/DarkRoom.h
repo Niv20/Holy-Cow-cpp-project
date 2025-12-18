@@ -35,7 +35,9 @@ public:
     static bool isInDarkZone(const Screen& screen, const Point& p);
     
     // Check if player can move to target position (considering darkness and torch)
-    static bool canEnterPosition(const Screen& screen, const Player& player, const Point& target);
+    // Now also considers light from other players' torches
+    static bool canEnterPosition(const Screen& screen, const Player& player, const Point& target,
+                                  const std::vector<Player>& allPlayers, int roomIdx);
     
     // Get the character to display at a position, considering darkness and torch light
     // Returns the original character if visible, or a darkness shade character

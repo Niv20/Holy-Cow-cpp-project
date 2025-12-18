@@ -115,7 +115,8 @@ static int getDarknessLevelFromDistance(int dist) {
 }
 
 // Check if player can move to target position
-bool DarkRoomManager::canEnterPosition(const Screen& screen, const Player& player, const Point& target) {
+bool DarkRoomManager::canEnterPosition(const Screen& screen, const Player& player, const Point& target,
+                                        const std::vector<Player>& allPlayers, int roomIdx) {
     // If target is not in a dark zone, always allow
     if (!isInDarkZone(screen, target)) {
         return true;
@@ -126,10 +127,10 @@ bool DarkRoomManager::canEnterPosition(const Screen& screen, const Player& playe
         return true;
     }
     
-    // Check if target is lit by a dropped torch (within full light radius)
-    int droppedTorchDist = closestDroppedTorchDistance(target, screen);
-    if (droppedTorchDist <= FULL_LIGHT_RADIUS) {
-        return true;  // Area is lit by dropped torch
+    // Check if target is lit by any light source (held by other players OR dropped torches)
+    int lightDist = closestLightSourceDistance(target, allPlayers, roomIdx, screen);
+    if (lightDist <= FULL_LIGHT_RADIUS) {
+        return true;  // Area is lit by another player's torch or dropped torch
     }
     
     // No torch and not in lit area, cannot enter dark zone

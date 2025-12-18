@@ -331,8 +331,8 @@ Point originalPos = position;
         targetPos.y < 0 || targetPos.y >= Screen::MAX_Y) {
         blocked = true;
     }
-    // Check if trying to enter dark zone without torch
-    else if (!DarkRoomManager::canEnterPosition(currentScreen, *this, targetPos)) {
+    // Check if trying to enter dark zone without torch (considers light from other players' torches)
+    else if (!DarkRoomManager::canEnterPosition(currentScreen, *this, targetPos, game.getPlayers(), currentRoomIdx)) {
         blocked = true;
     }
     // Check if another player is at the target position

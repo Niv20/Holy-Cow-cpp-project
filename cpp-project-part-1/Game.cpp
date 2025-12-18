@@ -51,8 +51,8 @@ void Game::initGame() {
 
     Screen::scanAllScreens(world, roomConnections, riddlesByPosition, legend);
 
-    players.push_back(Player(Point(53, 2), "wdxase", Glyph::First_Player, 0));
-    players.push_back(Player(Point(63, 2), "ilmjko", Glyph::Second_Player, 0));
+    players.push_back(Player(Point(53, 19), "wdxase", Glyph::First_Player, 0));
+    players.push_back(Player(Point(63, 19), "ilmjko", Glyph::Second_Player, 0));
 
     // Initialize final room tracking for both players
     playerReachedFinalRoom.resize(players.size(), false);
@@ -329,7 +329,10 @@ for (size_t i = 0; i < players.size(); ++i) {
     }
 }
     
-// Draw players only if room doesn't have darkness (darkness update includes players)\nif (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {\n    drawPlayers();\n}
+// Draw players only if room doesn't have darkness (darkness update includes players)
+if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
+    drawPlayers();
+}
     
     SpecialDoor::updateAll(*this);
     checkAndProcessTransitions(); 
