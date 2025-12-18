@@ -14,6 +14,7 @@
 #include "Riddle.h"
 #include "Legend.h"
 #include "RoomConnections.h"
+#include "FileParser.h"
 
 // This file written by AI
 
@@ -84,25 +85,161 @@ void Screen::refreshCells(const std::vector<Point>& pts) const {
     for (auto& p : pts) refreshCell(p);
 }
 
-// Static helper for loading a level file
-static std::vector<std::wstring> loadLevelFromFile(const std::string& filepath) {
-    std::vector<std::wstring> board;
+// Static method: Load a screen file and separate content from metadata
+Screen::LoadedScreen Screen::loadScreenFile(const std::string& filepath) {
+    LoadedScreen result;
+    
     std::ifstream inputFile(filepath, std::ios::binary);
-    if (!inputFile.is_open()) return board;
+    if (!inputFile.is_open()) {
+        FileParser::reportError("Cannot open screen file: " + filepath);
+        return result;
+    }
+    
     std::string content((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
     inputFile.close();
+    
+    // Remove UTF-8 BOM if present
     if (content.size() >= 3 && (unsigned char)content[0]==0xEF && (unsigned char)content[1]==0xBB && (unsigned char)content[2]==0xBF) 
         content.erase(0,3);
+    
     std::istringstream stream(content);
     std::string line;
-    while (std::getline(stream,line)) {
-        if (!line.empty() && line.back()=='\r') line.pop_back();
-        int wlen = MultiByteToWideChar(CP_UTF8,0,line.c_str(),(int)line.size(),nullptr,0);
-        std::wstring wline(wlen,0);
-        MultiByteToWideChar(CP_UTF8,0,line.c_str(),(int)line.size(),&wline[0],wlen);
-        board.push_back(wline);
+    std::vector<std::string> allLines;
+    
+    while (std::getline(stream, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        allLines.push_back(line);
     }
-    return board;
+    
+    // Find metadata separator
+    int metadataStart = -1;
+    for (size_t i = 0; i < allLines.size(); ++i) {
+        std::string trimmed = FileParser::trim(allLines[i]);
+        if (trimmed == "=== METADATA ===") {
+            metadataStart = (int)i;
+            break;
+        }
+    }
+    
+    // Separate screen lines (first 25 or until metadata) from metadata lines
+    int screenEndLine;
+    if (metadataStart >= 0) {
+        screenEndLine = (metadataStart < MAX_Y) ? metadataStart : MAX_Y;
+    } else {
+        screenEndLine = ((int)allLines.size() < MAX_Y) ? (int)allLines.size() : MAX_Y;
+    }
+    
+    for (int i = 0; i < screenEndLine; ++i) {
+        const std::string& srcLine = allLines[i];
+        int wlen = MultiByteToWideChar(CP_UTF8, 0, srcLine.c_str(), (int)srcLine.size(), nullptr, 0);
+        std::wstring wline(wlen, 0);
+        MultiByteToWideChar(CP_UTF8, 0, srcLine.c_str(), (int)srcLine.size(), &wline[0], wlen);
+        result.screenLines.push_back(wline);
+    }
+    
+    // Parse metadata if present
+    if (metadataStart >= 0 && metadataStart + 1 < (int)allLines.size()) {
+        std::vector<std::string> metadataLines(allLines.begin() + metadataStart + 1, allLines.end());
+        result.metadata = parseMetadata(metadataLines);
+    }
+    
+    return result;
+}
+
+// Static method: Parse metadata section
+ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLines) {
+    ScreenMetadata metadata;
+    
+    DoorMetadata* currentDoor = nullptr;
+    bool inDarkZones = false;
+    int lineNum = 0;
+    
+    for (const auto& rawLine : metadataLines) {
+        lineNum++;
+        std::string line = FileParser::trim(rawLine);
+        
+        // Skip empty lines and comments
+        if (line.empty() || line[0] == '#') continue;
+        
+        // End marker
+        if (FileParser::startsWith(line, "---")) {
+            if (currentDoor) {
+                metadata.doors.push_back(*currentDoor);
+                delete currentDoor;
+                currentDoor = nullptr;
+            }
+            inDarkZones = false;
+            continue;
+        }
+        
+        std::istringstream iss(line);
+        std::string cmd;
+        iss >> cmd;
+        
+        // Door definition
+        if (cmd == "DOOR") {
+            if (currentDoor) {
+                metadata.doors.push_back(*currentDoor);
+                delete currentDoor;
+            }
+            currentDoor = new DoorMetadata();
+            int x, y;
+            iss >> x >> y;
+            currentDoor->position = Point(x, y);
+        }
+        else if (cmd == "KEYS" && currentDoor) {
+            char key;
+            while (iss >> key) {
+                if (std::islower(key)) {
+                    currentDoor->requiredKeys.push_back(key);
+                }
+            }
+        }
+        else if (cmd == "SWITCH" && currentDoor) {
+            int sx, sy, state;
+            iss >> sx >> sy >> state;
+            currentDoor->switchRequirements.push_back({Point(sx, sy), (bool)state});
+        }
+        else if (cmd == "TARGET" && currentDoor) {
+            int room, tx, ty;
+            iss >> room >> tx >> ty;
+            currentDoor->targetRoom = room;
+            currentDoor->targetPosition = Point(tx, ty);
+        }
+        // Dark zone definitions
+        else if (cmd == "DARK") {
+            int x1, y1, x2, y2;
+            iss >> x1 >> y1 >> x2 >> y2;
+            metadata.darkZones.emplace_back(x1, y1, x2, y2);
+        }
+        else if (cmd == "DARKZONES") {
+            inDarkZones = true;
+        }
+        else if (cmd == "ZONE" && inDarkZones) {
+            int x1, y1, x2, y2;
+            iss >> x1 >> y1 >> x2 >> y2;
+            metadata.darkZones.emplace_back(x1, y1, x2, y2);
+        }
+        // Connection definitions - store in connections map
+        else if (cmd == "CONNECT") {
+            std::string dir;
+            int targetRoom;
+            iss >> dir >> targetRoom;
+            // Store in both formats for compatibility
+            metadata.connectionOverrides.push_back({dir, targetRoom});
+            // Convert to uppercase for consistent lookup
+            std::transform(dir.begin(), dir.end(), dir.begin(), ::toupper);
+            metadata.connections[dir] = targetRoom;
+        }
+    }
+    
+    // Handle unclosed door
+    if (currentDoor) {
+        metadata.doors.push_back(*currentDoor);
+        delete currentDoor;
+    }
+    
+    return metadata;
 }
 
 // Helper: get executable directory for robust resource loading
@@ -133,16 +270,34 @@ std::vector<Screen> Screen::loadScreensFromFiles() {
                 }
             }
         }
-    } catch(...) {}
+    } catch(const std::exception& e) {
+        FileParser::reportError(std::string("Error scanning directories: ") + e.what());
+    } catch(...) {
+        FileParser::reportError("Unknown error scanning directories");
+    }
+    
+    // Remove duplicates (same file found in multiple directories)
     std::sort(mapFiles.begin(), mapFiles.end());
+    mapFiles.erase(std::unique(mapFiles.begin(), mapFiles.end()), mapFiles.end());
+    
     std::vector<Screen> screens;
     for (auto& fullPath : mapFiles) {
-        auto level = loadLevelFromFile(fullPath);
-        if (!level.empty()) screens.emplace_back(level);
+        LoadedScreen loaded = loadScreenFile(fullPath);
+        if (!loaded.screenLines.empty()) {
+            screens.emplace_back(loaded.screenLines);
+            // Store metadata in the screen
+            screens.back().metadata_ = loaded.metadata;
+            // Copy dark zones to data_ for runtime access
+            screens.back().data_.darkZones = loaded.metadata.darkZones;
+        } else {
+            FileParser::reportError("Failed to load screen file: " + fullPath);
+        }
     }
+    
     if (screens.empty()) {
-        std::cerr << "Error: No level screens found. Place adv-world*.screen next to the EXE or project root." << std::endl;
+        FileParser::reportError("No level screens found. Place adv-world*.screen next to the EXE or project root.");
     }
+    
     return screens;
 }
 
@@ -218,4 +373,23 @@ void Screen::scanAllScreens(std::vector<Screen>& world,
     
     // 5. Scan legends (find 'L' in each screen)
     Legend::scanAllLegends(world, legend);
+}
+
+// Check if a point is in an unlit dark zone
+bool Screen::isInDarkZone(const Point& p) const {
+    for (const auto& zone : data_.darkZones) {
+        if (!zone.isLit && zone.contains(p)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Light up the dark zone containing the given point
+void Screen::lightDarkZone(const Point& p) {
+    for (auto& zone : data_.darkZones) {
+        if (zone.contains(p)) {
+            zone.isLit = true;
+        }
+    }
 }

@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include <iostream>
 
 #include "Game.h"
 #include "utils.h"
@@ -15,6 +16,7 @@
 #include "Point.h"
 #include "Riddle.h"
 #include "Obstacle.h"
+#include "FileParser.h"
 
 using std::vector;
 using std::string;
@@ -28,7 +30,7 @@ using std::set;
   ||    (__)
   ||w--||                */
 
-Game::Game() : visibleRoomIdx(0), isRunning(true), roomConnections(initRoomConnections()) { 
+Game::Game() : visibleRoomIdx(0), isRunning(true) { 
     initGame(); 
 }
 
@@ -37,9 +39,14 @@ void Game::initGame() {
     world = Screen::loadScreensFromFiles();
  
     if (world.empty()) { 
+        FileParser::reportError("Cannot start game: No level screens could be loaded.");
+        std::cerr << "Please ensure adv-world_*.screen files are present next to the executable." << std::endl;
         isRunning = false; 
         return; 
     }
+
+    // Load room connections from screen metadata
+    roomConnections.loadFromScreens(world);
 
     Screen::scanAllScreens(world, roomConnections, riddlesByPosition, legend);
 
@@ -59,9 +66,13 @@ void Game::initGame() {
 void Game::runApp() {
 
 // Initialize console settings once at the start of the application
-SetConsoleOutputCP(65001); 
-setConsoleFont(); 
-hideCursor();
+try {
+    SetConsoleOutputCP(65001); 
+    setConsoleFont(); 
+    hideCursor();
+} catch (...) {
+    FileParser::reportError("Warning: Could not initialize console settings");
+}
 
 bool exitProgram = false;
 
@@ -71,7 +82,14 @@ while (!exitProgram) {
         switch (action) {
 
             case MenuAction::NewGame: {
-                Game game; game.start();
+                Game game; 
+                if (!game.isRunning) {
+                    // Game failed to initialize, show error and return to menu
+                    std::cerr << "Press any key to return to menu..." << std::endl;
+                    _getch();
+                } else {
+                    game.start();
+                }
                 break;
             }
 

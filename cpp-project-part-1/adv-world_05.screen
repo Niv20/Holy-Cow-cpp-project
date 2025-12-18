@@ -23,3 +23,7 @@
 │                │the Key inside the maze opens the door from the first screen!│
 │                │       now the cow that was left behind can be freed!        │
 └────────────────┴─────────────────────────────────────────────────────────────┘
+=== METADATA ===
+# Room 5 connections
+CONNECT LEFT 2
+CONNECT RIGHT 2

@@ -23,3 +23,15 @@
 │                │    and set the Switch (1/0) to the correct combination.     │
 │                │        figure out the keys and switches yourself...         │
 └────────────────┴─────────────────────────────────────────────────────────────┘
+=== METADATA ===
+# Room 4 connections
+CONNECT UP 2
+
+# Special door requiring keys c, o, w and specific switch states
+DOOR 31 18
+KEYS c o w
+SWITCH 31 2 0
+SWITCH 31 6 0
+SWITCH 31 10 1
+SWITCH 31 14 1
+---

@@ -1,12 +1,22 @@
 ﻿#pragma once
-// Embedded special door configuration text.
-// Parsed by Game::loadSpecialDoors if external file is not found.
-// Format:
+// Fallback special door configuration (used if metadata not found in screen files)
+// The preferred way is to include door data in each .screen file's metadata section.
+//
+// Screen file metadata format (at end of .screen file):
+//   === METADATA ===
+//   DOOR <x> <y>
+//   KEYS <key1> <key2> ...     # Required keys (lowercase letters)
+//   SWITCH <x> <y> <state>     # Required switch state (0=off, 1=on)
+//   TARGET <room> <x> <y>      # Teleport destination (optional)
+//   ---
+//
+// Legacy embedded format (parsed if no metadata in screen file):
 //   D roomIdx x y       - Define door at position
 //   K key1 key2 ...     - Required keys (lowercase letters)
 //   S x y state         - Required switch state (0=off, 1=on)
 //   T targetRoom x y    - Teleport destination (optional)
 //   ---                 - End of door definition
+
 constexpr const char* SPECIAL_DOORS_CONFIG = R"(D 4 31 18
 K c o w
 S 31 2 0

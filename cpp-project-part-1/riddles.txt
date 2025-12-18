@@ -1,0 +1,31 @@
+# Riddles Configuration File
+# Format:
+#   RIDDLE <room_index> <x> <y>
+#   QUESTION <question text>
+#   ANSWER1 <answer text>
+#   ANSWER2 <answer text>
+#   ANSWER3 <answer text>
+#   ANSWER4 <answer text>
+#   CORRECT <1-4>
+#   ---
+#
+# The "---" marks the end of each riddle definition.
+# Lines starting with # are comments and are ignored.
+
+RIDDLE 1 40 12
+QUESTION What do cows use to do math?
+ANSWER1 computer
+ANSWER2 cow-culator
+ANSWER3 their fingers
+ANSWER4 abacus
+CORRECT 2
+---
+
+RIDDLE 3 45 10
+QUESTION What is a cow's favorite type of movie?
+ANSWER1 action
+ANSWER2 horror
+ANSWER3 moo-sicals
+ANSWER4 comedy
+CORRECT 3
+---

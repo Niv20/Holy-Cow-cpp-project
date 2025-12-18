@@ -8,6 +8,7 @@
 #include "Switch.h"
 #include "SpecialDoor.h"
 #include "Obstacle.h"
+#include "ScreenMetadata.h"
 
 // Forward declarations
 class Legend;
@@ -31,6 +32,7 @@ public:
         std::vector<SwitchData> switches;
         std::vector<SpecialDoor> doors;
         std::vector<Obstacle> obstacles;
+        std::vector<DarkZone> darkZones;  // Dark areas in this screen
     };
 
     Screen(const std::vector<std::wstring>& mapData) { initFromWideLines(mapData); }
@@ -58,7 +60,30 @@ public:
     
     // Scan this screen's data (springs, switches)
     void scanScreenData(int roomIdx);
+    
+    // Get metadata for this screen
+    const ScreenMetadata& getMetadata() const { return metadata_; }
+    ScreenMetadata& getMetadataMutable() { return metadata_; }
+    
+    // Check if a point is in a dark zone (and not yet lit)
+    bool isInDarkZone(const Point& p) const;
+    
+    // Light up a dark zone containing the given point
+    void lightDarkZone(const Point& p);
+    
+    // Structure to hold loaded screen with metadata
+    struct LoadedScreen {
+        std::vector<std::wstring> screenLines;  // The visual screen content (first 25 lines)
+        ScreenMetadata metadata;                 // Parsed metadata from file
+    };
+    
+    // Load a single screen file and separate screen content from metadata
+    static LoadedScreen loadScreenFile(const std::string& filepath);
+    
+    // Parse metadata section from lines
+    static ScreenMetadata parseMetadata(const std::vector<std::string>& metadataLines);
 
 private:
     Data data_;
+    ScreenMetadata metadata_;
 };

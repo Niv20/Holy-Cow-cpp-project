@@ -4,6 +4,7 @@
 #include <string>
 #include "Riddle.h"
 #include "Point.h"
+#include "FileParser.h"
 
 using std::vector;
 using std::string;
@@ -18,10 +19,15 @@ struct RiddleData {
     int roomIdx;
     Point position;  // Specific coordinates where this riddle appears
     Riddle riddle;
+    
+    // Load riddles from riddles.txt file
+    // Returns empty vector if file not found or has critical errors
+    // Individual parsing errors are reported but don't stop loading
+    static vector<RiddleData> loadFromFile();
 };
 
-// Initialize all riddles with their associated rooms and positions
-inline vector<RiddleData> initRiddles() {
+// Fallback: Initialize hardcoded riddles (used if file loading fails completely)
+inline vector<RiddleData> initRiddlesFallback() {
     vector<RiddleData> riddles;
     
     riddles.push_back({
@@ -49,6 +55,19 @@ inline vector<RiddleData> initRiddles() {
             '3'  // moo-sicals is correct
         )
     });
+    
+    return riddles;
+}
+
+// Initialize all riddles - tries file first, falls back to hardcoded
+inline vector<RiddleData> initRiddles() {
+    vector<RiddleData> riddles = RiddleData::loadFromFile();
+    
+    // If file loading returned empty, use fallback
+    if (riddles.empty()) {
+        FileParser::reportError("Using fallback riddles (file loading failed)");
+        return initRiddlesFallback();
+    }
     
     return riddles;
 }

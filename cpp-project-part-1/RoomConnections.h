@@ -1,6 +1,11 @@
 #pragma once
 #include <map>
 #include <vector>
+#include <string>
+
+// Forward declaration
+class Screen;
+struct ScreenMetadata;
 
 // Directions for room transitions
 enum class Direction {
@@ -24,12 +29,28 @@ private:
     // Map: fromRoom -> Direction -> toRoom
     std::map<int, std::map<Direction, int>> connections;
 
+    // Convert string direction to Direction enum
+    static Direction stringToDirection(const std::string& dir) {
+        if (dir == "LEFT") return Direction::Left;
+        if (dir == "RIGHT") return Direction::Right;
+        if (dir == "UP") return Direction::Up;
+        if (dir == "DOWN") return Direction::Down;
+        return Direction::None;
+    }
+
 public:
+    // Default constructor - empty connections
+    RoomConnections() = default;
+    
+    // Constructor from vector of connections (legacy support)
     RoomConnections(const std::vector<RoomConnection>& roomData) {
         for (const auto& conn : roomData) {
             connections[conn.fromRoom][conn.direction] = conn.toRoom;
         }
     }
+    
+    // Load connections from screen metadata
+    void loadFromScreens(const std::vector<Screen>& screens);
 
     // Get the target room when moving in a direction from a room
     // Returns -1 if no connection exists
@@ -46,37 +67,9 @@ public:
     bool hasConnection(int fromRoom, Direction dir) const {
         return getTargetRoom(fromRoom, dir) != -1;
     }
+    
+    // Add a single connection
+    void addConnection(int fromRoom, Direction dir, int toRoom) {
+        connections[fromRoom][dir] = toRoom;
+    }
 };
-
-// Initialize all room connections
-inline RoomConnections initRoomConnections() {
-
-    // Map: fromRoom -> Direction -> toRoom
-    std::vector<RoomConnection> roomData;
-
-    // Room 0 connections
-    roomData.push_back({ 0, Direction::Right, 1 });
-    roomData.push_back({ 0, Direction::Left, 6 });
-
-    // Room 1 connections
-    roomData.push_back({ 1, Direction::Right, 2 });
-    roomData.push_back({ 1, Direction::Left, 0 });
-
-    // Room 2 connections
-    roomData.push_back({ 2, Direction::Up, 3 });
-    roomData.push_back({ 2, Direction::Down, 4 });
-    roomData.push_back({ 2, Direction::Right, 5 });
-    roomData.push_back({ 2, Direction::Left, 1 });
-
-	// Room 3 connections
-    roomData.push_back({ 3, Direction::Down, 2 });
-
-	// Room 4 connections
-    roomData.push_back({ 4, Direction::Up, 2 });
-
-	// Room 5 connections
-    roomData.push_back({ 5, Direction::Left, 2 });
-    roomData.push_back({ 5, Direction::Right, 2 }); // optional if 2->5 only; keep symmetry if needed
-
-    return RoomConnections(roomData);
-}

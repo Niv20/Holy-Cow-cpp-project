@@ -23,3 +23,7 @@
 │                │  open Doors (uppercase) using a matching Key (lowercase).   │
 │                │                                                             │
 └────────────────┴─────────────────────────────────────────────────────────────┘
+=== METADATA ===
+# Room 0 connections
+CONNECT RIGHT 1
+CONNECT LEFT 6

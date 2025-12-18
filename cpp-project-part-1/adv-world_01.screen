@@ -23,3 +23,7 @@
 │                │ you can push Obstacles (*). Springs (#) can move heavy ones │
 │                │                                                             │
 └────────────────┴─────────────────────────────────────────────────────────────┘
+=== METADATA ===
+# Room 1 connections
+CONNECT RIGHT 2
+CONNECT LEFT 0

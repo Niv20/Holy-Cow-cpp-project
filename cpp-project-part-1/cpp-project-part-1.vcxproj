@@ -184,6 +184,7 @@
   <ItemGroup>
     <ClCompile Include="Bomb.cpp" />
     <ClCompile Include="Door.cpp" />
+    <ClCompile Include="FileParser.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Legend.cpp" />
     <ClCompile Include="main.cpp" />
@@ -192,6 +193,8 @@
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Point.cpp" />
     <ClCompile Include="Riddle.cpp" />
+    <ClCompile Include="RiddleData.cpp" />
+    <ClCompile Include="RoomConnections.cpp" />
     <ClCompile Include="Screen.cpp" />
     <ClCompile Include="SpecialDoor.cpp" />
     <ClCompile Include="Spring.cpp" />
@@ -201,6 +204,7 @@
   <ItemGroup>
     <ClInclude Include="Bomb.h" />
     <ClInclude Include="Door.h" />
+    <ClInclude Include="FileParser.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Glyph.h" />
     <ClInclude Include="Key.h" />
@@ -213,6 +217,7 @@
     <ClInclude Include="RiddleData.h" />
     <ClInclude Include="RoomConnections.h" />
     <ClInclude Include="Screen.h" />
+    <ClInclude Include="ScreenMetadata.h" />
     <ClInclude Include="SpecialDoor.h" />
     <ClInclude Include="SpecialDoorsData.h" />
     <ClInclude Include="Spring.h" />
@@ -232,6 +237,9 @@
     <None Include="Pause.screen" />
     <None Include="Riddle.screen" />
     <None Include="Start.screen" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="riddles.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
