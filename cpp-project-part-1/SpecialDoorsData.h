@@ -32,4 +32,4 @@ D 1 2 2
 T 0 2 2
 ---)";
 
-// Dear BODEK TARGILIM, we dont use the last two doors, because we dont think teleporting is good in our game, but you can add it if you want (by addding the door glyph ■ in the map...)
+// Note: The last two doors are optional teleport doors - add the door glyph (■) in the map to enable them

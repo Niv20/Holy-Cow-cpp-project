@@ -73,16 +73,14 @@ static void printGoodbyeArt() {
 }
 
 vector<string> Menu::loadScreen(const string& filename) {
-    string baseName = filename.substr(0, filename.find('.'));
-    vector<string> lines;
+string baseName = filename.substr(0, filename.find('.'));
+vector<string> lines;
 
-    std::ifstream f = tryOpenScreenFile(baseName);
-    if (!f.is_open()) {
-        std::cerr << "Error: Failed to open UI screen file '" << baseName << ".screen' in any of: "
-                  << getExeDir().string() << ", " << getExeDir().parent_path().string() << ", "
-                  << fs::current_path().string() << std::endl;
-        return lines;
-    }
+std::ifstream f = tryOpenScreenFile(baseName);
+if (!f.is_open()) {
+    // Screen file not found - return empty silently, caller should handle gracefully
+    return lines;
+}
     string line;
     while (std::getline(f, line)) lines.push_back(line);
     f.close();
@@ -161,12 +159,11 @@ MenuAction Menu::showStartMenu() {
 
 void Menu::showInstructions() {
 
-    vector<string> instructionsScreen = loadScreen("Instructions.screen");
+vector<string> instructionsScreen = loadScreen("Instructions.screen");
 
-    if (instructionsScreen.empty()) {
-        std::cerr << "Error: Instructions.screen not found or empty." << std::endl;
-        return;
-    }
+if (instructionsScreen.empty()) {
+    return;
+}
     
     Screen screen(instructionsScreen);
     cls();

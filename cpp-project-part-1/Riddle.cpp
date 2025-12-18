@@ -93,7 +93,12 @@ void Riddle::handleEncounter(Player& player,
 
     // Get riddle template screen
     const vector<string>& templateScreen = Menu::getRiddleTemplate(); 
-    if (templateScreen.empty()) return;
+    if (templateScreen.empty()) {
+        // No riddle template available - skip this riddle entirely
+        // Remove the riddle glyph from the screen so player can pass
+        game.getScreen(roomIdx).setCharAt(pos, Glyph::Empty);
+        return;
+    }
 
     // Build and display riddle screen
     vector<string> riddleScreenData = riddle->buildRiddleScreen(templateScreen); 
