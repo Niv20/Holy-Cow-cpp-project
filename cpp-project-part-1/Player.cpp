@@ -8,6 +8,7 @@
 #include "Spring.h"
 #include "Switch.h"
 #include "SpecialDoor.h"
+#include "DarkRoom.h"
 
 /*      (__)
 '\------(oo)    Constructor
@@ -294,6 +295,10 @@ Point originalPos = position;
     // Check bounds
     if (targetPos.x < 0 || targetPos.x >= Screen::MAX_X || 
         targetPos.y < 0 || targetPos.y >= Screen::MAX_Y) {
+        blocked = true;
+    }
+    // Check if trying to enter dark zone without torch
+    else if (!DarkRoomManager::canEnterPosition(currentScreen, *this, targetPos)) {
         blocked = true;
     } else {
         // Check what's at target position BEFORE moving

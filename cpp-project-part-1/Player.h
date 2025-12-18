@@ -39,6 +39,7 @@ public:
     void setRoomIdx(int idx) { currentRoomIdx = idx; }
     Point getPosition() const { return position; }
     void setPosition(Point p) { position = p; }
+    wchar_t getSymbol() const { return symbol; }
     
     // Track if player moved this frame
     bool hasMoved() const { return movedThisFrame; }

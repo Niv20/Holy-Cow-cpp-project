@@ -17,6 +17,7 @@
 #include "Riddle.h"
 #include "Obstacle.h"
 #include "FileParser.h"
+#include "DarkRoom.h"
 
 using std::vector;
 using std::string;
@@ -50,8 +51,8 @@ void Game::initGame() {
 
     Screen::scanAllScreens(world, roomConnections, riddlesByPosition, legend);
 
-    players.push_back(Player(Point(53, 18), "wdxase", Glyph::First_Player, 0));
-    players.push_back(Player(Point(63, 18), "ilmjko", Glyph::Second_Player, 0));
+    players.push_back(Player(Point(53, 2), "wdxase", Glyph::First_Player, 0));
+    players.push_back(Player(Point(63, 2), "ilmjko", Glyph::Second_Player, 0));
 
     // Initialize final room tracking for both players
     playerReachedFinalRoom.resize(players.size(), false);
@@ -113,7 +114,12 @@ void Game::start() {
 
 if (!isRunning) return;
 
-world[visibleRoomIdx].draw(); 
+// Use darkness-aware drawing if room has dark zones
+if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
+    DarkRoomManager::drawWithDarkness(world[visibleRoomIdx], players, visibleRoomIdx);
+} else {
+    world[visibleRoomIdx].draw();
+}
 refreshLegend(); 
 drawPlayers();
 
@@ -276,6 +282,14 @@ for (const auto& p : players) {
     roomsBefore.push_back(p.getRoomIdx());
 }
 
+// Store previous positions for darkness update optimization
+previousPlayerPositions.clear();
+for (const auto& p : players) {
+    if (p.getRoomIdx() == visibleRoomIdx) {
+        previousPlayerPositions.push_back(p.getPosition());
+    }
+}
+
 // Move all players
 for (size_t i = 0; i < players.size(); ++i) {
     auto& p = players[i];
@@ -287,6 +301,12 @@ for (size_t i = 0; i < players.size(); ++i) {
         if (Glyph::isRiddle(cell))
             Riddle::handleEncounter(p, riddlesByPosition, *this);
     }
+}
+
+// Update darkness: use optimized incremental update instead of full redraw
+if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
+    DarkRoomManager::updateDarknessAroundPlayers(world[visibleRoomIdx], players, 
+                                                   visibleRoomIdx, previousPlayerPositions);
 }
     
 // Check for teleportation (room changed without edge transition)
@@ -309,8 +329,7 @@ for (size_t i = 0; i < players.size(); ++i) {
     }
 }
     
-// Draw all players once after all moves complete (prevents flickering when overlapping)
-drawPlayers();
+// Draw players only if room doesn't have darkness (darkness update includes players)\nif (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {\n    drawPlayers();\n}
     
     SpecialDoor::updateAll(*this);
     checkAndProcessTransitions(); 
@@ -364,13 +383,17 @@ drawPlayers();
         // Stop all updates; handleInput will catch key and exit
         Bomb::tickAndHandleAll(bombs, *this);
         refreshLegend(); 
-        drawPlayers();
+        if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
+            drawPlayers();
+        }
         return;
     }
     
     Bomb::tickAndHandleAll(bombs, *this);
     refreshLegend(); 
-    drawPlayers();
+    if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
+        drawPlayers();
+    }
 }
 
 // Written by AI! Thanks Gemini :)
@@ -525,7 +548,12 @@ void Game::checkAndProcessTransitions() {
 
 void Game::drawEverything() { 
     cls(); 
-    world[visibleRoomIdx].draw(); 
+    // Use darkness-aware drawing if room has dark zones
+    if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
+        DarkRoomManager::drawWithDarkness(world[visibleRoomIdx], players, visibleRoomIdx);
+    } else {
+        world[visibleRoomIdx].draw();
+    }
     refreshLegend(); 
     drawPlayers(); 
 }

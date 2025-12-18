@@ -16,6 +16,12 @@ namespace Glyph {
     inline constexpr wchar_t Switch_Off = L'0'; // switch OFF state
     inline constexpr wchar_t Switch_On = L'1'; // switch ON state
 
+    // Darkness shading characters (light to dark)
+    inline constexpr wchar_t Dark_Light = L'\x2591';   // ░ - lightest shade
+    inline constexpr wchar_t Dark_Medium = L'\x2592';  // ▒ - medium shade  
+    inline constexpr wchar_t Dark_Heavy = L'\x2593';   // ▓ - heavy shade
+    inline constexpr wchar_t Dark_Full = L'\x2588';    // █ - full block (complete darkness)
+
     // Bombable walls (weak walls)
     inline constexpr wchar_t Bombable_Wall_H = L'-';
     inline constexpr wchar_t Bombable_Wall_V = L'|';
@@ -48,6 +54,9 @@ namespace Glyph {
     inline bool isObstacle(wchar_t ch) { return ch == Obstacle; }
     inline bool isSwitch(wchar_t ch) { return ch == Switch_Off || ch == Switch_On; }
     inline bool isSpecialDoor(wchar_t ch) { return ch == SpecialDoor; }
+    inline bool isDarkness(wchar_t ch) { 
+        return ch == Dark_Light || ch == Dark_Medium || ch == Dark_Heavy || ch == Dark_Full; 
+    }
 
     inline bool isWall(wchar_t ch) {
         if (ch == Wall_Single_TL || ch == Wall_Single_TR || ch == Wall_Single_BL || ch == Wall_Single_BR ||

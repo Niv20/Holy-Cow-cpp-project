@@ -32,6 +32,7 @@ class Game {
     
     std::vector<bool> playerReachedFinalRoom; // Track which players reached final room
     int finalRoomFocusTicks = 0; // countdown for camera focus on final room
+    std::vector<Point> previousPlayerPositions; // Track previous positions for darkness updates
 
     void initGame();
 
