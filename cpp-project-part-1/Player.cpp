@@ -86,7 +86,18 @@ Point originalPos = position;
             // Check if perpendicular move is valid
             if (next.x >= 0 && next.x < Screen::MAX_X && next.y >= 0 && next.y < Screen::MAX_Y) {
                 wchar_t tile = currentScreen.getCharAt(next);
-                if (!Glyph::isWall(tile)) {
+                // Check if another player is at the target position
+                bool playerBlocking = false;
+                for (const auto& other : game.getPlayers()) {
+                    if (&other == this) continue;
+                    if (other.getRoomIdx() != currentRoomIdx) continue;
+                    Point op = other.getPosition();
+                    if (op.x == next.x && op.y == next.y) {
+                        playerBlocking = true;
+                        break;
+                    }
+                }
+                if (!Glyph::isWall(tile) && !playerBlocking) {
                     currentScreen.refreshCell(position);
                     position = next;
                 }
@@ -106,12 +117,35 @@ Point originalPos = position;
         
         // Boost movement: speed cells per cycle in boost direction, plus lateral
         // First apply lateral movement (perpendicular to boost)
+        // Check if lateral movement would collide with another player
+        Point lateralTarget = position;
         if (boostDirX != 0) {
-            // Boost is horizontal, allow vertical movement
-            position.y += moveDy;
+            lateralTarget.y += moveDy;
         } else if (boostDirY != 0) {
-            // Boost is vertical, allow horizontal movement
-            position.x += moveDx;
+            lateralTarget.x += moveDx;
+        }
+        
+        bool lateralBlocked = false;
+        if (lateralTarget.x != position.x || lateralTarget.y != position.y) {
+            for (const auto& other : game.getPlayers()) {
+                if (&other == this) continue;
+                if (other.getRoomIdx() != currentRoomIdx) continue;
+                Point op = other.getPosition();
+                if (op.x == lateralTarget.x && op.y == lateralTarget.y) {
+                    lateralBlocked = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!lateralBlocked) {
+            if (boostDirX != 0) {
+                // Boost is horizontal, allow vertical movement
+                position.y += moveDy;
+            } else if (boostDirY != 0) {
+                // Boost is vertical, allow horizontal movement
+                position.x += moveDx;
+            }
         }
         
         // Now apply boost movement (speed cells in boost direction)
@@ -300,7 +334,21 @@ Point originalPos = position;
     // Check if trying to enter dark zone without torch
     else if (!DarkRoomManager::canEnterPosition(currentScreen, *this, targetPos)) {
         blocked = true;
-    } else {
+    }
+    // Check if another player is at the target position
+    else {
+        for (const auto& other : game.getPlayers()) {
+            if (&other == this) continue;
+            if (other.getRoomIdx() != currentRoomIdx) continue;
+            Point op = other.getPosition();
+            if (op.x == targetPos.x && op.y == targetPos.y) {
+                blocked = true;
+                break;
+            }
+        }
+    }
+    
+    if (!blocked) {
         // Check what's at target position BEFORE moving
         wchar_t tile = currentScreen.getCharAt(targetPos);
         
