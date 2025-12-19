@@ -1,30 +1,20 @@
-﻿================================================================================
-                        SCREEN FILE METADATA DOCUMENTATION
-================================================================================
-
-This document explains all the metadata types that can be used at the bottom
-of .screen files in this game project.
-
-================================================================================
-                              BASIC FORMAT
-================================================================================
+                                         (__) 
+'\---------------------------------------(oo) 
+  || SCREEN FILE METADATA DOCUMENTATION  (__) 
+  ||------------------------------------||    
 
 Metadata is placed at the END of a .screen file, after the visual game content.
 The metadata section starts with a special separator line:
 
     === METADATA ===
 
-After this line, you can write metadata commands.
-Lines starting with # are comments and will be ignored.
+After this line, you can write metadata commands:
 
-================================================================================
-                           METADATA TYPES
-================================================================================
 
 1. ROOM CONNECTIONS (CONNECT)
 ─────────────────────────────
-
-Purpose: Defines where the player goes when exiting the current room.
+Purpose: 
+    Defines where the player goes when exiting the current room.
 
 Format:
     CONNECT <DIRECTION> <ROOM_NUMBER>
@@ -47,7 +37,8 @@ Examples:
 
 2. SPECIAL DOORS (DOOR, KEYS, SWITCH, TARGET)
 ─────────────────────────────────────────────
-Purpose: Defines special doors (■) that require keys and/or switch combinations.
+Purpose: 
+    Defines special doors (■) that require keys and/or switch combinations.
 
 Format:
     DOOR <X> <Y>                    # Door position on screen
@@ -85,7 +76,6 @@ Parts Explained:
         - Required if you have more content after the door
 
 Example (Door requiring keys c, o, w and specific switch states):
-
     DOOR 31 18
     KEYS c o w
     SWITCH 31 2 0
@@ -97,10 +87,9 @@ Example (Door requiring keys c, o, w and specific switch states):
 
 3. DARK ZONES (DARK, DARKZONES, ZONE)
 ─────────────────────────────────────
-
-Purpose: Defines rectangular areas that are dark and require a torch (!) to see.
-
-There are two ways to define dark zones:
+Purpose: 
+    Defines rectangular areas that are dark and require a torch (!) to see.
+    There are two ways to define dark zones:
 
 METHOD 1 - Single Dark Zone:
     DARK <X1> <Y1> <X2> <Y2>
@@ -138,7 +127,8 @@ Example:
 
 4. COMMENTS
 ───────────
-Purpose: Add notes that will be ignored by the game.
+Purpose: 
+    Add notes that will be ignored by the game.
 
 Format:
     # Your comment text here
