@@ -241,6 +241,7 @@
     <None Include="Start.screen" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="METADATA.txt" />
     <Text Include="riddles.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
