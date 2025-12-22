@@ -31,7 +31,7 @@ using std::set;
   ||    (__)
   ||w--||                */
 
-Game::Game() : visibleRoomIdx(2), isRunning(true) { 
+Game::Game() : visibleRoomIdx(0), isRunning(true) { 
     initGame(); 
 }
 
@@ -51,8 +51,8 @@ void Game::initGame() {
 
     Screen::scanAllScreens(world, roomConnections, riddlesByPosition, legend);
 
-    players.push_back(Player(Point(53, 19), "wdxase", Glyph::First_Player, 2));
-    players.push_back(Player(Point(63, 19), "ilmjko", Glyph::Second_Player, 2));
+    players.push_back(Player(Point(53, 19), "wdxase", Glyph::First_Player, 0));
+    players.push_back(Player(Point(63, 19), "ilmjko", Glyph::Second_Player, 0));
 
     // Initialize final room tracking for both players
     playerReachedFinalRoom.resize(players.size(), false);
