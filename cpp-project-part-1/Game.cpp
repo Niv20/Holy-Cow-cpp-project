@@ -175,10 +175,8 @@ void Game::handlePause() {
             char key = _getch();
 
             if (key == ESC_KEY) {
-                cls();
-                world[visibleRoomIdx].draw();
-                refreshLegend();
-                drawPlayers();
+                // Use drawEverything to properly handle darkness rendering
+                drawEverything();
                 return;
             }
             else if (key == 'H' || key == 'h') {
@@ -276,6 +274,18 @@ if (heartsCount <= 0) {
     return; 
 }
 
+// Track player state before movement (room, position, carried) to detect relevant changes
+struct PlayerSnapshot {
+    int roomIdx;
+    Point pos;
+    char carried;
+};
+std::vector<PlayerSnapshot> beforeSnapshots;
+beforeSnapshots.reserve(players.size());
+for (const auto& p : players) {
+    beforeSnapshots.push_back({ p.getRoomIdx(), p.getPosition(), p.getCarried() });
+}
+
 // Track player rooms before movement to detect teleportation
 std::vector<int> roomsBefore;
 for (const auto& p : players) {
@@ -303,10 +313,55 @@ for (size_t i = 0; i < players.size(); ++i) {
     }
 }
 
-// Update darkness: use optimized incremental update instead of full redraw
+// Update darkness when players in room move or when torch state changes (carry/pick/drop or torch carrier enters/leaves)
 if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
-    DarkRoomManager::updateDarknessAroundPlayers(world[visibleRoomIdx], players, 
-                                                   visibleRoomIdx, previousPlayerPositions);
+    bool needsDarkUpdate = false;
+    bool torchChange = false;
+
+    for (size_t i = 0; i < players.size(); ++i) {
+        const auto& before = beforeSnapshots[i];
+        const auto& after = players[i];
+
+        bool beforeInRoom = before.roomIdx == visibleRoomIdx;
+        bool afterInRoom = after.getRoomIdx() == visibleRoomIdx;
+        bool beforeTorch = before.carried == '!';
+        bool afterTorch = after.getCarried() == '!';
+
+        // Any movement of a player currently in the room requires redraw (players are drawn via darkness layer)
+        if (beforeInRoom || afterInRoom) {
+            if (before.pos.x != after.getPosition().x || before.pos.y != after.getPosition().y || beforeInRoom != afterInRoom) {
+                needsDarkUpdate = true;
+            }
+        }
+
+        // Torch carrier entered or left the visible room
+        if (beforeInRoom != afterInRoom && (beforeTorch || afterTorch)) {
+            torchChange = true;
+        }
+
+        // Torch picked up or dropped, or torch moved
+        if ((beforeTorch != afterTorch) || ((beforeTorch || afterTorch) && (before.pos.x != after.getPosition().x || before.pos.y != after.getPosition().y))) {
+            torchChange = true;
+        }
+    }
+
+    if (needsDarkUpdate) {
+        // Collect dropped torch positions so they contribute light/halo
+        std::vector<Point> torchSources;
+        if (torchChange) {
+            for (int y = 0; y < Screen::MAX_Y; ++y) {
+                for (int x = 0; x < Screen::MAX_X; ++x) {
+                    Point p{x, y};
+                    if (Glyph::isTorch(world[visibleRoomIdx].getCharAt(p))) {
+                        torchSources.push_back(p);
+                    }
+                }
+            }
+        }
+
+        DarkRoomManager::updateDarknessAroundPlayers(world[visibleRoomIdx], players,
+                                                     visibleRoomIdx, previousPlayerPositions, torchSources);
+    }
 }
     
 // Check for teleportation (room changed without edge transition)

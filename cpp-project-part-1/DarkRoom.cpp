@@ -9,6 +9,14 @@
 #include <set>
 #include <map>
 
+// Ensure Windows min/max macros do not clash with std::min/std::max if windows.h was pulled in earlier
+#ifdef max
+#undef max
+#endif
+#ifdef min
+#undef min
+#endif
+
 // Check if a point is in any dark zone of the given screen
 bool DarkRoomManager::isInDarkZone(const Screen& screen, const Point& p) {
     const auto& darkZones = screen.getData().darkZones;
@@ -25,11 +33,14 @@ bool DarkRoomManager::roomHasDarkness(const Screen& screen) {
     return !screen.getData().darkZones.empty();
 }
 
-// Calculate distance between two points (Chebyshev distance for circular-ish light)
+// Calculate distance between two points (adjusted for wider horizontal light)
+// Horizontal distance is scaled down to make light wider horizontally
 int DarkRoomManager::calculateDistance(const Point& a, const Point& b) {
     int dx = std::abs(a.x - b.x);
     int dy = std::abs(a.y - b.y);
-    return (dx > dy) ? dx : dy;  // Chebyshev distance gives octagonal light pattern
+    // Scale horizontal distance by 0.75 (dx * 3 / 4) to make light ~33% wider horizontally
+    int scaledDx = (dx * 3) / 4;
+    return (scaledDx > dy) ? scaledDx : dy;
 }
 
 // Get the darkness character for a given darkness level
@@ -70,14 +81,22 @@ int DarkRoomManager::closestTorchDistance(const Point& pos, const std::vector<Pl
 // Find closest dropped torch distance to a point
 int DarkRoomManager::closestDroppedTorchDistance(const Point& pos, const Screen& screen) {
     int minDist = 9999;
-    // Scan the screen for dropped torches
-    for (int y = 0; y < Screen::MAX_Y; ++y) {
-        for (int x = 0; x < Screen::MAX_X; ++x) {
+
+    // Fixed 8x8 window (radius 4) around the queried cell to keep the scan tiny.
+    const int searchRadius = 4;
+    int minY = std::max(0, pos.y - searchRadius);
+    int maxY = std::min(Screen::MAX_Y - 1, pos.y + searchRadius);
+    int minX = std::max(0, pos.x - searchRadius);
+    int maxX = std::min(Screen::MAX_X - 1, pos.x + searchRadius);
+
+    for (int y = minY; y <= maxY; ++y) {
+        for (int x = minX; x <= maxX; ++x) {
             Point torchPos{x, y};
             if (Glyph::isTorch(screen.getCharAt(torchPos))) {
                 int dist = calculateDistance(pos, torchPos);
                 if (dist < minDist) {
                     minDist = dist;
+                    if (minDist == 0) return 0; // can't do better
                 }
             }
         }
@@ -257,22 +276,27 @@ void DarkRoomManager::refreshCellWithDarkness(const Screen& screen, const Point&
 
 // Update only the cells affected by player movement - much faster than full redraw
 void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const std::vector<Player>& players,
-                                                   int roomIdx, const std::vector<Point>& previousPositions) {
+                                                   int roomIdx, const std::vector<Point>& previousPositions,
+                                                   const std::vector<Point>& extraLightSources) {
+    if (!roomHasDarkness(screen)) return;
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     
     // Collect all cells that need updating (within light radius of current and previous positions)
     std::set<std::pair<int,int>> cellsToUpdate;
     
-    const int updateRadius = HEAVY_SHADE_RADIUS + 1; // Update slightly beyond visible light
+    // Light spreads wider horizontally because calculateDistance scales dx by 0.75.
+    // Cover that extra reach so we clear lingering halo artifacts.
+    const int updateRadius = (HEAVY_SHADE_RADIUS * 4) / 3 + 1; // 9 -> 13
     
-    // Add cells around previous positions (to clear old light)
+    // Add cells around previous positions (to clear old light) – only within dark zones
     for (const auto& prevPos : previousPositions) {
         for (int dy = -updateRadius; dy <= updateRadius; ++dy) {
             for (int dx = -updateRadius; dx <= updateRadius; ++dx) {
                 int nx = prevPos.x + dx;
                 int ny = prevPos.y + dy;
                 if (nx >= 0 && nx < Screen::MAX_X && ny >= 0 && ny < Screen::MAX_Y) {
-                    if (isInDarkZone(screen, Point{nx, ny})) {
+                    Point q{nx, ny};
+                    if (isInDarkZone(screen, q)) {
                         cellsToUpdate.insert({nx, ny});
                     }
                 }
@@ -280,7 +304,7 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
         }
     }
     
-    // Add cells around current player positions (to draw new light)
+    // Add cells around current player positions (to draw new light) – restrict to dark zones
     for (const auto& player : players) {
         if (player.getRoomIdx() != roomIdx) continue;
         Point pos = player.getPosition();
@@ -289,11 +313,40 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
                 int nx = pos.x + dx;
                 int ny = pos.y + dy;
                 if (nx >= 0 && nx < Screen::MAX_X && ny >= 0 && ny < Screen::MAX_Y) {
-                    if (isInDarkZone(screen, Point{nx, ny})) {
+                    Point q{nx, ny};
+                    if (isInDarkZone(screen, q)) {
                         cellsToUpdate.insert({nx, ny});
                     }
                 }
             }
+        }
+        // Ensure the player position itself is always updated (even if not inside dark zone)
+        cellsToUpdate.insert({pos.x, pos.y});
+    }
+
+    // Add cells around extra light sources (e.g., dropped torches) – restrict to dark zones
+    for (const auto& src : extraLightSources) {
+        for (int dy = -updateRadius; dy <= updateRadius; ++dy) {
+            for (int dx = -updateRadius; dx <= updateRadius; ++dx) {
+                int nx = src.x + dx;
+                int ny = src.y + dy;
+                if (nx >= 0 && nx < Screen::MAX_X && ny >= 0 && ny < Screen::MAX_Y) {
+                    Point q{nx, ny};
+                    if (isInDarkZone(screen, q)) {
+                        cellsToUpdate.insert({nx, ny});
+                    }
+                }
+            }
+        }
+        // Ensure the light source cell itself is updated
+        cellsToUpdate.insert({src.x, src.y});
+    }
+    
+    // Also explicitly add previous positions themselves to clear player ghost
+    for (const auto& prevPos : previousPositions) {
+        if (prevPos.x >= 0 && prevPos.x < Screen::MAX_X && 
+            prevPos.y >= 0 && prevPos.y < Screen::MAX_Y) {
+            cellsToUpdate.insert({prevPos.x, prevPos.y});
         }
     }
     
@@ -320,24 +373,17 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
         auto it = playerSymbolMap.find(cell);
         if (it != playerSymbolMap.end()) {
             ch = it->second;
-        } else {
+        } else if (isInDarkZone(screen, p)) {
+            // In dark zone - apply darkness effect
             ch = getDisplayChar(screen, p, players, roomIdx);
+        } else {
+            // Outside dark zone - show original character
+            ch = screen.getCharAt(p);
         }
         
         COORD pos{(SHORT)p.x, (SHORT)p.y};
         SetConsoleCursorPosition(hOut, pos);
         DWORD written;
         WriteConsoleW(hOut, &ch, 1, &written, nullptr);
-    }
-    
-    // Always draw players (even outside dark zones)
-    for (const auto& [posKey, symbol] : playerSymbolMap) {
-        if (cellsToUpdate.find(posKey) == cellsToUpdate.end()) {
-            // Player is outside dark zone, draw them directly
-            COORD pos{(SHORT)posKey.first, (SHORT)posKey.second};
-            SetConsoleCursorPosition(hOut, pos);
-            DWORD written;
-            WriteConsoleW(hOut, &symbol, 1, &written, nullptr);
-        }
     }
 }

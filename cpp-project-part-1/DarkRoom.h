@@ -15,20 +15,20 @@ class Game;
 // - The area is rendered as full darkness (?) by default
 // - Players cannot enter dark zones without holding a torch (!)
 // - When a player holds a torch, light radiates from them in a circle:
-//   - Distance 0-2: Full visibility (original characters)
-//   - Distance 3: Light shade ?
-//   - Distance 4: Medium shade ?
-//   - Distance 5: Heavy shade ?
-//   - Distance 6+: Full darkness ?
+//   - Distance 0-6: Full visibility (original characters)
+//   - Distance 7: Light shade ?
+//   - Distance 8: Medium shade ?
+//   - Distance 9: Heavy shade ?
+//   - Distance 10+: Full darkness ?
 // - Dropping the torch makes everything dark except player and torch positions
 
 class DarkRoomManager {
 public:
     // Light radius constants
-    static constexpr int FULL_LIGHT_RADIUS = 2;    // Full visibility within this radius
-    static constexpr int LIGHT_SHADE_RADIUS = 3;   // ? at this distance
-    static constexpr int MEDIUM_SHADE_RADIUS = 4;  // ? at this distance
-    static constexpr int HEAVY_SHADE_RADIUS = 5;   // ? at this distance
+    static constexpr int FULL_LIGHT_RADIUS = 6;    // Full visibility within this radius
+    static constexpr int LIGHT_SHADE_RADIUS = 7;   // ? at this distance
+    static constexpr int MEDIUM_SHADE_RADIUS = 8;  // ? at this distance
+    static constexpr int HEAVY_SHADE_RADIUS = 9;   // ? at this distance
     // Beyond heavy shade radius = full darkness ?
     
     // Check if a point is in any dark zone of the given screen
@@ -50,7 +50,8 @@ public:
     // Update only the cells affected by player movement (much faster than full redraw)
     // Call this every frame instead of drawWithDarkness for smooth performance
     static void updateDarknessAroundPlayers(const Screen& screen, const std::vector<Player>& players, 
-                                             int roomIdx, const std::vector<Point>& previousPositions);
+                                             int roomIdx, const std::vector<Point>& previousPositions,
+                                             const std::vector<Point>& extraLightSources = {});
     
     // Refresh a single cell with darkness consideration
     static void refreshCellWithDarkness(const Screen& screen, const Point& p,
