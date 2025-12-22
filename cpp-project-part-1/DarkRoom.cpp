@@ -2,6 +2,7 @@
 #include "Screen.h"
 #include "Player.h"
 #include "Glyph.h"
+#include "ScreenMetadata.h"
 #define NOMINMAX
 #include <windows.h>
 #include <cmath>
@@ -31,6 +32,53 @@ bool DarkRoomManager::isInDarkZone(const Screen& screen, const Point& p) {
 // Check if the room has any dark zones
 bool DarkRoomManager::roomHasDarkness(const Screen& screen) {
     return !screen.getData().darkZones.empty();
+}
+
+// Check if torch is available (held by any player OR exists anywhere in the screen)
+bool DarkRoomManager::isTorchAvailable(const Screen& screen, const std::vector<Player>& players, int roomIdx) {
+    // Check if any player in this room is holding a torch
+    for (const auto& player : players) {
+        if (player.getRoomIdx() == roomIdx && player.getCarried() == '!') {
+            return true;
+        }
+    }
+    
+    // Check if there's a torch anywhere in this screen
+    for (int y = 0; y < Screen::MAX_Y; ++y) {
+        for (int x = 0; x < Screen::MAX_X; ++x) {
+            Point p{x, y};
+            if (Glyph::isTorch(screen.getCharAt(p))) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+// Update the info message area for dark rooms
+void DarkRoomManager::getDarkRoomMessage(const Screen& screen, const std::vector<Player>& players, int roomIdx, std::string& line1, std::string& line2, std::string& line3) {
+    const ScreenMetadata& meta = screen.getMetadata();
+
+    // Default to original messages
+    line1 = meta.messageBox.line1;
+    line2 = meta.messageBox.line2;
+    line3 = meta.messageBox.line3;
+
+    // Only apply to rooms with dark zones
+    if (!roomHasDarkness(screen)) return;
+    
+    // Check if room has a message box defined
+    if (!meta.messageBox.hasMessage) return;
+    
+    bool hasTorch = isTorchAvailable(screen, players, roomIdx);
+    
+    if (!hasTorch) {
+        // No torch available - override with warning message
+        line1 = "";
+        line2 = "Dark maze ahead. Carry a torch (!) to enter...";
+        line3 = "";
+    }
 }
 
 // Calculate distance between two points (adjusted for wider horizontal light)

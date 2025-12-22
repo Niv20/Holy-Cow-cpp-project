@@ -142,6 +142,24 @@ Screen::LoadedScreen Screen::loadScreenFile(const std::string& filepath) {
         std::vector<std::string> metadataLines(allLines.begin() + metadataStart + 1, allLines.end());
         result.metadata = parseMetadata(metadataLines);
     }
+
+    // Find 'T' marker for message box, store its position, and remove it from the grid
+    for (int y = 0; y < (int)result.screenLines.size(); ++y) {
+        for (int x = 0; x < (int)result.screenLines[y].size(); ++x) {
+            if (result.screenLines[y][x] == L'T') {
+                result.metadata.messageBox.anchorPos = Point(x, y);
+                // Auto-detect box width
+                for (int w = 1; x + w < (int)result.screenLines[y].size(); ++w) {
+                    if (result.screenLines[y][x + w] == L'│' || result.screenLines[y][x + w] == L'|') {
+                        result.metadata.messageBox.boxWidth = w;
+                        break;
+                    }
+                }
+                result.screenLines[y][x] = L' '; // Remove 'T' from grid
+                break; 
+            }
+        }
+    }
     
     return result;
 }
@@ -262,6 +280,45 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
             // Convert to uppercase for consistent lookup
             std::transform(dir.begin(), dir.end(), dir.begin(), ::toupper);
             metadata.connections[dir] = targetRoom;
+        }
+        // Message box definitions
+        else if (cmd == "LINE1") {
+            // Get the rest of the line after "LINE1 "
+            std::string text;
+            std::getline(iss, text);
+            // Trim leading whitespace
+            size_t start = text.find_first_not_of(" \t");
+            if (start != std::string::npos) {
+                text = text.substr(start);
+            } else {
+                text = "";
+            }
+            metadata.messageBox.line1 = text;
+            metadata.messageBox.hasMessage = true;
+        }
+        else if (cmd == "LINE2") {
+            std::string text;
+            std::getline(iss, text);
+            size_t start = text.find_first_not_of(" \t");
+            if (start != std::string::npos) {
+                text = text.substr(start);
+            } else {
+                text = "";
+            }
+            metadata.messageBox.line2 = text;
+            metadata.messageBox.hasMessage = true;
+        }
+        else if (cmd == "LINE3") {
+            std::string text;
+            std::getline(iss, text);
+            size_t start = text.find_first_not_of(" \t");
+            if (start != std::string::npos) {
+                text = text.substr(start);
+            } else {
+                text = "";
+            }
+            metadata.messageBox.line3 = text;
+            metadata.messageBox.hasMessage = true;
         }
     }
     
@@ -442,4 +499,48 @@ void Screen::lightDarkZone(const Point& p) {
             zone.isLit = true;
         }
     }
+}
+
+// Render the message box content from metadata
+void Screen::renderMessageBox(const std::string& line1, const std::string& line2, const std::string& line3) {
+    const MessageBoxMetadata& msg = metadata_.messageBox;
+    if (!msg.hasMessage) return;
+    
+    Point anchor = msg.anchorPos;
+    int boxWidth = msg.boxWidth;
+    
+    if (boxWidth <= 0) return;  // Could not determine box width
+    
+    // Helper lambda to center and render a line
+    auto renderLine = [&](int row, const std::string& text) {
+        // Clear the line first (fill with spaces)
+        for (int i = 0; i < boxWidth; ++i) {
+            setCharAt(Point{anchor.x + i, row}, L' ');
+        }
+
+        if (text.empty()) return;
+        
+        // Convert to wide string
+        int wlen = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), (int)text.size(), nullptr, 0);
+        std::wstring wtext(wlen, 0);
+        MultiByteToWideChar(CP_UTF8, 0, text.c_str(), (int)text.size(), &wtext[0], wlen);
+        
+        // Truncate if too long
+        if ((int)wtext.size() > boxWidth) {
+            wtext = wtext.substr(0, boxWidth);
+        }
+        
+        // Calculate padding for centering
+        int padding = (boxWidth - (int)wtext.size()) / 2;
+        
+        // Write the centered text
+        for (int i = 0; i < (int)wtext.size(); ++i) {
+            setCharAt(Point{anchor.x + padding + i, row}, wtext[i]);
+        }
+    };
+    
+    // Render each line (anchor.y is line 1, anchor.y+1 is line 2, etc.)
+    renderLine(anchor.y, line1);
+    renderLine(anchor.y + 1, line2);
+    renderLine(anchor.y + 2, line3);
 }

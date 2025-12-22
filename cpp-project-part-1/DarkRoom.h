@@ -60,6 +60,13 @@ public:
     // Check if the room has any dark zones
     static bool roomHasDarkness(const Screen& screen);
     
+    // Check if torch is available (held by any player entering room OR exists in room)
+    static bool isTorchAvailable(const Screen& screen, const std::vector<Player>& players, int roomIdx);
+    
+    // Update the info message area for dark rooms (shows warning if no torch available)
+    // This modifies the bottom message area when entering room 6
+    static void getDarkRoomMessage(const Screen& screen, const std::vector<Player>& players, int roomIdx, std::string& line1, std::string& line2, std::string& line3);
+    
     // Get the darkness level at a position based on distance from torch-holding players
     // Returns 0 = full light, 1 = light shade, 2 = medium shade, 3 = heavy shade, 4 = full dark
     static int getDarknessLevel(const Point& pos, const std::vector<Player>& players, int roomIdx);

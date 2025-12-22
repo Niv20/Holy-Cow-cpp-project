@@ -73,6 +73,9 @@ public:
     // Light up a dark zone containing the given point
     void lightDarkZone(const Point& p);
     
+    // Render the message box content from metadata (called once when entering room)
+    void renderMessageBox(const std::string& line1, const std::string& line2, const std::string& line3);
+    
     // Structure to hold loaded screen with metadata
     struct LoadedScreen {
         std::vector<std::wstring> screenLines;  // The visual screen content (first 25 lines)

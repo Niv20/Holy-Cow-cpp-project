@@ -75,18 +75,33 @@ struct ConnectionOverride {
     int targetRoom;
 };
 
+// Message box metadata - displays text in a box marked with 'T' in top-left corner
+// The box has 3 lines of text that are centered within the box area
+struct MessageBoxMetadata {
+    Point anchorPos;           // Position of 'T' marker (top-left of box interior)
+    int boxWidth = 0;          // Width of the text area (detected from box)
+    std::string line1;         // Top line text
+    std::string line2;         // Middle line text  
+    std::string line3;         // Bottom line text
+    bool hasMessage = false;   // Whether this screen has a message box
+    
+    MessageBoxMetadata() : anchorPos(0, 0) {}
+};
+
 // Complete metadata for a single screen
 struct ScreenMetadata {
     std::vector<DoorMetadata> doors;
     std::vector<PressureButtonMetadata> pressureButtons;
     std::vector<DarkZone> darkZones;
     std::vector<ConnectionOverride> connectionOverrides;
+    MessageBoxMetadata messageBox;  // Optional message box for this screen
     
     // Room connections as a map: direction string -> target room index
     // Directions: "LEFT", "RIGHT", "UP", "DOWN"
     std::map<std::string, int> connections;
     
     bool hasMetadata() const {
-        return !doors.empty() || !darkZones.empty() || !pressureButtons.empty() || !connections.empty();
+        return !doors.empty() || !darkZones.empty() || !pressureButtons.empty() || 
+               !connections.empty() || messageBox.hasMessage;
     }
 };

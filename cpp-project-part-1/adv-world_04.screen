@@ -19,11 +19,14 @@
 │---||               \|/        \.                              ,./     \|/    │
 │                                 `\..                         ./              │
 ├────────────────┬─────────────────────────────────────────────────────────────┤
-│L               │                                                             │
-│                │ Special button ($) remove walls only when you stand on them │
+│L               │T                                                            │
+│                │                                                             │
 │                │                                                             │
 └────────────────┴─────────────────────────────────────────────────────────────┘
 === METADATA ===
+# Text help for the player
+LINE2 Special button ($) remove walls only when you stand on them
+
 # Room 4 connections
 CONNECT UP 2
 CONNECT LEFT 5

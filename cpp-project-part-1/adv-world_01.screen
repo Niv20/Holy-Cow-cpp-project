@@ -19,11 +19,14 @@
 │......            \                  \|/      ||w--||                     `.. │
 │......`.           `.                                                        `│
 ├────────────────┬─────────────────────────────────────────────────────────────┤
-│L               │                                                             │
-│                │ you can push Obstacles (*). Springs (#) can move heavy ones │
+│L               │T                                                            │
+│                │                                                             │
 │                │                                                             │
 └────────────────┴─────────────────────────────────────────────────────────────┘
 === METADATA ===
+# Text help for the player
+LINE2 you can push Obstacles (*). Springs (#) can move heavy ones
+
 # Room 1 connections
 CONNECT RIGHT 2
 CONNECT LEFT 0

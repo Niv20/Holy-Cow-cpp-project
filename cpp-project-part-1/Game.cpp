@@ -31,7 +31,7 @@ using std::set;
   ||    (__)
   ||w--||                */
 
-Game::Game() : visibleRoomIdx(4), isRunning(true) { 
+Game::Game() : visibleRoomIdx(2), isRunning(true) { 
     initGame(); 
 }
 
@@ -51,8 +51,8 @@ void Game::initGame() {
 
     Screen::scanAllScreens(world, roomConnections, riddlesByPosition, legend);
 
-    players.push_back(Player(Point(53, 19), "wdxase", Glyph::First_Player, 4));
-    players.push_back(Player(Point(63, 19), "ilmjko", Glyph::Second_Player, 4));
+    players.push_back(Player(Point(53, 19), "wdxase", Glyph::First_Player, 2));
+    players.push_back(Player(Point(63, 19), "ilmjko", Glyph::Second_Player, 2));
 
     // Initialize final room tracking for both players
     playerReachedFinalRoom.resize(players.size(), false);
@@ -113,6 +113,13 @@ while (!exitProgram) {
 void Game::start() {
 
 if (!isRunning) return;
+
+// Get the correct message lines
+std::string line1, line2, line3;
+DarkRoomManager::getDarkRoomMessage(world[visibleRoomIdx], players, visibleRoomIdx, line1, line2, line3);
+
+// Render message box content from metadata (if exists)
+world[visibleRoomIdx].renderMessageBox(line1, line2, line3);
 
 // Use darkness-aware drawing if room has dark zones
 if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
@@ -672,6 +679,14 @@ void Game::checkAndProcessTransitions() {
 
 void Game::drawEverything() { 
     cls(); 
+    
+    // Get the correct message lines
+    std::string line1, line2, line3;
+    DarkRoomManager::getDarkRoomMessage(world[visibleRoomIdx], players, visibleRoomIdx, line1, line2, line3);
+
+    // Render message box content from metadata (if exists)
+    world[visibleRoomIdx].renderMessageBox(line1, line2, line3);
+    
     // Use darkness-aware drawing if room has dark zones
     if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
         DarkRoomManager::drawWithDarkness(world[visibleRoomIdx], players, visibleRoomIdx);

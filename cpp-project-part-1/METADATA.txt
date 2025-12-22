@@ -152,7 +152,46 @@ Example:
     ZONE 23 1 78 4
     ---
 
-5. COMMENTS
+
+5. MESSAGE BOXES (LINE1, LINE2, LINE3)
+──────────────────────────────────────
+Purpose:
+    Defines text to display in an info box on the screen.
+    The box must have a 'T' marker in its top-left corner.
+    Text is automatically centered within the box.
+
+Format:
+    LINE1 <text>                    # First line of text (top)
+    LINE2 <text>                    # Second line of text (middle)
+    LINE3 <text>                    # Third line of text (bottom)
+
+Parts Explained:
+    LINE1, LINE2, LINE3
+        - Each line contains the text to display
+        - Text is automatically centered within the box width
+        - If text is too long, it gets truncated
+        - If text is shorter than width, spaces are added on both sides
+        - Empty lines are allowed (just omit the LINE command)
+
+Screen Setup:
+    Place a 'T' character in the top-left corner of where text should appear:
+    
+    ┌─────────────────────────────────────────────────────────────┐
+    │T                                                            │
+    │                                                             │
+    │                                                             │
+    └─────────────────────────────────────────────────────────────┘
+
+    - The 'T' marks where the first line starts. The 'T' itself is removed from the screen when the game loads.
+    - The box width is auto-detected by scanning from the 'T' to the right until a `│` character is found.
+
+Example (3-line message):
+    LINE1 great news :)
+    LINE2 the Key inside the maze opens the door from the first screen.
+    LINE3 now the cow that was left behind can be freed.
+
+
+6. COMMENTS
 ───────────
 Purpose: 
     Add notes that will be ignored by the game.

@@ -11,7 +11,7 @@
 
 constexpr int ESC_KEY = 27;
 constexpr int GAME_TICK_DELAY_MS = 90;
-constexpr int FINAL_ROOM_INDEX = 6;
+constexpr int FINAL_ROOM_INDEX = 7;
 constexpr int FINAL_ROOM_FOCUS_TICKS = 25; // ~2.25 seconds focus on final room
 
 class Game {

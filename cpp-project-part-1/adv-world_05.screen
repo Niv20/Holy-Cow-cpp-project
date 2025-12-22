@@ -19,12 +19,17 @@
 │              !               ■                             /    \|/   ||w----│
 │                              │                         ,./'                  │
 ├────────────────┬─────────────┴───────────────────────────────────────────────┤
-│L               │   To open the special door (■), you must use several keys   │
-│                │    and set the switch (1/0) to the correct combination.     │
-│                │        Figure out the keys and switches yourself...         │
+│L               │T                                                            │
+│                │                                                             │
+│                │                                                             │
 └────────────────┴─────────────────────────────────────────────────────────────┘
 === METADATA ===
-# Room 4 connections
+# Text help for the player
+LINE1 To open the special door (■), you must use several keys
+LINE2 and set the switch (1/0) to the correct combination.
+LINE3 Figure out the keys and switches yourself...
+
+# Room 5 connections
 CONNECT RIGHT 4
 
 # Special door requiring keys c, o, w and specific switch states

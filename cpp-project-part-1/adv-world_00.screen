@@ -19,11 +19,14 @@
 │    ||    (__)         │..................`.                             /....│
 │    ||w--||      \|/   │....................\                           ,.....│
 ├────────────────┬──────┴──────────────────────────────────────────────────────┤
-│L               │                                                             │
-│                │  open Doors (uppercase) using a matching Key (lowercase).   │
+│L               │T                                                            │
+│                │                                                             │
 │                │                                                             │
 └────────────────┴─────────────────────────────────────────────────────────────┘
 === METADATA ===
+# Text help for the player
+LINE2 open Doors (uppercase) using a matching Key (lowercase).
+
 # Room 0 connections
 CONNECT RIGHT 1
-CONNECT LEFT 6
+CONNECT LEFT 7
