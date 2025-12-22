@@ -352,7 +352,7 @@ Point originalPos = position;
         // Check what's at target position BEFORE moving
         wchar_t tile = currentScreen.getCharAt(targetPos);
         
-        // Check for switch first
+        // Check for switch first (switch toggles and pushes player back)
         if (Glyph::isSwitch(tile)) {
             SwitchData* sw = game.findSwitchAt(currentRoomIdx, targetPos);
             if (sw) {
@@ -534,8 +534,8 @@ Point originalPos = position;
                     currentScreen.setCharAt(position, Glyph::Empty);
                     currentScreen.refreshCell(position);
                 }
-            } else if (Glyph::isRiddle(tile) || tile == Glyph::Empty) {
-                // Allowed - move to target
+            } else if (Glyph::isRiddle(tile) || tile == Glyph::Empty || Glyph::isPressureButton(tile)) {
+                // Allowed - move to target (pressure buttons handled by Game::updatePressureButtons)
                 position = targetPos;
             } else {
                 blocked = true;

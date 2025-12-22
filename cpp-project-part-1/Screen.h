@@ -6,6 +6,7 @@
 #include "Point.h"
 #include "Spring.h"
 #include "Switch.h"
+#include "PressureSwitch.h"
 #include "SpecialDoor.h"
 #include "Obstacle.h"
 #include "ScreenMetadata.h"
@@ -30,6 +31,7 @@ public:
     struct Data {
         std::vector<SpringData> springs;
         std::vector<SwitchData> switches;
+        std::vector<PressureButton> pressureButtons;
         std::vector<SpecialDoor> doors;
         std::vector<Obstacle> obstacles;
         std::vector<DarkZone> darkZones;  // Dark areas in this screen

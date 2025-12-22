@@ -85,7 +85,34 @@ Example (Door requiring keys c, o, w and specific switch states):
     ---
 
 
-3. DARK ZONES (DARK, DARKZONES, ZONE)
+3. PRESSURE BUTTONS (PBUTTON, CLEAR)
+────────────────────────────────────
+Purpose:
+    Defines '$' pressure buttons that clear specific walls ONLY while you stand on them.
+
+Format:
+    PBUTTON <X> <Y>
+    CLEAR <X1> <Y1>
+    CLEAR <X2> <Y2>
+    ...             # one CLEAR line per wall to remove
+    ---             # end of this pressure button definition
+
+Parts Explained:
+    PBUTTON <X> <Y>
+        - Position of the '$' tile on the map
+
+    CLEAR <X> <Y>
+        - A wall position to temporarily erase while someone stands on the button
+        - Add as many CLEAR lines as needed
+
+Example (a button at 40,12 that clears two walls):
+    PBUTTON 40 12
+    CLEAR 10 5
+    CLEAR 12 5
+    ---
+
+
+4. DARK ZONES (DARK, DARKZONES, ZONE)
 ─────────────────────────────────────
 Purpose: 
     Defines rectangular areas that are dark and require a torch (!) to see.
@@ -125,7 +152,7 @@ Example:
     ZONE 23 1 78 4
     ---
 
-4. COMMENTS
+5. COMMENTS
 ───────────
 Purpose: 
     Add notes that will be ignored by the game.

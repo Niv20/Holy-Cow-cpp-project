@@ -15,6 +15,7 @@ namespace Glyph {
     inline constexpr wchar_t Riddle = L'?';
     inline constexpr wchar_t Switch_Off = L'0'; // switch OFF state
     inline constexpr wchar_t Switch_On = L'1'; // switch ON state
+    inline constexpr wchar_t PressureSwitch = L'$'; // pressure button that clears walls while held down
 
     // Darkness shading characters (light to dark)
     inline constexpr wchar_t Dark_Light = L'\x2591';   // ░ - lightest shade
@@ -53,6 +54,7 @@ namespace Glyph {
     inline bool isSpring(wchar_t ch) { return ch == Spring; }
     inline bool isObstacle(wchar_t ch) { return ch == Obstacle; }
     inline bool isSwitch(wchar_t ch) { return ch == Switch_Off || ch == Switch_On; }
+    inline bool isPressureButton(wchar_t ch) { return ch == PressureSwitch; }
     inline bool isSpecialDoor(wchar_t ch) { return ch == SpecialDoor; }
     inline bool isDarkness(wchar_t ch) { 
         return ch == Dark_Light || ch == Dark_Medium || ch == Dark_Heavy || ch == Dark_Full; 

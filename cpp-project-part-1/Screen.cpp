@@ -151,6 +151,7 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
     ScreenMetadata metadata;
     
     DoorMetadata* currentDoor = nullptr;
+    PressureButtonMetadata* currentPressureButton = nullptr;
     bool inDarkZones = false;
     int lineNum = 0;
     
@@ -168,6 +169,11 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
                 delete currentDoor;
                 currentDoor = nullptr;
             }
+            if (currentPressureButton) {
+                metadata.pressureButtons.push_back(*currentPressureButton);
+                delete currentPressureButton;
+                currentPressureButton = nullptr;
+            }
             inDarkZones = false;
             continue;
         }
@@ -181,6 +187,11 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
             if (currentDoor) {
                 metadata.doors.push_back(*currentDoor);
                 delete currentDoor;
+            }
+            if (currentPressureButton) {
+                metadata.pressureButtons.push_back(*currentPressureButton);
+                delete currentPressureButton;
+                currentPressureButton = nullptr;
             }
             currentDoor = new DoorMetadata();
             int x, y;
@@ -205,6 +216,27 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
             iss >> room >> tx >> ty;
             currentDoor->targetRoom = room;
             currentDoor->targetPosition = Point(tx, ty);
+        }
+        // Pressure button definitions
+        else if (cmd == "PBUTTON") {
+            if (currentPressureButton) {
+                metadata.pressureButtons.push_back(*currentPressureButton);
+                delete currentPressureButton;
+            }
+            if (currentDoor) {
+                metadata.doors.push_back(*currentDoor);
+                delete currentDoor;
+                currentDoor = nullptr;
+            }
+            currentPressureButton = new PressureButtonMetadata();
+            int px, py;
+            iss >> px >> py;
+            currentPressureButton->position = Point(px, py);
+        }
+        else if (cmd == "CLEAR" && currentPressureButton) {
+            int cx, cy;
+            iss >> cx >> cy;
+            currentPressureButton->clearTargets.emplace_back(cx, cy);
         }
         // Dark zone definitions
         else if (cmd == "DARK") {
@@ -237,6 +269,10 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
     if (currentDoor) {
         metadata.doors.push_back(*currentDoor);
         delete currentDoor;
+    }
+    if (currentPressureButton) {
+        metadata.pressureButtons.push_back(*currentPressureButton);
+        delete currentPressureButton;
     }
     
     return metadata;
@@ -305,6 +341,7 @@ std::vector<Screen> Screen::loadScreensFromFiles() {
 void Screen::scanScreenData(int roomIdx) {
     data_.springs.clear();
     data_.switches.clear();
+    data_.pressureButtons.clear();
     
     // Scan springs
     std::set<std::pair<int,int>> visited;
@@ -338,7 +375,7 @@ void Screen::scanScreenData(int roomIdx) {
         }
     }
     
-    // Scan switches
+    // Scan switches and pressure buttons
     for (int y = 0; y < MAX_Y; ++y) {
         for (int x = 0; x < MAX_X; ++x) {
             Point p{x, y};
@@ -347,7 +384,20 @@ void Screen::scanScreenData(int roomIdx) {
                 bool isOn = (ch == Glyph::Switch_On);
                 data_.switches.emplace_back(roomIdx, p, isOn);
             }
+            else if (Glyph::isPressureButton(ch)) {
+                data_.pressureButtons.emplace_back(roomIdx, p);
+            }
         }
+    }
+
+    // Attach metadata targets to pressure buttons
+    for (const auto& meta : metadata_.pressureButtons) {
+        PressureButton* pb = PressureButton::findAt(*this, meta.position);
+        if (!pb) {
+            data_.pressureButtons.emplace_back(roomIdx, meta.position);
+            pb = &data_.pressureButtons.back();
+        }
+        pb->setTargets(meta.clearTargets, *this);
     }
 }
 

@@ -63,6 +63,12 @@ struct DoorMetadata {
     DoorMetadata() : position(0, 0), targetRoom(-1), targetPosition(0, 0) {}
 };
 
+// Pressure button metadata (for '$' tiles) - clears walls while held down
+struct PressureButtonMetadata {
+    Point position;
+    std::vector<Point> clearTargets;
+};
+
 // Room connection override
 struct ConnectionOverride {
     std::string direction;  // "LEFT", "RIGHT", "UP", "DOWN"
@@ -72,6 +78,7 @@ struct ConnectionOverride {
 // Complete metadata for a single screen
 struct ScreenMetadata {
     std::vector<DoorMetadata> doors;
+    std::vector<PressureButtonMetadata> pressureButtons;
     std::vector<DarkZone> darkZones;
     std::vector<ConnectionOverride> connectionOverrides;
     
@@ -80,6 +87,6 @@ struct ScreenMetadata {
     std::map<std::string, int> connections;
     
     bool hasMetadata() const {
-        return !doors.empty() || !darkZones.empty() || !connections.empty();
+        return !doors.empty() || !darkZones.empty() || !pressureButtons.empty() || !connections.empty();
     }
 };

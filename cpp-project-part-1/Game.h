@@ -42,6 +42,7 @@ class Game {
     void drawPlayers();
     void drawEverything();
     void refreshLegend();
+    void updatePressureButtons();
 
     void checkAndProcessTransitions();
 

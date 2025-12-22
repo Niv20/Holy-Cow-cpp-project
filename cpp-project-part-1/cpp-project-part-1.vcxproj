@@ -193,6 +193,7 @@
     <ClCompile Include="Obstacle.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Point.cpp" />
+    <ClCompile Include="PressureSwitch.cpp" />
     <ClCompile Include="Riddle.cpp" />
     <ClCompile Include="RiddleData.cpp" />
     <ClCompile Include="RoomConnections.cpp" />
@@ -215,6 +216,7 @@
     <ClInclude Include="Obstacle.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Point.h" />
+    <ClInclude Include="PressureSwitch.h" />
     <ClInclude Include="Riddle.h" />
     <ClInclude Include="RiddleData.h" />
     <ClInclude Include="RoomConnections.h" />
@@ -234,6 +236,7 @@
     <None Include="adv-world_04.screen" />
     <None Include="adv-world_05.screen" />
     <None Include="adv-world_06.screen" />
+    <None Include="adv-world_07.screen" />
     <None Include="Instructions.screen" />
     <None Include="Lose.screen" />
     <None Include="Pause.screen" />

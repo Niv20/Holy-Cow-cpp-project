@@ -31,7 +31,7 @@ using std::set;
   ||    (__)
   ||w--||                */
 
-Game::Game() : visibleRoomIdx(0), isRunning(true) { 
+Game::Game() : visibleRoomIdx(4), isRunning(true) { 
     initGame(); 
 }
 
@@ -51,8 +51,8 @@ void Game::initGame() {
 
     Screen::scanAllScreens(world, roomConnections, riddlesByPosition, legend);
 
-    players.push_back(Player(Point(53, 19), "wdxase", Glyph::First_Player, 0));
-    players.push_back(Player(Point(63, 19), "ilmjko", Glyph::Second_Player, 0));
+    players.push_back(Player(Point(53, 19), "wdxase", Glyph::First_Player, 4));
+    players.push_back(Player(Point(63, 19), "ilmjko", Glyph::Second_Player, 4));
 
     // Initialize final room tracking for both players
     playerReachedFinalRoom.resize(players.size(), false);
@@ -313,6 +313,9 @@ for (size_t i = 0; i < players.size(); ++i) {
     }
 }
 
+// Update pressure buttons after all movement to reflect new player positions
+updatePressureButtons();
+
 // Update darkness when players in room move or when torch state changes (carry/pick/drop or torch carrier enters/leaves)
 if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
     bool needsDarkUpdate = false;
@@ -451,6 +454,69 @@ if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
     refreshLegend(); 
     if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
         drawPlayers();
+    }
+}
+
+void Game::updatePressureButtons() {
+    for (size_t roomIdx = 0; roomIdx < world.size(); ++roomIdx) {
+        Screen& screen = world[roomIdx];
+        auto& buttons = screen.getDataMutable().pressureButtons;
+        if (buttons.empty()) continue;
+
+        struct TargetState {
+            wchar_t original = Glyph::Empty;
+            bool hasOriginal = false;
+            int activeCount = 0;
+        };
+
+        std::map<std::pair<int, int>, TargetState> targets;
+
+        std::vector<Point> roomPlayers;
+        for (const auto& pl : players) {
+            if (pl.getRoomIdx() == (int)roomIdx) {
+                roomPlayers.push_back(pl.getPosition());
+            }
+        }
+
+        for (auto& ps : buttons) {
+            bool active = false;
+            for (const auto& pp : roomPlayers) {
+                if (pp.x == ps.pos.x && pp.y == ps.pos.y) {
+                    active = true;
+                    break;
+                }
+            }
+
+            for (const auto& tgt : ps.targets) {
+                auto key = std::make_pair(tgt.pos.x, tgt.pos.y);
+                auto& state = targets[key];
+                if (!state.hasOriginal) {
+                    state.original = tgt.originalChar;
+                    state.hasOriginal = true;
+                }
+                if (active) {
+                    state.activeCount++;
+                }
+            }
+        }
+
+        bool isVisibleRoom = (visibleRoomIdx == (int)roomIdx);
+        bool isDark = DarkRoomManager::roomHasDarkness(screen);
+
+        for (auto& kv : targets) {
+            Point p{ kv.first.first, kv.first.second };
+            wchar_t desired = (kv.second.activeCount > 0) ? Glyph::Empty : kv.second.original;
+            if (screen.getCharAt(p) != desired) {
+                screen.setCharAt(p, desired);
+                if (isVisibleRoom) {
+                    if (isDark) {
+                        DarkRoomManager::refreshCellWithDarkness(screen, p, players, (int)roomIdx);
+                    } else {
+                        screen.refreshCell(p);
+                    }
+                }
+            }
+        }
     }
 }
 
