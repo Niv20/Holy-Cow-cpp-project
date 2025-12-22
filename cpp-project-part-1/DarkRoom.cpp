@@ -94,11 +94,11 @@ int DarkRoomManager::calculateDistance(const Point& a, const Point& b) {
 // Get the darkness character for a given darkness level
 wchar_t DarkRoomManager::getDarknessChar(int level) {
     switch (level) {
-        case 0: return 0;  // Full light - no overlay
-        case 1: return Glyph::Dark_Light;   // ?
-        case 2: return Glyph::Dark_Medium;  // ?
-        case 3: return Glyph::Dark_Heavy;   // ?
-        default: return Glyph::Dark_Full;   // ?
+        case 0: return 0;
+        case 1: return Glyph::Dark_Light;   // ░
+        case 2: return Glyph::Dark_Medium;  // ▒
+        case 3: return Glyph::Dark_Heavy;   // ▓
+        default: return Glyph::Dark_Full;   // █
     }
 }
 
@@ -169,7 +169,7 @@ int DarkRoomManager::getDarknessLevel(const Point& pos, const std::vector<Player
     if (dist == LIGHT_SHADE_RADIUS) return 1;     // ░
     if (dist == MEDIUM_SHADE_RADIUS) return 2;    // ▒
     if (dist == HEAVY_SHADE_RADIUS) return 3;     // ▓
-    return 4;                                      // █
+    return 4;                                     // █
 }
 
 // Get darkness level considering all light sources

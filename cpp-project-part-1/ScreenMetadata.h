@@ -5,36 +5,13 @@
 #include <string>
 #include <map>
 
-// ScreenMetadata - Data loaded from the metadata section of screen files
-// 
-// The metadata section appears at the end of a .screen file after a line "=== METADATA ==="
-// Format:
-//   === METADATA ===
-//   # Comments start with # and are ignored
-//   # Use --- to end multi-line definitions (doors, darkzones)
-//   
-//   # Room connections - where does this room lead to?
-//   # direction: LEFT, RIGHT, UP, DOWN
-//   # target_room: the room index to transition to
-//   CONNECT <direction> <target_room>
-//   
-//   # Special door definition (can have multiple doors)
-//   DOOR <x> <y>
-//   KEYS <key1> <key2> ...          # Required keys (lowercase letters)
-//   SWITCH <x> <y> <state>          # Required switch state (0=off, 1=on)
-//   TARGET <room> <x> <y>           # Teleport destination (optional)
-//   ---
-//   
-//   # Dark zone definition (rectangular area that is dark until lit)
-//   # Can define single zones or multiple zones - no limit on quantity
-//   DARK <x1> <y1> <x2> <y2>        # Single rectangular dark zone
-//   
-//   # Multiple dark zones can be defined with DARKZONES block
-//   DARKZONES                        # Start multi-zone definition
-//   ZONE <x1> <y1> <x2> <y2>        # Each zone is a rectangle
-//   ZONE <x1> <y1> <x2> <y2>        # Add as many as needed
-//   ---
-//
+/*
+                                                               (__)
+'\-------------------------------------------------------------(oo)
+  || For more info about metadata, read the METADATA.txt file  (__)
+  ||----------------------------------------------------------||
+
+  */
 
 // Dark zone - rectangular area in the room
 struct DarkZone {

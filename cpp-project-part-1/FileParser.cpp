@@ -8,6 +8,8 @@
 
 namespace fs = std::filesystem;
 
+// We want to say thank you to ChatGPT for helping with the implementation of this file.
+
 // Static member initialization
 ErrorCallback FileParser::s_errorHandler = FileParser::defaultErrorHandler;
 bool FileParser::s_hasErrors = false;

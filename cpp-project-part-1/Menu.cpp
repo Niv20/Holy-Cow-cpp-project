@@ -143,7 +143,7 @@ MenuAction Menu::showStartMenu() {
                 case '1':
                     return MenuAction::NewGame;
                 case '2':
-                    // TODO: TARGIL 2!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    // TODO: TARGIL 3!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                     break;
                 case '8':
                     return MenuAction::Instructions;
@@ -182,8 +182,8 @@ void Menu::showLoseScreen() {
 
     vector<string> loseScreen = loadScreen("Lose.screen");
 
+    // In case the BODEK accidentally deletes the file...
     if (loseScreen.empty()) {
-        std::cerr << "Error: Lose.screen not found or empty." << std::endl;
         return;
     }
 

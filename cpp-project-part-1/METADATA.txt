@@ -1,3 +1,4 @@
+
                                          (__) 
 '\---------------------------------------(oo) 
   || SCREEN FILE METADATA DOCUMENTATION  (__) 
@@ -20,10 +21,10 @@ Format:
     CONNECT <DIRECTION> <ROOM_NUMBER>
 
 Directions:
-    - LEFT   - Exit from the left side of the screen
-    - RIGHT  - Exit from the right side of the screen
-    - UP     - Exit from the top of the screen
-    - DOWN   - Exit from the bottom of the screen
+    - LEFT   Exit from the left side of the screen
+    - RIGHT  Exit from the right side of the screen
+    - UP     Exit from the top of the screen
+    - DOWN   Exit from the bottom of the screen
 
 Room Numbers:
     - 0, 1, 2, 3... (matches the number in the filename adv-world_XX.screen)
@@ -190,6 +191,13 @@ Example (3-line message):
     LINE2 the Key inside the maze opens the door from the first screen.
     LINE3 now the cow that was left behind can be freed.
 
+    Resulting box on screen:
+    ┌─────────────────────────────────────────────────────────────┐
+    │                        great news :)                        │
+    │the Key inside the maze opens the door from the first screen.│
+    │       now the cow that was left behind can be freed.        │
+    └─────────────────────────────────────────────────────────────┘
+    
 
 6. COMMENTS
 ───────────
@@ -210,3 +218,13 @@ Example:
     # Special door requiring keys c, o, w
     DOOR 31 18
     KEYS c o w
+
+
+                   ┌──────────┐
+                   │ Goodbye! │
+                   └──────────┘
+                  /            
+            (__)               
+    '\------(oo)               
+      ||    (__)               
+      ||w--||                  

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Point.h"
 #include "ScreenMetadata.h"
 #include <vector>
@@ -12,24 +12,23 @@ class Game;
 // 
 // Dark zones are defined in screen metadata as rectangular areas.
 // When a dark zone exists:
-// - The area is rendered as full darkness (?) by default
+// - The area is rendered as full darkness █ by default
 // - Players cannot enter dark zones without holding a torch (!)
 // - When a player holds a torch, light radiates from them in a circle:
 //   - Distance 0-6: Full visibility (original characters)
-//   - Distance 7: Light shade ?
-//   - Distance 8: Medium shade ?
-//   - Distance 9: Heavy shade ?
-//   - Distance 10+: Full darkness ?
-// - Dropping the torch makes everything dark except player and torch positions
+//   - Distance 7: Light shade ░
+//   - Distance 8: Medium shade ▒
+//   - Distance 9: Heavy shade ▓
+//   - Distance 10+: Full darkness █
 
 class DarkRoomManager {
 public:
     // Light radius constants
     static constexpr int FULL_LIGHT_RADIUS = 6;    // Full visibility within this radius
-    static constexpr int LIGHT_SHADE_RADIUS = 7;   // ? at this distance
-    static constexpr int MEDIUM_SHADE_RADIUS = 8;  // ? at this distance
-    static constexpr int HEAVY_SHADE_RADIUS = 9;   // ? at this distance
-    // Beyond heavy shade radius = full darkness ?
+    static constexpr int LIGHT_SHADE_RADIUS = 7;   // ░ at this distance
+    static constexpr int MEDIUM_SHADE_RADIUS = 8;  // ▒ at this distance
+    static constexpr int HEAVY_SHADE_RADIUS = 9;   // ▓ at this distance
+    // Beyond heavy shade radius = full darkness █
     
     // Check if a point is in any dark zone of the given screen
     static bool isInDarkZone(const Screen& screen, const Point& p);
