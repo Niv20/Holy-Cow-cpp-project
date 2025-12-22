@@ -25,7 +25,7 @@
 └────────────────┴─────────────────────────────────────────────────────────────┘
 === METADATA ===
 # Text help for the player
-LINE2 open Doors (uppercase) using a matching Key (lowercase).
+LINE2 open Doors (uppercase) using a matching Key (lowercase)
 
 # Room 0 connections
 CONNECT RIGHT 1

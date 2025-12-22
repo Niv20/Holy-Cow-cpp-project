@@ -40,7 +40,7 @@ CLEAR 21 13
 CLEAR 21 14
 ---
 
-# Lower button - clears the vertical wall between the two buttons
+# Lower button - clears the same wall as well
 PBUTTON 22 15
 CLEAR 21 11
 CLEAR 21 12
