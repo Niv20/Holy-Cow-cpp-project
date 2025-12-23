@@ -20,7 +20,7 @@
 
 // Check if a point is in any dark zone of the given screen
 bool DarkRoomManager::isInDarkZone(const Screen& screen, const Point& p) {
-    const auto& darkZones = screen.getData().darkZones;
+    const auto& darkZones = screen.getData().getDarkZones();
     for (const auto& zone : darkZones) {
         if (zone.contains(p)) {
             return true;
@@ -31,7 +31,7 @@ bool DarkRoomManager::isInDarkZone(const Screen& screen, const Point& p) {
 
 // Check if the room has any dark zones
 bool DarkRoomManager::roomHasDarkness(const Screen& screen) {
-    return !screen.getData().darkZones.empty();
+    return !screen.getData().getDarkZones().empty();
 }
 
 // Check if torch is available (held by any player OR exists anywhere in the screen)
@@ -43,6 +43,7 @@ bool DarkRoomManager::isTorchAvailable(const Screen& screen, const std::vector<P
         }
     }
     
+    
     // Check if there's a torch anywhere in this screen
     for (int y = 0; y < Screen::MAX_Y; ++y) {
         for (int x = 0; x < Screen::MAX_X; ++x) {
@@ -53,6 +54,7 @@ bool DarkRoomManager::isTorchAvailable(const Screen& screen, const std::vector<P
         }
     }
     
+    
     return false;
 }
 
@@ -61,15 +63,15 @@ void DarkRoomManager::getDarkRoomMessage(const Screen& screen, const std::vector
     const ScreenMetadata& meta = screen.getMetadata();
 
     // Default to original messages
-    line1 = meta.messageBox.line1;
-    line2 = meta.messageBox.line2;
-    line3 = meta.messageBox.line3;
+    line1 = meta.getMessageBox().getLine1();
+    line2 = meta.getMessageBox().getLine2();
+    line3 = meta.getMessageBox().getLine3();
 
     // Only apply to rooms with dark zones
     if (!roomHasDarkness(screen)) return;
     
     // Check if room has a message box defined
-    if (!meta.messageBox.hasMessage) return;
+    if (!meta.getMessageBox().getHasMessage()) return;
     
     bool hasTorch = isTorchAvailable(screen, players, roomIdx);
     
@@ -80,6 +82,9 @@ void DarkRoomManager::getDarkRoomMessage(const Screen& screen, const std::vector
         line3 = "";
     }
 }
+
+
+
 
 
 // Calculate distance between two points (adjusted for wider horizontal light)

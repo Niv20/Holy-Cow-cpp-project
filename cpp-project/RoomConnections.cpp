@@ -11,10 +11,10 @@ void RoomConnections::loadFromScreens(const std::vector<Screen>& screens) {
         const ScreenMetadata& meta = screens[roomIdx].getMetadata();
         
         // Load from connections map in metadata
-        for (const auto& [dirStr, targetRoom] : meta.connections) {
-            Direction dir = stringToDirection(dirStr);
+        for (const auto& conn : meta.getConnections()) {
+            Direction dir = stringToDirection(conn.first);
             if (dir != Direction::None) {
-                connections[(int)roomIdx][dir] = targetRoom;
+                connections[(int)roomIdx][dir] = conn.second;
             }
         }
     }

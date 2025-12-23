@@ -147,11 +147,11 @@ Screen::LoadedScreen Screen::loadScreenFile(const std::string& filepath) {
     for (int y = 0; y < (int)result.screenLines.size(); ++y) {
         for (int x = 0; x < (int)result.screenLines[y].size(); ++x) {
             if (result.screenLines[y][x] == L'T') {
-                result.metadata.messageBox.anchorPos = Point(x, y);
+                result.metadata.getMessageBoxMutable().setAnchorPos(Point(x, y));
                 // Auto-detect box width
                 for (int w = 1; x + w < (int)result.screenLines[y].size(); ++w) {
                     if (result.screenLines[y][x + w] == L'│' || result.screenLines[y][x + w] == L'|') {
-                        result.metadata.messageBox.boxWidth = w;
+                        result.metadata.getMessageBoxMutable().setBoxWidth(w);
                         break;
                     }
                 }
@@ -183,12 +183,12 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
         // End marker
         if (FileParser::startsWith(line, "---")) {
             if (currentDoor) {
-                metadata.doors.push_back(*currentDoor);
+                metadata.addDoor(*currentDoor);
                 delete currentDoor;
                 currentDoor = nullptr;
             }
             if (currentPressureButton) {
-                metadata.pressureButtons.push_back(*currentPressureButton);
+                metadata.addPressureButton(*currentPressureButton);
                 delete currentPressureButton;
                 currentPressureButton = nullptr;
             }
@@ -203,64 +203,64 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
         // Door definition
         if (cmd == "DOOR") {
             if (currentDoor) {
-                metadata.doors.push_back(*currentDoor);
+                metadata.addDoor(*currentDoor);
                 delete currentDoor;
             }
             if (currentPressureButton) {
-                metadata.pressureButtons.push_back(*currentPressureButton);
+                metadata.addPressureButton(*currentPressureButton);
                 delete currentPressureButton;
                 currentPressureButton = nullptr;
             }
             currentDoor = new DoorMetadata();
             int x, y;
             iss >> x >> y;
-            currentDoor->position = Point(x, y);
+            currentDoor->setPosition(Point(x, y));
         }
         else if (cmd == "KEYS" && currentDoor) {
             char key;
             while (iss >> key) {
                 if (std::islower(key)) {
-                    currentDoor->requiredKeys.push_back(key);
+                    currentDoor->addRequiredKey(key);
                 }
             }
         }
         else if (cmd == "SWITCH" && currentDoor) {
             int sx, sy, state;
             iss >> sx >> sy >> state;
-            currentDoor->switchRequirements.push_back({Point(sx, sy), (bool)state});
+            currentDoor->addSwitchRequirement(Point(sx, sy), (bool)state);
         }
         else if (cmd == "TARGET" && currentDoor) {
             int room, tx, ty;
             iss >> room >> tx >> ty;
-            currentDoor->targetRoom = room;
-            currentDoor->targetPosition = Point(tx, ty);
+            currentDoor->setTargetRoom(room);
+            currentDoor->setTargetPosition(Point(tx, ty));
         }
         // Pressure button definitions
         else if (cmd == "PBUTTON") {
             if (currentPressureButton) {
-                metadata.pressureButtons.push_back(*currentPressureButton);
+                metadata.addPressureButton(*currentPressureButton);
                 delete currentPressureButton;
             }
             if (currentDoor) {
-                metadata.doors.push_back(*currentDoor);
+                metadata.addDoor(*currentDoor);
                 delete currentDoor;
                 currentDoor = nullptr;
             }
             currentPressureButton = new PressureButtonMetadata();
             int px, py;
             iss >> px >> py;
-            currentPressureButton->position = Point(px, py);
+            currentPressureButton->setPosition(Point(px, py));
         }
         else if (cmd == "CLEAR" && currentPressureButton) {
             int cx, cy;
             iss >> cx >> cy;
-            currentPressureButton->clearTargets.emplace_back(cx, cy);
+            currentPressureButton->addClearTarget(Point(cx, cy));
         }
         // Dark zone definitions
         else if (cmd == "DARK") {
             int x1, y1, x2, y2;
             iss >> x1 >> y1 >> x2 >> y2;
-            metadata.darkZones.emplace_back(x1, y1, x2, y2);
+            metadata.addDarkZone(DarkZone(x1, y1, x2, y2));
         }
         else if (cmd == "DARKZONES") {
             inDarkZones = true;
@@ -268,7 +268,7 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
         else if (cmd == "ZONE" && inDarkZones) {
             int x1, y1, x2, y2;
             iss >> x1 >> y1 >> x2 >> y2;
-            metadata.darkZones.emplace_back(x1, y1, x2, y2);
+            metadata.addDarkZone(DarkZone(x1, y1, x2, y2));
         }
         // Connection definitions - store in connections map
         else if (cmd == "CONNECT") {
@@ -276,10 +276,10 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
             int targetRoom;
             iss >> dir >> targetRoom;
             // Store in both formats for compatibility
-            metadata.connectionOverrides.push_back({dir, targetRoom});
+            metadata.addConnectionOverride(ConnectionOverride(dir, targetRoom));
             // Convert to uppercase for consistent lookup
             std::transform(dir.begin(), dir.end(), dir.begin(), ::toupper);
-            metadata.connections[dir] = targetRoom;
+            metadata.addConnection(dir, targetRoom);
         }
         // Message box definitions
         else if (cmd == "LINE1") {
@@ -293,8 +293,8 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
             } else {
                 text = "";
             }
-            metadata.messageBox.line1 = text;
-            metadata.messageBox.hasMessage = true;
+            metadata.getMessageBoxMutable().setLine1(text);
+            metadata.getMessageBoxMutable().setHasMessage(true);
         }
         else if (cmd == "LINE2") {
             std::string text;
@@ -305,8 +305,8 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
             } else {
                 text = "";
             }
-            metadata.messageBox.line2 = text;
-            metadata.messageBox.hasMessage = true;
+            metadata.getMessageBoxMutable().setLine2(text);
+            metadata.getMessageBoxMutable().setHasMessage(true);
         }
         else if (cmd == "LINE3") {
             std::string text;
@@ -317,18 +317,18 @@ ScreenMetadata Screen::parseMetadata(const std::vector<std::string>& metadataLin
             } else {
                 text = "";
             }
-            metadata.messageBox.line3 = text;
-            metadata.messageBox.hasMessage = true;
+            metadata.getMessageBoxMutable().setLine3(text);
+            metadata.getMessageBoxMutable().setHasMessage(true);
         }
     }
     
     // Handle unclosed door
     if (currentDoor) {
-        metadata.doors.push_back(*currentDoor);
+        metadata.addDoor(*currentDoor);
         delete currentDoor;
     }
     if (currentPressureButton) {
-        metadata.pressureButtons.push_back(*currentPressureButton);
+        metadata.addPressureButton(*currentPressureButton);
         delete currentPressureButton;
     }
     
@@ -381,7 +381,7 @@ std::vector<Screen> Screen::loadScreensFromFiles() {
             // Store metadata in the screen
             screens.back().metadata_ = loaded.metadata;
             // Copy dark zones to data_ for runtime access
-            screens.back().data_.darkZones = loaded.metadata.darkZones;
+            screens.back().data_.getDarkZonesMutable() = loaded.metadata.getDarkZones();
         } else {
             FileParser::reportError("Failed to load screen file: " + fullPath);
         }
@@ -448,13 +448,13 @@ void Screen::scanScreenData(int roomIdx) {
     }
 
     // Attach metadata targets to pressure buttons
-    for (const auto& meta : metadata_.pressureButtons) {
-        PressureButton* pb = PressureButton::findAt(*this, meta.position);
+    for (const auto& meta : metadata_.getPressureButtons()) {
+        PressureButton* pb = PressureButton::findAt(*this, meta.getPosition());
         if (!pb) {
-            data_.pressureButtons.emplace_back(roomIdx, meta.position);
+            data_.pressureButtons.emplace_back(roomIdx, meta.getPosition());
             pb = &data_.pressureButtons.back();
         }
-        pb->setTargets(meta.clearTargets, *this);
+        pb->setTargets(meta.getClearTargets(), *this);
     }
 }
 
@@ -484,8 +484,8 @@ void Screen::scanAllScreens(std::vector<Screen>& world,
 
 // Check if a point is in an unlit dark zone
 bool Screen::isInDarkZone(const Point& p) const {
-    for (const auto& zone : data_.darkZones) {
-        if (!zone.isLit && zone.contains(p)) {
+    for (const auto& zone : data_.getDarkZones()) {
+        if (!zone.getIsLit() && zone.contains(p)) {
             return true;
         }
     }
@@ -494,20 +494,20 @@ bool Screen::isInDarkZone(const Point& p) const {
 
 // Light up the dark zone containing the given point
 void Screen::lightDarkZone(const Point& p) {
-    for (auto& zone : data_.darkZones) {
+    for (auto& zone : data_.getDarkZonesMutable()) {
         if (zone.contains(p)) {
-            zone.isLit = true;
+            zone.setIsLit(true);
         }
     }
 }
 
 // Render the message box content from metadata
 void Screen::renderMessageBox(const std::string& line1, const std::string& line2, const std::string& line3) {
-    const MessageBoxMetadata& msg = metadata_.messageBox;
-    if (!msg.hasMessage) return;
+    const MessageBoxMetadata& msg = metadata_.getMessageBox();
+    if (!msg.getHasMessage()) return;
     
-    Point anchor = msg.anchorPos;
-    int boxWidth = msg.boxWidth;
+    Point anchor = msg.getAnchorPos();
+    int boxWidth = msg.getBoxWidth();
     
     if (boxWidth <= 0) return;  // Could not determine box width
     

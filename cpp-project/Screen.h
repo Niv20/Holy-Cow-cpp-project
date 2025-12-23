@@ -29,12 +29,19 @@ private:
 public:
     // Per-screen scanned data holder
     struct Data {
+    private:
+        std::vector<DarkZone> darkZones_;  // Dark areas in this screen
+    public:
         std::vector<SpringData> springs;
         std::vector<SwitchData> switches;
         std::vector<PressureButton> pressureButtons;
         std::vector<SpecialDoor> doors;
         std::vector<Obstacle> obstacles;
-        std::vector<DarkZone> darkZones;  // Dark areas in this screen
+        
+        // Dark zone accessors
+        const std::vector<DarkZone>& getDarkZones() const { return darkZones_; }
+        std::vector<DarkZone>& getDarkZonesMutable() { return darkZones_; }
+        void addDarkZone(const DarkZone& zone) { darkZones_.push_back(zone); }
     };
 
     Screen(const std::vector<std::wstring>& mapData) { initFromWideLines(mapData); }

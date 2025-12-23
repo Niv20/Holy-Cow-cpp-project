@@ -14,6 +14,15 @@ using std::vector;
 using std::string;
 using std::map;
 
+Riddle::Riddle() : correctAnswer('1'), points(100)
+{
+    question[0] = '\0';
+    answer1[0] = '\0';
+    answer2[0] = '\0';
+    answer3[0] = '\0';
+    answer4[0] = '\0';
+}
+
 Riddle::Riddle(const char q[], const char a1[], const char a2[], const char a3[], const char a4[], char correct)
 {
     strcpy_s(question, MAX_QUESTION_LENGTH, q);
@@ -62,8 +71,8 @@ vector<string> Riddle::buildRiddleScreen(const vector<string>& templateScreen) c
 void Riddle::scanAllRiddles(map<RiddleKey, Riddle*>& riddlesByPosition) {
     vector<RiddleData> riddles = initRiddles();
     for (auto& rd : riddles) {
-        RiddleKey key(rd.roomIdx, rd.position.getX(), rd.position.getY());
-        riddlesByPosition[key] = new Riddle(rd.riddle);
+        RiddleKey key(rd.getRoomIdx(), rd.getPosition().getX(), rd.getPosition().getY());
+        riddlesByPosition[key] = new Riddle(rd.getRiddle());
     }
 }
 

@@ -77,22 +77,22 @@ static void loadDoorsFromMetadata(std::vector<Screen>& world) {
     for (size_t room = 0; room < world.size(); ++room) {
         const ScreenMetadata& meta = world[room].getMetadata();
         
-        for (const auto& doorMeta : meta.doors) {
-            SpecialDoor door((int)room, doorMeta.position);
+        for (const auto& doorMeta : meta.getDoors()) {
+            SpecialDoor door((int)room, doorMeta.getPosition());
             
             // Add required keys
-            for (char key : doorMeta.requiredKeys) {
+            for (char key : doorMeta.getRequiredKeys()) {
                 door.addRequiredKey(Key(key));
             }
             
             // Add switch requirements
-            for (const auto& [pos, state] : doorMeta.switchRequirements) {
-                door.addRequiredSwitch(SwitchRequirement(pos, state));
+            for (const auto& switchReq : doorMeta.getSwitchRequirements()) {
+                door.addRequiredSwitch(SwitchRequirement(switchReq.first, switchReq.second));
             }
             
             // Set teleport target if specified
-            door.setTargetRoomIdx(doorMeta.targetRoom);
-            door.setTargetPosition(doorMeta.targetPosition);
+            door.setTargetRoomIdx(doorMeta.getTargetRoom());
+            door.setTargetPosition(doorMeta.getTargetPosition());
             
             // Adjust position to actual door glyph
             adjustDoorPosition(&door, world);

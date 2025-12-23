@@ -17,10 +17,25 @@ enum class Direction {
 };
 
 // Structure to hold room connections
-struct RoomConnection {
-    int fromRoom;
-    Direction direction;
-    int toRoom;
+class RoomConnection {
+private:
+    int fromRoom_;
+    Direction direction_;
+    int toRoom_;
+    
+public:
+    RoomConnection() : fromRoom_(-1), direction_(Direction::None), toRoom_(-1) {}
+    RoomConnection(int from, Direction dir, int to) : fromRoom_(from), direction_(dir), toRoom_(to) {}
+    
+    // Getters
+    int getFromRoom() const { return fromRoom_; }
+    Direction getDirection() const { return direction_; }
+    int getToRoom() const { return toRoom_; }
+    
+    // Setters
+    void setFromRoom(int room) { fromRoom_ = room; }
+    void setDirection(Direction dir) { direction_ = dir; }
+    void setToRoom(int room) { toRoom_ = room; }
 };
 
 // Data structure to quickly lookup room transitions
@@ -45,7 +60,7 @@ public:
     // Constructor from vector of connections (legacy support)
     RoomConnections(const std::vector<RoomConnection>& roomData) {
         for (const auto& conn : roomData) {
-            connections[conn.fromRoom][conn.direction] = conn.toRoom;
+            connections[conn.getFromRoom()][conn.getDirection()] = conn.getToRoom();
         }
     }
     

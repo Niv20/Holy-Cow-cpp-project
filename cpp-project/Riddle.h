@@ -53,6 +53,7 @@ class Riddle {
 	char correctAnswer;
 	int points;
 public:
+	Riddle();  // Default constructor
 	Riddle(const char q[], const char a1[], const char a2[], const char a3[], const char a4[], char correct);
 	
 	// Display riddle on the graphical screen

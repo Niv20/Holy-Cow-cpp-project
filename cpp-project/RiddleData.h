@@ -15,10 +15,27 @@ using std::string;
 //   ||w--||    
 
 // Structure to hold riddle data with room and position association
-struct RiddleData {
-    int roomIdx;
-    Point position;  // Specific coordinates where this riddle appears
-    Riddle riddle;
+class RiddleData {
+private:
+    int roomIdx_;
+    Point position_;  // Specific coordinates where this riddle appears
+    Riddle riddle_;
+    
+public:
+    RiddleData() : roomIdx_(-1), position_(0, 0) {}
+    RiddleData(int room, const Point& pos, const Riddle& r) 
+        : roomIdx_(room), position_(pos), riddle_(r) {}
+    
+    // Getters
+    int getRoomIdx() const { return roomIdx_; }
+    Point getPosition() const { return position_; }
+    const Riddle& getRiddle() const { return riddle_; }
+    Riddle& getRiddleMutable() { return riddle_; }
+    
+    // Setters
+    void setRoomIdx(int room) { roomIdx_ = room; }
+    void setPosition(const Point& pos) { position_ = pos; }
+    void setRiddle(const Riddle& r) { riddle_ = r; }
     
     // Load riddles from riddles.txt file
     // Returns empty vector if file not found or has critical errors
@@ -30,7 +47,7 @@ struct RiddleData {
 inline vector<RiddleData> initRiddlesFallback() {
     vector<RiddleData> riddles;
     
-    riddles.push_back({
+    riddles.push_back(RiddleData(
         1,  // Room index
         Point(40, 12),  // Position in the room (x, y)
         Riddle(
@@ -41,9 +58,9 @@ inline vector<RiddleData> initRiddlesFallback() {
             "abacus",        // 4 //
             '2'  // cow-culator is correct
         )
-    });
+    ));
     
-    riddles.push_back({
+    riddles.push_back(RiddleData(
         3,  // Room index
         Point(45, 10),  // Position in the room (x, y)
         Riddle(
@@ -54,7 +71,7 @@ inline vector<RiddleData> initRiddlesFallback() {
             "comedy",     // 4 //
             '3'  // moo-sicals is correct
         )
-    });
+    ));
     
     return riddles;
 }
