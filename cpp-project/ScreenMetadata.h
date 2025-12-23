@@ -24,8 +24,8 @@ struct DarkZone {
     DarkZone(int x1, int y1, int x2, int y2) : topLeft(x1, y1), bottomRight(x2, y2) {}
     
     bool contains(const Point& p) const {
-        return p.x >= topLeft.x && p.x <= bottomRight.x &&
-               p.y >= topLeft.y && p.y <= bottomRight.y;
+        return p.getX() >= topLeft.getX() && p.getX() <= bottomRight.getX() &&
+               p.getY() >= topLeft.getY() && p.getY() <= bottomRight.getY();
     }
 };
 

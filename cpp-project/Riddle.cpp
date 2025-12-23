@@ -62,7 +62,7 @@ vector<string> Riddle::buildRiddleScreen(const vector<string>& templateScreen) c
 void Riddle::scanAllRiddles(map<RiddleKey, Riddle*>& riddlesByPosition) {
     vector<RiddleData> riddles = initRiddles();
     for (auto& rd : riddles) {
-        RiddleKey key(rd.roomIdx, rd.position.x, rd.position.y);
+        RiddleKey key(rd.roomIdx, rd.position.getX(), rd.position.getY());
         riddlesByPosition[key] = new Riddle(rd.riddle);
     }
 }
@@ -75,7 +75,7 @@ void Riddle::handleEncounter(Player& player,
     Point pos = player.getPosition();
 
     // Find the riddle at this position
-    RiddleKey exactKey(roomIdx, pos.x, pos.y);
+    RiddleKey exactKey(roomIdx, pos.getX(), pos.getY());
     Riddle* riddle = nullptr;
 
     if (riddlesByPosition.find(exactKey) != riddlesByPosition.end()) {
@@ -119,8 +119,8 @@ void Riddle::handleEncounter(Player& player,
             // ESC - cancel riddle
             if (answer == 27) { 
                 Point prevPos = pos; 
-                if (pos.diff_x) prevPos.x -= pos.diff_x; 
-                if (pos.diff_y) prevPos.y -= pos.diff_y; 
+                if (pos.getDiffX()) prevPos.setX(prevPos.getX() - pos.getDiffX()); 
+                if (pos.getDiffY()) prevPos.setY(prevPos.getY() - pos.getDiffY()); 
                 player.setPosition(prevPos); 
                 player.stop(); 
                 break; 
@@ -137,8 +137,8 @@ void Riddle::handleEncounter(Player& player,
                     riddle->halvePoints(); 
                     game.reduceHearts(1);
                     Point prevPos = pos; 
-                    if (pos.diff_x) prevPos.x -= pos.diff_x; 
-                    if (pos.diff_y) prevPos.y -= pos.diff_y; 
+                    if (pos.getDiffX()) prevPos.setX(prevPos.getX() - pos.getDiffX()); 
+                    if (pos.getDiffY()) prevPos.setY(prevPos.getY() - pos.getDiffY()); 
                     player.setPosition(prevPos); 
                     player.stop(); 
                 }

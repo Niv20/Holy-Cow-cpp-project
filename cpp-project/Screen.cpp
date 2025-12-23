@@ -61,22 +61,22 @@ void Screen::draw() const {
 }
 
 wchar_t Screen::getCharAt(const Point& p) const {
-    if (p.x < 0 || p.x >= MAX_X || p.y < 0 || p.y >= MAX_Y) return Glyph::Empty;
-    return m_grid[p.y][p.x].ch;
+    if (p.getX() < 0 || p.getX() >= MAX_X || p.getY() < 0 || p.getY() >= MAX_Y) return Glyph::Empty;
+    return m_grid[p.getY()][p.getX()].ch;
 }
 
 void Screen::setCharAt(const Point& p, wchar_t newChar) {
-    if (p.x < 0 || p.x >= MAX_X || p.y < 0 || p.y >= MAX_Y) return;
-    m_grid[p.y][p.x].ch = newChar;
+    if (p.getX() < 0 || p.getX() >= MAX_X || p.getY() < 0 || p.getY() >= MAX_Y) return;
+    m_grid[p.getY()][p.getX()].ch = newChar;
 }
 
 void Screen::erase(const Point& p) { setCharAt(p, Glyph::Empty); }
 
 void Screen::refreshCell(const Point& p) const {
-    if (p.x < 0 || p.x >= MAX_X || p.y < 0 || p.y >= MAX_Y) return;
-    wchar_t c = m_grid[p.y][p.x].ch;
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    COORD pos{ (SHORT)p.x, (SHORT)p.y };
+if (p.getX() < 0 || p.getX() >= MAX_X || p.getY() < 0 || p.getY() >= MAX_Y) return;
+wchar_t c = m_grid[p.getY()][p.getX()].ch;
+HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+COORD pos{ (SHORT)p.getX(), (SHORT)p.getY() };
     SetConsoleCursorPosition(hOut, pos);
     DWORD written; WriteConsoleW(hOut, &c, 1, &written, nullptr);
 }
@@ -419,9 +419,9 @@ void Screen::scanScreenData(int roomIdx) {
                     int odx = -dx, ody = -dy;
                     while (Glyph::isSpring(getCharAt(cur))) {
                         springCells.push_back(cur);
-                        visited.insert({cur.x, cur.y});
-                        cur.x += odx;
-                        cur.y += ody;
+                        visited.insert({cur.getX(), cur.getY()});
+                        cur.setX(cur.getX() + odx);
+                        cur.setY(cur.getY() + ody);
                     }
                     if (!springCells.empty()) {
                         data_.springs.emplace_back(roomIdx, springCells, odx, ody, check);
@@ -515,7 +515,7 @@ void Screen::renderMessageBox(const std::string& line1, const std::string& line2
     auto renderLine = [&](int row, const std::string& text) {
         // Clear the line first (fill with spaces)
         for (int i = 0; i < boxWidth; ++i) {
-            setCharAt(Point{anchor.x + i, row}, L' ');
+            setCharAt(Point(anchor.getX() + i, row), L' ');
         }
 
         if (text.empty()) return;
@@ -535,12 +535,12 @@ void Screen::renderMessageBox(const std::string& line1, const std::string& line2
         
         // Write the centered text
         for (int i = 0; i < (int)wtext.size(); ++i) {
-            setCharAt(Point{anchor.x + padding + i, row}, wtext[i]);
+            setCharAt(Point(anchor.getX() + padding + i, row), wtext[i]);
         }
     };
     
     // Render each line (anchor.y is line 1, anchor.y+1 is line 2, etc.)
-    renderLine(anchor.y, line1);
-    renderLine(anchor.y + 1, line2);
-    renderLine(anchor.y + 2, line3);
+    renderLine(anchor.getY(), line1);
+    renderLine(anchor.getY() + 1, line2);
+    renderLine(anchor.getY() + 2, line3);
 }

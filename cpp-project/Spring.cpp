@@ -43,11 +43,11 @@ void SpringLogic::releaseSpring(Player& player, SpringData* spring, int compress
     
     for (int step = 0; step < speed; ++step) {
         Point next = position;
-        next.x += releaseDirX;
-        next.y += releaseDirY;
+        next.setX(next.getX() + releaseDirX);
+        next.setY(next.getY() + releaseDirY);
         
         // Check bounds
-        if (next.x < 0 || next.x >= Screen::MAX_X || next.y < 0 || next.y >= Screen::MAX_Y) {
+        if (next.getX() < 0 || next.getX() >= Screen::MAX_X || next.getY() < 0 || next.getY() >= Screen::MAX_Y) {
             hitObstacle = true;
             break;
         }
@@ -113,7 +113,7 @@ void SpringLogic::releaseSpring(Player& player, SpringData* spring, int compress
             if (&other == &player) continue;
             if (other.getRoomIdx() != currentRoomIdx) continue;
             Point op = other.getPosition();
-            if (op.x == position.x && op.y == position.y) {
+            if (op.getX() == position.getX() && op.getY() == position.getY()) {
                 // The other player should get:
                 // 1. The remaining initial jump (speed - actualSteps cells)
                 // 2. Plus all the boost cycles (compressedCount²)
@@ -170,13 +170,14 @@ int entryIndex, Screen& currentScreen) {
     
     // Check if it's the wall at the end of the spring
     Point wallPos = spring->getWallPos();
-    return (attemptedPos.x == wallPos.x && attemptedPos.y == wallPos.y);
+    return (attemptedPos.getX() == wallPos.getX() && attemptedPos.getY() == wallPos.getY());
 }
 
 bool SpringLogic::handlePerpendicularMovement(Player& player, SpringData* spring, 
 int moveDx, int moveDy, Screen& currentScreen, Game& game) {
     int springDirX = spring->getDirX();
     int springDirY = spring->getDirY();
+    
     
     // Check if movement is perpendicular (not along spring axis and not backward)
     bool movingPerpendicular = false;

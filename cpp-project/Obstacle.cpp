@@ -19,11 +19,12 @@ bool Obstacle::canPush(int dx, int dy, int force, Game& game, int speed) const {
     // Require enough force equal to obstacle size
     if (force < size()) return false;
 
+
     // Build a quick lookup of current cells positions per room to allow self-overlap during move
     // (when translating rigidly, interior cells move into positions vacated by other cells of the same obstacle)
     auto isOwnCellAt = [&](int room, const Point& p) -> bool {
         for (const auto& c : cells) {
-            if (c.getRoomIdx() == room && c.getPos().x == p.x && c.getPos().y == p.y) 
+            if (c.getRoomIdx() == room && c.getPos().getX() == p.getX() && c.getPos().getY() == p.getY()) 
                 return true;
         }
         return false;
@@ -31,8 +32,8 @@ bool Obstacle::canPush(int dx, int dy, int force, Game& game, int speed) const {
 
     // Check every cell's destination is valid for the entire speed distance
     for (const auto& c : cells) {
-        int nx = c.getPos().x + dx * speed; // multiply by speed
-        int ny = c.getPos().y + dy * speed;
+        int nx = c.getPos().getX() + dx * speed; // multiply by speed
+        int ny = c.getPos().getY() + dy * speed;
         int room = c.getRoomIdx();
 
         // Handle crossing room borders: obstacles can cross rooms
@@ -50,13 +51,13 @@ bool Obstacle::canPush(int dx, int dy, int force, Game& game, int speed) const {
         }
 
         Screen& s = game.getScreen(room);
-        Point np{ nx, ny };
+        Point np(nx, ny);
 
         // Block if a player is standing at the destination cell in that room
         for (const auto& pl : game.getPlayers()) {
             if (pl.getRoomIdx() == room) {
                 Point pp = pl.getPosition();
-                if (pp.x == np.x && pp.y == np.y) {
+                if (pp.getX() == np.getX() && pp.getY() == np.getY()) {
                     return false;
                 }
             }
@@ -93,8 +94,8 @@ void Obstacle::applyPush(int dx, int dy, Game& game, int speed) {
 
     // Perform movement by speed steps, including room crossing
     for (auto& c : cells) {
-        int nx = c.getPos().x + dx * speed; // multiply by speed
-        int ny = c.getPos().y + dy * speed;
+        int nx = c.getPos().getX() + dx * speed; // multiply by speed
+        int ny = c.getPos().getY() + dy * speed;
         int room = c.getRoomIdx();
 
         if (nx < 0 || nx >= Screen::MAX_X || ny < 0 || ny >= Screen::MAX_Y) {
@@ -158,10 +159,10 @@ void Obstacle::scanAllObstacles(std::vector<Screen>& world, const RoomConnection
                 
                 auto enqueue = [&](int r, Point p) {
                     if (r < 0 || r >= (int)world.size()) return;
-                    if (p.x < 0 || p.x >= Screen::MAX_X || p.y < 0 || p.y >= Screen::MAX_Y) return;
-                    if (visited[r][p.y][p.x]) return;
+                    if (p.getX() < 0 || p.getX() >= Screen::MAX_X || p.getY() < 0 || p.getY() >= Screen::MAX_Y) return;
+                    if (visited[r][p.getY()][p.getX()]) return;
                     if (!Glyph::isObstacle(world[r].getCharAt(p))) return;
-                    visited[r][p.y][p.x] = true;
+                    visited[r][p.getY()][p.getX()] = true;
                     q.push({ r, p });
                 };
                 
@@ -176,24 +177,24 @@ void Obstacle::scanAllObstacles(std::vector<Screen>& world, const RoomConnection
                     const int dy[4] = { 0, 0, 1, -1 };
                     
                     for (int i = 0; i < 4; ++i) {
-                        Point np{ cp.x + dx[i], cp.y + dy[i] };
+                        Point np(cp.getX() + dx[i], cp.getY() + dy[i]);
                         int nr = cr;
                         
-                        if (np.x < 0) {
+                        if (np.getX() < 0) {
                             nr = roomConnections.getTargetRoom(cr, Direction::Left);
-                            np.x = Screen::MAX_X - 1;
+                            np.setX(Screen::MAX_X - 1);
                         }
-                        else if (np.x >= Screen::MAX_X) {
+                        else if (np.getX() >= Screen::MAX_X) {
                             nr = roomConnections.getTargetRoom(cr, Direction::Right);
-                            np.x = 0;
+                            np.setX(0);
                         }
-                        else if (np.y < 0) {
+                        else if (np.getY() < 0) {
                             nr = roomConnections.getTargetRoom(cr, Direction::Up);
-                            np.y = Screen::MAX_Y - 1;
+                            np.setY(Screen::MAX_Y - 1);
                         }
-                        else if (np.y >= Screen::MAX_Y) {
+                        else if (np.getY() >= Screen::MAX_Y) {
                             nr = roomConnections.getTargetRoom(cr, Direction::Down);
-                            np.y = 0;
+                            np.setY(0);
                         }
                         
                         if (nr == -1) continue;

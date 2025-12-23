@@ -72,7 +72,7 @@ public:
     // Find which cell index player is on (returns -1 if not on this spring)
     int findCellIndex(const Point& p) const {
         for (int i = 0; i < (int)cells_.size(); ++i) {
-            if (cells_[i].x == p.x && cells_[i].y == p.y) return i;
+            if (cells_[i].getX() == p.getX() && cells_[i].getY() == p.getY()) return i;
         }
         return -1;
     }

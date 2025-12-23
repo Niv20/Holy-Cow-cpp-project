@@ -28,7 +28,7 @@ Player::Player(Point startPos, const char* keySet, wchar_t sym, int startRoom)
 
 void Player::draw() const {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    COORD pos{ (SHORT)position.x, (SHORT)position.y };
+    COORD pos{ (SHORT)position.getX(), (SHORT)position.getY() };
     SetConsoleCursorPosition(hOut, pos);
     wchar_t out = symbol; DWORD written; WriteConsoleW(hOut, &out, 1, &written, nullptr);
 }
@@ -51,26 +51,28 @@ if (currentRoomIdx == FINAL_ROOM_INDEX) {
 Point originalPos = position;
 
     // Calculate cooperative force based on actual push direction
-    int pushDx = (springBoostTicksLeft > 0) ? boostDirX : position.diff_x;
-    int pushDy = (springBoostTicksLeft > 0) ? boostDirY : position.diff_y;
+    int pushDx = (springBoostTicksLeft > 0) ? boostDirX : position.getDiffX();
+    int pushDy = (springBoostTicksLeft > 0) ? boostDirY : position.getDiffY();
     int appliedForce = (springBoostTicksLeft > 0) ? springBoostSpeed : 1;
     for (auto& other : game.getPlayersMutable()) {
         if (&other == this) continue;
         if (other.getRoomIdx() != currentRoomIdx) continue;
         Point op = other.getPosition();
-        bool adjacent = (abs(op.x - position.x) + abs(op.y - position.y)) == 1;
+        bool adjacent = (abs(op.getX() - position.getX()) + abs(op.getY() - position.getY())) == 1;
         if (!adjacent) continue;
-        int otherPushDx = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirX() : other.getPosition().diff_x;
-        int otherPushDy = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirY() : other.getPosition().diff_y;
+        int otherPushDx = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirX() : other.getPosition().getDiffX();
+        int otherPushDy = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirY() : other.getPosition().getDiffY();
         if (otherPushDx == pushDx && otherPushDy == pushDy && !(pushDx == 0 && pushDy == 0)) {
             int otherForce = (other.getSpringBoostTicksLeft() > 0) ? other.getSpringBoostSpeed() : 1;
             appliedForce += otherForce;
         }
     }
 
+
+
     // Apply movement with boost
-    int moveDx = position.diff_x;
-    int moveDy = position.diff_y;
+    int moveDx = position.getDiffX();
+    int moveDy = position.getDiffY();
     
     // Check if we're on spring and trying to move perpendicular
     if (currentSpring && (moveDx != 0 || moveDy != 0)) {
@@ -80,11 +82,11 @@ Point originalPos = position;
             
             // Now apply the perpendicular movement (at speed 1)
             Point next = position;
-            next.x += moveDx;
-            next.y += moveDy;
+            next.setX(next.getX() + moveDx);
+            next.setY(next.getY() + moveDy);
             
             // Check if perpendicular move is valid
-            if (next.x >= 0 && next.x < Screen::MAX_X && next.y >= 0 && next.y < Screen::MAX_Y) {
+            if (next.getX() >= 0 && next.getX() < Screen::MAX_X && next.getY() >= 0 && next.getY() < Screen::MAX_Y) {
                 wchar_t tile = currentScreen.getCharAt(next);
                 // Check if another player is at the target position
                 bool playerBlocking = false;
@@ -92,7 +94,7 @@ Point originalPos = position;
                     if (&other == this) continue;
                     if (other.getRoomIdx() != currentRoomIdx) continue;
                     Point op = other.getPosition();
-                    if (op.x == next.x && op.y == next.y) {
+                    if (op.getX() == next.getX() && op.getY() == next.getY()) {
                         playerBlocking = true;
                         break;
                     }
@@ -120,18 +122,18 @@ Point originalPos = position;
         // Check if lateral movement would collide with another player
         Point lateralTarget = position;
         if (boostDirX != 0) {
-            lateralTarget.y += moveDy;
+            lateralTarget.setY(lateralTarget.getY() + moveDy);
         } else if (boostDirY != 0) {
-            lateralTarget.x += moveDx;
+            lateralTarget.setX(lateralTarget.getX() + moveDx);
         }
         
         bool lateralBlocked = false;
-        if (lateralTarget.x != position.x || lateralTarget.y != position.y) {
+        if (lateralTarget.getX() != position.getX() || lateralTarget.getY() != position.getY()) {
             for (const auto& other : game.getPlayers()) {
                 if (&other == this) continue;
                 if (other.getRoomIdx() != currentRoomIdx) continue;
                 Point op = other.getPosition();
-                if (op.x == lateralTarget.x && op.y == lateralTarget.y) {
+                if (op.getX() == lateralTarget.getX() && op.getY() == lateralTarget.getY()) {
                     lateralBlocked = true;
                     break;
                 }
@@ -141,10 +143,10 @@ Point originalPos = position;
         if (!lateralBlocked) {
             if (boostDirX != 0) {
                 // Boost is horizontal, allow vertical movement
-                position.y += moveDy;
+                position.setY(position.getY() + moveDy);
             } else if (boostDirY != 0) {
                 // Boost is vertical, allow horizontal movement
-                position.x += moveDx;
+                position.setX(position.getX() + moveDx);
             }
         }
         
@@ -152,11 +154,11 @@ Point originalPos = position;
         bool hitWall = false;
         for (int step = 0; step < springBoostSpeed && !hitWall; ++step) {
             Point next = position;
-            next.x += boostDirX;
-            next.y += boostDirY;
+            next.setX(next.getX() + boostDirX);
+            next.setY(next.getY() + boostDirY);
             
             // Check bounds
-            if (next.x < 0 || next.x >= Screen::MAX_X || next.y < 0 || next.y >= Screen::MAX_Y) {
+            if (next.getX() < 0 || next.getX() >= Screen::MAX_X || next.getY() < 0 || next.getY() >= Screen::MAX_Y) {
                 hitWall = true;
                 break;
             }
@@ -171,21 +173,21 @@ Point originalPos = position;
                 // Check adjacency relative to NEXT position (where we're moving to)
                 // This is key: both players are moving forward, so we need to check
                 // if they'll be adjacent at the obstacle, not at current positions
-                bool adjacentToNext = (abs(op.x - next.x) + abs(op.y - next.y)) == 1;
+                bool adjacentToNext = (abs(op.getX() - next.getX()) + abs(op.getY() - next.getY())) == 1;
                 
                 // Also check if other player will be adjacent to next after their boost step
                 bool willBeAdjacentToNext = false;
                 if (other.getSpringBoostTicksLeft() > 0) {
                     Point predictedOtherPos = op;
-                    predictedOtherPos.x += other.getBoostDirX();
-                    predictedOtherPos.y += other.getBoostDirY();
-                    willBeAdjacentToNext = (abs(predictedOtherPos.x - next.x) + abs(predictedOtherPos.y - next.y)) == 1;
+                    predictedOtherPos.setX(predictedOtherPos.getX() + other.getBoostDirX());
+                    predictedOtherPos.setY(predictedOtherPos.getY() + other.getBoostDirY());
+                    willBeAdjacentToNext = (abs(predictedOtherPos.getX() - next.getX()) + abs(predictedOtherPos.getY() - next.getY())) == 1;
                 }
                 
                 if (!adjacentToNext && !willBeAdjacentToNext) continue;
                 
-                int otherPushDx = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirX() : other.getPosition().diff_x;
-                int otherPushDy = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirY() : other.getPosition().diff_y;
+                int otherPushDx = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirX() : other.getPosition().getDiffX();
+                int otherPushDy = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirY() : other.getPosition().getDiffY();
                 if (otherPushDx == boostDirX && otherPushDy == boostDirY && !(boostDirX == 0 && boostDirY == 0)) {
                     int otherForce = (other.getSpringBoostTicksLeft() > 0) ? other.getSpringBoostSpeed() : 1;
                     stepForce += otherForce;
@@ -253,7 +255,7 @@ Point originalPos = position;
                 if (&other == this) continue;
                 if (other.getRoomIdx() != currentRoomIdx) continue;
                 Point op = other.getPosition();
-                if (op.x == position.x && op.y == position.y) {
+                if (op.getX() == position.getX() && op.getY() == position.getY()) {
                     // Transfer remaining cycles AFTER this cycle to the other player
                     // so both will have the same ticks next frame
                     int remainingAfterThisCycle = springBoostTicksLeft - 1;
@@ -265,6 +267,7 @@ Point originalPos = position;
                 }
             }
         }
+        
         
         // If hit wall, cancel boost and force STAY
         if (hitWall) {
@@ -312,7 +315,7 @@ Point originalPos = position;
             }
         }
         
-        if (originalPos.x != position.x || originalPos.y != position.y) {
+        if (originalPos.getX() != position.getX() || originalPos.getY() != position.getY()) {
             currentScreen.refreshCell(originalPos);
         }
         return; // Done with boost movement
@@ -321,14 +324,14 @@ Point originalPos = position;
     // Normal movement (no boost)
     // Calculate target position
     Point targetPos = originalPos;
-    targetPos.x += moveDx;
-    targetPos.y += moveDy;
+    targetPos.setX(targetPos.getX() + moveDx);
+    targetPos.setY(targetPos.getY() + moveDy);
     
     bool blocked = false;
     
     // Check bounds
-    if (targetPos.x < 0 || targetPos.x >= Screen::MAX_X || 
-        targetPos.y < 0 || targetPos.y >= Screen::MAX_Y) {
+    if (targetPos.getX() < 0 || targetPos.getX() >= Screen::MAX_X || 
+        targetPos.getY() < 0 || targetPos.getY() >= Screen::MAX_Y) {
         blocked = true;
     }
     // Check if trying to enter dark zone without torch (considers light from other players' torches)
@@ -341,7 +344,7 @@ Point originalPos = position;
             if (&other == this) continue;
             if (other.getRoomIdx() != currentRoomIdx) continue;
             Point op = other.getPosition();
-            if (op.x == targetPos.x && op.y == targetPos.y) {
+            if (op.getX() == targetPos.getX() && op.getY() == targetPos.getY()) {
                 blocked = true;
                 break;
             }
@@ -365,12 +368,12 @@ Point originalPos = position;
                 
                 // Push player back one step in opposite direction
                 Point pushBackPos = originalPos;
-                pushBackPos.x -= moveDx;
-                pushBackPos.y -= moveDy;
+                pushBackPos.setX(pushBackPos.getX() - moveDx);
+                pushBackPos.setY(pushBackPos.getY() - moveDy);
                 
                 // Make sure pushback position is valid
-                if (pushBackPos.x >= 0 && pushBackPos.x < Screen::MAX_X &&
-                    pushBackPos.y >= 0 && pushBackPos.y < Screen::MAX_Y) {
+                if (pushBackPos.getX() >= 0 && pushBackPos.getX() < Screen::MAX_X &&
+                    pushBackPos.getY() >= 0 && pushBackPos.getY() < Screen::MAX_Y) {
                     wchar_t pushBackTile = currentScreen.getCharAt(pushBackPos);
                     if (!Glyph::isWall(pushBackTile)) {
                         position = pushBackPos;
@@ -384,7 +387,7 @@ Point originalPos = position;
                 
                 // Refresh cells
                 currentScreen.refreshCell(originalPos);
-                if (position.x != originalPos.x || position.y != originalPos.y) {
+                if (position.getX() != originalPos.getX() || position.getY() != originalPos.getY()) {
                     currentScreen.refreshCell(position);
                 }
                 
@@ -554,14 +557,14 @@ Point originalPos = position;
     }
 
     // Check for STAY key press while on spring
-    if (currentSpring && position.diff_x == 0 && position.diff_y == 0) {
+    if (currentSpring && position.getDiffX() == 0 && position.getDiffY() == 0) {
         position = originalPos;
         releaseSpring(currentScreen, game);
         currentScreen.refreshCell(originalPos);
         return;
     }
 
-    if (originalPos.x != position.x || originalPos.y != position.y) {
+    if (originalPos.getX() != position.getX() || originalPos.getY() != position.getY()) {
         currentScreen.refreshCell(originalPos);
     }
 
@@ -571,13 +574,13 @@ Point originalPos = position;
         if (held != ' ') {
             bool dropped = false;
             Point p = position;
-            if (position.diff_x != 0 || position.diff_y != 0) {
+            if (position.getDiffX() != 0 || position.getDiffY() != 0) {
                 Point drop = p;
-                if (position.diff_x == 1) drop.x = p.x - 1;
-                else if (position.diff_x == -1) drop.x = p.x + 1;
-                else if (position.diff_y == 1) drop.y = p.y - 1;
-                else if (position.diff_y == -1) drop.y = p.y + 1;
-                if (drop.x >= 0 && drop.x < Screen::MAX_X && drop.y >= 0 && drop.y < Screen::MAX_Y) {
+                if (position.getDiffX() == 1) drop.setX(p.getX() - 1);
+                else if (position.getDiffX() == -1) drop.setX(p.getX() + 1);
+                else if (position.getDiffY() == 1) drop.setY(p.getY() - 1);
+                else if (position.getDiffY() == -1) drop.setY(p.getY() + 1);
+                if (drop.getX() >= 0 && drop.getX() < Screen::MAX_X && drop.getY() >= 0 && drop.getY() < Screen::MAX_Y) {
                     if (currentScreen.getCharAt(drop) == Glyph::Empty) {
                         currentScreen.setCharAt(drop, (wchar_t)held);
                         currentScreen.refreshCell(drop);
@@ -591,9 +594,9 @@ Point originalPos = position;
                 }
             }
             if (!dropped) {
-                Point candidates[4] = { {p.x, p.y - 1}, {p.x, p.y + 1}, {p.x + 1, p.y}, {p.x - 1, p.y} };
+                Point candidates[4] = { Point(p.getX(), p.getY() - 1), Point(p.getX(), p.getY() + 1), Point(p.getX() + 1, p.getY()), Point(p.getX() - 1, p.getY()) };
                 for (auto& q : candidates) {
-                    if (q.x >= 0 && q.x < Screen::MAX_X && q.y >= 0 && q.y < Screen::MAX_Y && currentScreen.getCharAt(q) == Glyph::Empty) {
+                    if (q.getX() >= 0 && q.getX() < Screen::MAX_X && q.getY() >= 0 && q.getY() < Screen::MAX_Y && currentScreen.getCharAt(q) == Glyph::Empty) {
                         currentScreen.setCharAt(q, (wchar_t)held);
                         currentScreen.refreshCell(q);
                         setCarried(' ');
@@ -626,8 +629,8 @@ Point originalPos = position;
         static const int adjDx[4] = { 1, -1, 0, 0 };
         static const int adjDy[4] = { 0, 0, 1, -1 };
         for (int i = 0; i < 4; ++i) {
-            Point adj{ position.x + adjDx[i], position.y + adjDy[i] };
-            if (adj.x < 0 || adj.x >= Screen::MAX_X || adj.y < 0 || adj.y >= Screen::MAX_Y) continue;
+            Point adj(position.getX() + adjDx[i], position.getY() + adjDy[i]);
+            if (adj.getX() < 0 || adj.getX() >= Screen::MAX_X || adj.getY() < 0 || adj.getY() >= Screen::MAX_Y) continue;
             wchar_t ch = currentScreen.getCharAt(adj);
             if (Glyph::isSpecialDoor(ch)) {
                 auto* door = game.findSpecialDoorAt(currentRoomIdx, adj);

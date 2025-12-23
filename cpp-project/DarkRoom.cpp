@@ -81,11 +81,12 @@ void DarkRoomManager::getDarkRoomMessage(const Screen& screen, const std::vector
     }
 }
 
+
 // Calculate distance between two points (adjusted for wider horizontal light)
 // Horizontal distance is scaled down to make light wider horizontally
 int DarkRoomManager::calculateDistance(const Point& a, const Point& b) {
-    int dx = std::abs(a.x - b.x);
-    int dy = std::abs(a.y - b.y);
+    int dx = std::abs(a.getX() - b.getX());
+    int dy = std::abs(a.getY() - b.getY());
     // Scale horizontal distance by 0.75 (dx * 3 / 4) to make light ~33% wider horizontally
     int scaledDx = (dx * 3) / 4;
     return (scaledDx > dy) ? scaledDx : dy;
@@ -128,20 +129,20 @@ int DarkRoomManager::closestTorchDistance(const Point& pos, const std::vector<Pl
 
 // Find closest dropped torch distance to a point
 int DarkRoomManager::closestDroppedTorchDistance(const Point& pos, const Screen& screen) {
-    int minDist = 9999;
+int minDist = 9999;
 
-    // Fixed 8x8 window (radius 4) around the queried cell to keep the scan tiny.
-    const int searchRadius = 4;
-    int minY = std::max(0, pos.y - searchRadius);
-    int maxY = std::min(Screen::MAX_Y - 1, pos.y + searchRadius);
-    int minX = std::max(0, pos.x - searchRadius);
-    int maxX = std::min(Screen::MAX_X - 1, pos.x + searchRadius);
+// Fixed 8x8 window (radius 4) around the queried cell to keep the scan tiny.
+const int searchRadius = 4;
+int minY = std::max(0, pos.getY() - searchRadius);
+int maxY = std::min(Screen::MAX_Y - 1, pos.getY() + searchRadius);
+int minX = std::max(0, pos.getX() - searchRadius);
+int maxX = std::min(Screen::MAX_X - 1, pos.getX() + searchRadius);
 
-    for (int y = minY; y <= maxY; ++y) {
-        for (int x = minX; x <= maxX; ++x) {
-            Point torchPos{x, y};
-            if (Glyph::isTorch(screen.getCharAt(torchPos))) {
-                int dist = calculateDistance(pos, torchPos);
+for (int y = minY; y <= maxY; ++y) {
+    for (int x = minX; x <= maxX; ++x) {
+        Point torchPos(x, y);
+        if (Glyph::isTorch(screen.getCharAt(torchPos))) {
+            int dist = calculateDistance(pos, torchPos);
                 if (dist < minDist) {
                     minDist = dist;
                     if (minDist == 0) return 0; // can't do better
@@ -218,7 +219,7 @@ wchar_t DarkRoomManager::getDisplayChar(const Screen& screen, const Point& pos,
     for (const auto& player : players) {
         if (player.getRoomIdx() == currentRoomIdx) {
             Point playerPos = player.getPosition();
-            if (playerPos.x == pos.x && playerPos.y == pos.y) {
+            if (playerPos.getX() == pos.getX() && playerPos.getY() == pos.getY()) {
                 return originalChar;  // Show player position
             }
         }
@@ -249,13 +250,13 @@ void DarkRoomManager::drawWithDarkness(const Screen& screen, const std::vector<P
     for (const auto& player : players) {
         if (player.getRoomIdx() == roomIdx) {
             Point pos = player.getPosition();
-            auto posKey = std::make_pair(pos.x, pos.y);
+            auto posKey = std::make_pair(pos.getX(), pos.getY());
             
             // Check for overlapping players
             if (playerPositionSet.count(posKey)) {
                 // Find and update the existing entry to show overlap symbol
                 for (auto& ps : playerSymbols) {
-                    if (ps.first.x == pos.x && ps.first.y == pos.y) {
+                    if (ps.first.getX() == pos.getX() && ps.first.getY() == pos.getY()) {
                         ps.second = L'O'; // Overlap symbol
                         break;
                     }
@@ -267,18 +268,19 @@ void DarkRoomManager::drawWithDarkness(const Screen& screen, const std::vector<P
         }
     }
     
+    
     for (int y = 0; y < Screen::MAX_Y; ++y) {
         std::wstring out;
         out.reserve(Screen::MAX_X);
         
         for (int x = 0; x < Screen::MAX_X; ++x) {
-            Point p{x, y};
+            Point p(x, y);
             wchar_t ch;
             
             // Check if there's a player at this position
             bool isPlayerPos = false;
             for (const auto& ps : playerSymbols) {
-                if (ps.first.x == x && ps.first.y == y) {
+                if (ps.first.getX() == x && ps.first.getY() == y) {
                     ch = ps.second;
                     isPlayerPos = true;
                     break;
@@ -306,7 +308,7 @@ void DarkRoomManager::drawWithDarkness(const Screen& screen, const std::vector<P
 // Refresh a single cell with darkness consideration
 void DarkRoomManager::refreshCellWithDarkness(const Screen& screen, const Point& p,
                                                const std::vector<Player>& players, int roomIdx) {
-    if (p.x < 0 || p.x >= Screen::MAX_X || p.y < 0 || p.y >= Screen::MAX_Y) return;
+    if (p.getX() < 0 || p.getX() >= Screen::MAX_X || p.getY() < 0 || p.getY() >= Screen::MAX_Y) return;
     
     wchar_t ch;
     if (roomHasDarkness(screen)) {
@@ -316,11 +318,12 @@ void DarkRoomManager::refreshCellWithDarkness(const Screen& screen, const Point&
     }
     
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    COORD pos{(SHORT)p.x, (SHORT)p.y};
+    COORD pos{(SHORT)p.getX(), (SHORT)p.getY()};
     SetConsoleCursorPosition(hOut, pos);
     DWORD written;
     WriteConsoleW(hOut, &ch, 1, &written, nullptr);
 }
+
 
 // Update only the cells affected by player movement - much faster than full redraw
 void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const std::vector<Player>& players,
@@ -340,10 +343,10 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
     for (const auto& prevPos : previousPositions) {
         for (int dy = -updateRadius; dy <= updateRadius; ++dy) {
             for (int dx = -updateRadius; dx <= updateRadius; ++dx) {
-                int nx = prevPos.x + dx;
-                int ny = prevPos.y + dy;
+                int nx = prevPos.getX() + dx;
+                int ny = prevPos.getY() + dy;
                 if (nx >= 0 && nx < Screen::MAX_X && ny >= 0 && ny < Screen::MAX_Y) {
-                    Point q{nx, ny};
+                    Point q(nx, ny);
                     if (isInDarkZone(screen, q)) {
                         cellsToUpdate.insert({nx, ny});
                     }
@@ -358,10 +361,10 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
         Point pos = player.getPosition();
         for (int dy = -updateRadius; dy <= updateRadius; ++dy) {
             for (int dx = -updateRadius; dx <= updateRadius; ++dx) {
-                int nx = pos.x + dx;
-                int ny = pos.y + dy;
+                int nx = pos.getX() + dx;
+                int ny = pos.getY() + dy;
                 if (nx >= 0 && nx < Screen::MAX_X && ny >= 0 && ny < Screen::MAX_Y) {
-                    Point q{nx, ny};
+                    Point q(nx, ny);
                     if (isInDarkZone(screen, q)) {
                         cellsToUpdate.insert({nx, ny});
                     }
@@ -369,17 +372,17 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
             }
         }
         // Ensure the player position itself is always updated (even if not inside dark zone)
-        cellsToUpdate.insert({pos.x, pos.y});
+        cellsToUpdate.insert({pos.getX(), pos.getY()});
     }
 
     // Add cells around extra light sources (e.g., dropped torches) – restrict to dark zones
     for (const auto& src : extraLightSources) {
         for (int dy = -updateRadius; dy <= updateRadius; ++dy) {
             for (int dx = -updateRadius; dx <= updateRadius; ++dx) {
-                int nx = src.x + dx;
-                int ny = src.y + dy;
+                int nx = src.getX() + dx;
+                int ny = src.getY() + dy;
                 if (nx >= 0 && nx < Screen::MAX_X && ny >= 0 && ny < Screen::MAX_Y) {
-                    Point q{nx, ny};
+                    Point q(nx, ny);
                     if (isInDarkZone(screen, q)) {
                         cellsToUpdate.insert({nx, ny});
                     }
@@ -387,14 +390,14 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
             }
         }
         // Ensure the light source cell itself is updated
-        cellsToUpdate.insert({src.x, src.y});
+        cellsToUpdate.insert({src.getX(), src.getY()});
     }
     
     // Also explicitly add previous positions themselves to clear player ghost
     for (const auto& prevPos : previousPositions) {
-        if (prevPos.x >= 0 && prevPos.x < Screen::MAX_X && 
-            prevPos.y >= 0 && prevPos.y < Screen::MAX_Y) {
-            cellsToUpdate.insert({prevPos.x, prevPos.y});
+        if (prevPos.getX() >= 0 && prevPos.getX() < Screen::MAX_X && 
+            prevPos.getY() >= 0 && prevPos.getY() < Screen::MAX_Y) {
+            cellsToUpdate.insert({prevPos.getX(), prevPos.getY()});
         }
     }
     
@@ -403,7 +406,7 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
     for (const auto& player : players) {
         if (player.getRoomIdx() == roomIdx) {
             Point pos = player.getPosition();
-            auto key = std::make_pair(pos.x, pos.y);
+            auto key = std::make_pair(pos.getX(), pos.getY());
             if (playerSymbolMap.count(key)) {
                 playerSymbolMap[key] = L'O'; // Overlap
             } else {
@@ -414,7 +417,7 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
     
     // Update each affected cell
     for (const auto& cell : cellsToUpdate) {
-        Point p{cell.first, cell.second};
+        Point p(cell.first, cell.second);
         wchar_t ch;
         
         // Check if player is at this position
@@ -429,7 +432,7 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
             ch = screen.getCharAt(p);
         }
         
-        COORD pos{(SHORT)p.x, (SHORT)p.y};
+        COORD pos{(SHORT)p.getX(), (SHORT)p.getY()};
         SetConsoleCursorPosition(hOut, pos);
         DWORD written;
         WriteConsoleW(hOut, &ch, 1, &written, nullptr);

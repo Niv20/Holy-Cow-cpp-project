@@ -216,12 +216,12 @@ void Game::drawPlayers() {
     // Draw players, handling overlapping positions
     std::set<std::pair<int,int>> drawnPositions;
     for (const auto& [pos, idx] : playerPositions) {
-        auto posKey = std::make_pair(pos.x, pos.y);
+        auto posKey = std::make_pair(pos.getX(), pos.getY());
         if (drawnPositions.count(posKey) == 0) {
             // Check if another player is at the same position
             bool overlapping = false;
             for (const auto& [otherPos, otherIdx] : playerPositions) {
-                if (otherIdx != idx && otherPos.x == pos.x && otherPos.y == pos.y) {
+                if (otherIdx != idx && otherPos.getX() == pos.getX() && otherPos.getY() == pos.getY()) {
                     overlapping = true;
                     break;
                 }
@@ -230,7 +230,7 @@ void Game::drawPlayers() {
             if (overlapping) {
                 // Draw a combined symbol when players overlap
                 HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-                COORD c{ (SHORT)pos.x, (SHORT)pos.y };
+                COORD c{ (SHORT)pos.getX(), (SHORT)pos.getY() };
                 SetConsoleCursorPosition(hOut, c);
                 wchar_t combined = L'O'; // Simple ASCII char to show both players (works on all systems)
                 DWORD written;
@@ -339,7 +339,7 @@ if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
 
         // Any movement of a player currently in the room requires redraw (players are drawn via darkness layer)
         if (beforeInRoom || afterInRoom) {
-            if (before.pos.x != after.getPosition().x || before.pos.y != after.getPosition().y || beforeInRoom != afterInRoom) {
+            if (before.pos.getX() != after.getPosition().getX() || before.pos.getY() != after.getPosition().getY() || beforeInRoom != afterInRoom) {
                 needsDarkUpdate = true;
             }
         }
@@ -350,7 +350,7 @@ if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
         }
 
         // Torch picked up or dropped, or torch moved
-        if ((beforeTorch != afterTorch) || ((beforeTorch || afterTorch) && (before.pos.x != after.getPosition().x || before.pos.y != after.getPosition().y))) {
+        if ((beforeTorch != afterTorch) || ((beforeTorch || afterTorch) && (before.pos.getX() != after.getPosition().getX() || before.pos.getY() != after.getPosition().getY()))) {
             torchChange = true;
         }
     }
@@ -489,7 +489,7 @@ void Game::updatePressureButtons() {
             bool active = false;
             Point psPos = ps.getPos();
             for (const auto& pp : roomPlayers) {
-                if (pp.x == psPos.x && pp.y == psPos.y) {
+                if (pp.getX() == psPos.getX() && pp.getY() == psPos.getY()) {
                     active = true;
                     break;
                 }
@@ -497,7 +497,7 @@ void Game::updatePressureButtons() {
 
             for (const auto& tgt : ps.getTargets()) {
                 Point tgtPos = tgt.getPos();
-                auto key = std::make_pair(tgtPos.x, tgtPos.y);
+                auto key = std::make_pair(tgtPos.getX(), tgtPos.getY());
                 auto& state = targets[key];
                 if (!state.hasOriginal) {
                     state.original = tgt.getOriginalChar();
@@ -550,13 +550,13 @@ void Game::checkAndProcessTransitions() {
         if (p.getRoomIdx() != visibleRoomIdx) continue;
         Point pos = p.getPosition();
         Direction dir = Direction::None;
-        if (pos.x <= 0)
+        if (pos.getX() <= 0)
             dir = Direction::Left;
-        else if (pos.x >= maxX - 1)
+        else if (pos.getX() >= maxX - 1)
             dir = Direction::Right;
-        else if (pos.y <= 0)
+        else if (pos.getY() <= 0)
             dir = Direction::Up;
-        else if (pos.y >= maxY - 1)
+        else if (pos.getY() >= maxY - 1)
             dir = Direction::Down;
 
         if (dir != Direction::None) {
@@ -579,21 +579,21 @@ void Game::checkAndProcessTransitions() {
         const auto& t = transitions[i];
         Point s;
         switch (t.direction) {
-            case Direction::Left:  s = Point(maxX - 2, t.originalPos.y); break;
-            case Direction::Right: s = Point(1,        t.originalPos.y); break;
-            case Direction::Up:    s = Point(t.originalPos.x, maxY - 2); break;
-            case Direction::Down:  s = Point(t.originalPos.x, 1);        break;
+            case Direction::Left:  s = Point(maxX - 2, t.originalPos.getY()); break;
+            case Direction::Right: s = Point(1,        t.originalPos.getY()); break;
+            case Direction::Up:    s = Point(t.originalPos.getX(), maxY - 2); break;
+            case Direction::Down:  s = Point(t.originalPos.getX(), 1);        break;
             default:               s = t.originalPos; break;
         }
-        if (s.x < 1) s.x = 1; if (s.x > maxX - 2) s.x = maxX - 2;
-        if (s.y < 1) s.y = 1; if (s.y > maxY - 2) s.y = maxY - 2;
+        if (s.getX() < 1) s.setX(1); if (s.getX() > maxX - 2) s.setX(maxX - 2);
+        if (s.getY() < 1) s.setY(1); if (s.getY() > maxY - 2) s.setY(maxY - 2);
         spawns[i] = s;
     }
 
     // Helper to check if a position is valid for spawning
     auto isValidSpawn = [&](const Point& p, int roomIdx, const vector<Point>& existingSpawns, size_t upToIdx) {
         // Check bounds
-        if (p.x < 1 || p.x > maxX - 2 || p.y < 1 || p.y > maxY - 2)
+        if (p.getX() < 1 || p.getX() > maxX - 2 || p.getY() < 1 || p.getY() > maxY - 2)
             return false;
         // Check not a wall
         wchar_t ch = world[roomIdx].getCharAt(p);
@@ -601,14 +601,14 @@ void Game::checkAndProcessTransitions() {
             return false;
         // Check not colliding with earlier spawns in this transition batch
         for (size_t k = 0; k < upToIdx; ++k) {
-            if (existingSpawns[k].x == p.x && existingSpawns[k].y == p.y)
+            if (existingSpawns[k].getX() == p.getX() && existingSpawns[k].getY() == p.getY())
                 return false;
         }
         // Check not colliding with any player already in target room
         for (const auto& pl : players) {
             if (pl.getRoomIdx() == roomIdx) {
                 Point plPos = pl.getPosition();
-                if (plPos.x == p.x && plPos.y == p.y)
+                if (plPos.getX() == p.getX() && plPos.getY() == p.getY())
                     return false;
             }
         }
@@ -630,16 +630,16 @@ void Game::checkAndProcessTransitions() {
                 Point candidates[4];
                 if (dir == Direction::Left || dir == Direction::Right) {
                     // Entry is horizontal, try vertical offsets first
-                    candidates[0] = Point(spawns[idx].x, spawns[idx].y + offset);
-                    candidates[1] = Point(spawns[idx].x, spawns[idx].y - offset);
-                    candidates[2] = Point(spawns[idx].x + offset, spawns[idx].y);
-                    candidates[3] = Point(spawns[idx].x - offset, spawns[idx].y);
+                    candidates[0] = Point(spawns[idx].getX(), spawns[idx].getY() + offset);
+                    candidates[1] = Point(spawns[idx].getX(), spawns[idx].getY() - offset);
+                    candidates[2] = Point(spawns[idx].getX() + offset, spawns[idx].getY());
+                    candidates[3] = Point(spawns[idx].getX() - offset, spawns[idx].getY());
                 } else {
                     // Entry is vertical, try horizontal offsets first
-                    candidates[0] = Point(spawns[idx].x + offset, spawns[idx].y);
-                    candidates[1] = Point(spawns[idx].x - offset, spawns[idx].y);
-                    candidates[2] = Point(spawns[idx].x, spawns[idx].y + offset);
-                    candidates[3] = Point(spawns[idx].x, spawns[idx].y - offset);
+                    candidates[0] = Point(spawns[idx].getX() + offset, spawns[idx].getY());
+                    candidates[1] = Point(spawns[idx].getX() - offset, spawns[idx].getY());
+                    candidates[2] = Point(spawns[idx].getX(), spawns[idx].getY() + offset);
+                    candidates[3] = Point(spawns[idx].getX(), spawns[idx].getY() - offset);
                 }
                 
                 for (int c = 0; c < 4 && !placed; ++c) {
@@ -656,8 +656,8 @@ void Game::checkAndProcessTransitions() {
     for (size_t i = 0; i < transitions.size(); ++i) {
         Player* pl = transitions[i].player;
         Point newPos = spawns[i];
-        newPos.diff_x = transitions[i].originalPos.diff_x;
-        newPos.diff_y = transitions[i].originalPos.diff_y;
+        newPos.setDiffX(transitions[i].originalPos.getDiffX());
+        newPos.setDiffY(transitions[i].originalPos.getDiffY());
         pl->setRoomIdx(transitions[i].targetRoom);
         pl->setPosition(newPos);
     }
@@ -709,14 +709,15 @@ void Game::placeBomb(int roomIdx, const Point& pos, int delay) {
     Bomb::place(bombs, roomIdx, pos, delay);
 }
 
+
 void Game::removeBombAt(int roomIdx, const Point& pos) {
     // Remove bomb at specific position (when player picks it up)
     bombs.erase(
         std::remove_if(bombs.begin(), bombs.end(),
             [roomIdx, &pos](const Bomb& b) {
                 return b.getRoomIdx() == roomIdx && 
-                       b.getPosition().x == pos.x && 
-                       b.getPosition().y == pos.y;
+                       b.getPosition().getX() == pos.getX() && 
+                       b.getPosition().getY() == pos.getY();
             }),
         bombs.end()
     );

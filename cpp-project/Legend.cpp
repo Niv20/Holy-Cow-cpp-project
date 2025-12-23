@@ -29,12 +29,13 @@ void Legend::locateLegendForRoom(int roomIdx, const Screen& s) {
     roomLegendPos[roomIdx] = Point{ -1, -1 }; // not found
 }
 
+
 // Explicitly draw the anchor 'L' on screen for the given room
 void Legend::drawAnchor(int roomIdx) const {
     if (roomIdx < 0 || roomIdx >= (int)roomLegendPos.size()) 
         return;
     Point tl = roomLegendPos[roomIdx]; 
-    if (tl.x < 0 || tl.y < 0) 
+    if (tl.getX() < 0 || tl.getY() < 0) 
         return;
     tl.draw('L');
 }
@@ -45,11 +46,11 @@ void Legend::drawLegend(int roomIdx, int lives, int points, char p1Inv, char p2I
     ensureRooms(static_cast<size_t>(roomIdx + 1));
     Point tl = roomLegendPos[roomIdx];
 
-    if (tl.x < 0 || tl.y < 0)
+    if (tl.getX() < 0 || tl.getY() < 0)
         return;
 
     // anchor is top-left
-    Point origin{ tl.x, tl.y };
+    Point origin(tl.getX(), tl.getY());
 
     char line1[32];
     char line2[32];
@@ -76,8 +77,8 @@ void Legend::drawLegend(int roomIdx, int lives, int points, char p1Inv, char p2I
 
     auto putLine = [&](int dy, const std::string& line) {
         for (int i = 0; i < 16; ++i) {
-            Point p{ origin.x + i, origin.y + dy };
-            if (p.x >= 0 && p.x < Screen::MAX_X && p.y >= 0 && p.y < Screen::MAX_Y) {
+            Point p(origin.getX() + i, origin.getY() + dy);
+            if (p.getX() >= 0 && p.getX() < Screen::MAX_X && p.getY() >= 0 && p.getY() < Screen::MAX_Y) {
                 p.draw(line[i]);
             }
         }
@@ -88,9 +89,9 @@ void Legend::drawLegend(int roomIdx, int lives, int points, char p1Inv, char p2I
         int len = (int)wcslen(wline);
         if (len > 16) len = 16;
         for (int i = 0; i < len; ++i) {
-            Point p{ origin.x + i, origin.y + dy };
-            if (p.x >= 0 && p.x < Screen::MAX_X && p.y >= 0 && p.y < Screen::MAX_Y) {
-                COORD pos{ (SHORT)p.x, (SHORT)p.y };
+            Point p(origin.getX() + i, origin.getY() + dy);
+            if (p.getX() >= 0 && p.getX() < Screen::MAX_X && p.getY() >= 0 && p.getY() < Screen::MAX_Y) {
+                COORD pos{ (SHORT)p.getX(), (SHORT)p.getY() };
                 SetConsoleCursorPosition(hOut, pos);
                 DWORD written;
                 WriteConsoleW(hOut, &wline[i], 1, &written, nullptr);
@@ -98,8 +99,8 @@ void Legend::drawLegend(int roomIdx, int lives, int points, char p1Inv, char p2I
         }
         // Pad remaining with spaces
         for (int i = len; i < 16; ++i) {
-            Point p{ origin.x + i, origin.y + dy };
-            if (p.x >= 0 && p.x < Screen::MAX_X && p.y >= 0 && p.y < Screen::MAX_Y) {
+            Point p(origin.getX() + i, origin.getY() + dy);
+            if (p.getX() >= 0 && p.getX() < Screen::MAX_X && p.getY() >= 0 && p.getY() < Screen::MAX_Y) {
                 p.draw(' ');
             }
         }

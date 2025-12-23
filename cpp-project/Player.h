@@ -30,7 +30,7 @@ public:
     void move(Screen& currentScreen, class Game& game);
     void handleKey(char key);
     void stop();
-    bool isStationary() const { return position.diff_x == 0 && position.diff_y == 0; }
+    bool isStationary() const { return position.getDiffX() == 0 && position.getDiffY() == 0; }
     Key getCarriedKey() const { return carried; }
     char getCarried() const { return carried.get(); }
     void setCarried(char ch) { carried = Key(ch); }

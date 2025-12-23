@@ -41,7 +41,7 @@ if (!d || d->getRoomIdx() < 0 || d->getRoomIdx() >= (int)world.size()) return;
     
 Screen& s = world[d->getRoomIdx()];
 Point cfg = d->getPosition();
-    bool inBounds = (cfg.x >= 0 && cfg.x < Screen::MAX_X && cfg.y >= 0 && cfg.y < Screen::MAX_Y);
+    bool inBounds = (cfg.getX() >= 0 && cfg.getX() < Screen::MAX_X && cfg.getY() >= 0 && cfg.getY() < Screen::MAX_Y);
     bool atDoor = inBounds && s.getCharAt(cfg) == Glyph::SpecialDoor;
     if (atDoor) return;
     
@@ -51,9 +51,9 @@ Point cfg = d->getPosition();
     
     for (int y = 0; y < Screen::MAX_Y; ++y) {
         for (int x = 0; x < Screen::MAX_X; ++x) {
-            Point p{x, y}; 
+            Point p(x, y); 
             if (s.getCharAt(p) == Glyph::SpecialDoor) {
-                int dist = abs(x - cfg.x) + abs(y - cfg.y); 
+                int dist = abs(x - cfg.getX()) + abs(y - cfg.getY()); 
                 if (dist < bestDist) {
                     bestDist = dist;
                     bestPos = p;
@@ -62,6 +62,7 @@ Point cfg = d->getPosition();
             }
         }
     }
+    
     
     if (found) {
         d->setPosition(bestPos);
@@ -132,7 +133,7 @@ static void loadDoorsFromLegacyConfig(std::vector<Screen>& world) {
                     for (const auto& d : existingDoors) {
                         Point dPos = d.getPosition();
                         Point curPos = currentDoor->getPosition();
-                        if (dPos.x == curPos.x && dPos.y == curPos.y) {
+                        if (dPos.getX() == curPos.getX() && dPos.getY() == curPos.getY()) {
                             alreadyExists = true;
                             break;
                         }
@@ -173,7 +174,7 @@ static void loadDoorsFromLegacyConfig(std::vector<Screen>& world) {
                     for (const auto& d : existingDoors) {
                         Point dPos = d.getPosition();
                         Point curPos = currentDoor->getPosition();
-                        if (dPos.x == curPos.x && dPos.y == curPos.y) {
+                        if (dPos.getX() == curPos.getX() && dPos.getY() == curPos.getY()) {
                             alreadyExists = true;
                             break;
                         }
@@ -188,6 +189,7 @@ static void loadDoorsFromLegacyConfig(std::vector<Screen>& world) {
         }
     }
     
+    
     if (currentDoor) { 
         adjustDoorPosition(currentDoor, world); 
         if (currentDoor->getRoomIdx() >= 0 && currentDoor->getRoomIdx() < (int)world.size()) {
@@ -196,7 +198,7 @@ static void loadDoorsFromLegacyConfig(std::vector<Screen>& world) {
             for (const auto& d : existingDoors) {
                 Point dPos = d.getPosition();
                 Point curPos = currentDoor->getPosition();
-                if (dPos.x == curPos.x && dPos.y == curPos.y) {
+                if (dPos.getX() == curPos.getX() && dPos.getY() == curPos.getY()) {
                     alreadyExists = true;
                     break;
                 }
@@ -253,7 +255,7 @@ SpecialDoor* SpecialDoor::findAt(Screen& screen, const Point& p) {
     auto& dataDoors = screen.getDataMutable().doors;
     for (auto& door : dataDoors) {
         Point doorPos = door.getPosition();
-        if (doorPos.x == p.x && doorPos.y == p.y) {
+        if (doorPos.getX() == p.getX() && doorPos.getY() == p.getY()) {
             return &door;
         }
     }

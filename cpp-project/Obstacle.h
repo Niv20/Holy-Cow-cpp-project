@@ -27,7 +27,7 @@ public:
 
     bool contains(int roomIdx, const Point& p) const {
         for (const auto& c : cells) {
-            if (c.getRoomIdx() == roomIdx && c.getPos().x == p.x && c.getPos().y == p.y) 
+            if (c.getRoomIdx() == roomIdx && c.getPos().getX() == p.getX() && c.getPos().getY() == p.getY()) 
                 return true;
         }
         return false;

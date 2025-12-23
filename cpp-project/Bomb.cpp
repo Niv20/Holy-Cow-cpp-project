@@ -25,15 +25,15 @@ void Bomb::explode(Game& game) {
     }
 
     // Calculate blast area (distance 3 in all directions, including diagonally)
-    int minX = clamp_min(0, position.x - radius);
-    int maxX = clamp_max(Screen::MAX_X - 1, position.x + radius);
-    int minY = clamp_min(0, position.y - radius);
-    int maxY = clamp_max(Screen::MAX_Y - 1, position.y + radius);
+    int minX = (std::max)(0, position.getX() - radius);
+    int maxX = (std::min)(Screen::MAX_X - 1, position.getX() + radius);
+    int minY = (std::max)(0, position.getY() - radius);
+    int maxY = (std::min)(Screen::MAX_Y - 1, position.getY() + radius);
 
     // Destroy weak walls (^) in blast radius
     for (int y = minY; y <= maxY; ++y) {
         for (int x = minX; x <= maxX; ++x) {
-            Point p{ x, y };
+            Point p(x, y);
             wchar_t c = s.getCharAt(p);
             if (Glyph::isBombableWall(c)) {
                 s.setCharAt(p, Glyph::Empty);
@@ -52,7 +52,7 @@ void Bomb::explode(Game& game) {
     for (auto& pl : game.getPlayersMutable()) {
         if (pl.getRoomIdx() == roomIdx) {
             Point pp = pl.getPosition();
-            if (pp.x >= minX && pp.x <= maxX && pp.y >= minY && pp.y <= maxY) {
+            if (pp.getX() >= minX && pp.getX() <= maxX && pp.getY() >= minY && pp.getY() <= maxY) {
                 ++hits;
             }
         }
