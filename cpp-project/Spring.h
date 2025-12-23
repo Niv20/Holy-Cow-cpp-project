@@ -46,31 +46,32 @@ struct SpringData {
     static SpringData* findAt(Screen& screen, const Point& p);
 };
 
-// Spring logic helper functions
-namespace SpringLogic {
+// Spring logic helper class
+class SpringLogic {
+public:
     // Release spring and launch player
-    void releaseSpring(Player& player, SpringData* spring, int compressedCount, 
-                      Screen& currentScreen, Game& game);
+    static void releaseSpring(Player& player, SpringData* spring, int compressedCount, 
+                              Screen& currentScreen, Game& game);
     
     // Handle spring entry for player
-    void handleSpringEntry(Player& player, SpringData* spring, const Point& position,
-                          Screen& currentScreen);
+    static void handleSpringEntry(Player& player, SpringData* spring, const Point& position,
+                                  Screen& currentScreen);
     
     // Handle spring compression (continuing movement on spring)
-    bool handleSpringCompression(Player& player, SpringData* spring, int currentIndex,
-                                 int entryIndex, const Point& position, Screen& currentScreen);
+    static bool handleSpringCompression(Player& player, SpringData* spring, int currentIndex,
+                                        int entryIndex, const Point& position, Screen& currentScreen);
     
     // Check if player should release spring (hit wall)
-    bool shouldReleaseAtWall(const Point& attemptedPos, SpringData* spring, 
-                            int entryIndex, Screen& currentScreen);
+    static bool shouldReleaseAtWall(const Point& attemptedPos, SpringData* spring, 
+                                    int entryIndex, Screen& currentScreen);
     
     // Handle perpendicular movement on spring
-    bool handlePerpendicularMovement(Player& player, SpringData* spring, 
-                                    int moveDx, int moveDy, Screen& currentScreen, Game& game);
+    static bool handlePerpendicularMovement(Player& player, SpringData* spring, 
+                                            int moveDx, int moveDy, Screen& currentScreen, Game& game);
     
     // Convert boost direction to movement direction index
-    int boostDirToDirectionIndex(int boostDirX, int boostDirY);
-}
+    static int boostDirToDirectionIndex(int boostDirX, int boostDirY);
+};
 
 class SpringViz {
     // Runtime-only visualization controller, not stored globally

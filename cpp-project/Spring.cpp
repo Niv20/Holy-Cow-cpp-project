@@ -16,10 +16,10 @@ SpringData* SpringData::findAt(Screen& screen, const Point& p) {
     return nullptr;
 }
 
-namespace SpringLogic {
+// SpringLogic class static method implementations
 
-void releaseSpring(Player& player, SpringData* spring, int compressedCount, 
-                   Screen& currentScreen, Game& game) {
+void SpringLogic::releaseSpring(Player& player, SpringData* spring, int compressedCount, 
+                                Screen& currentScreen, Game& game) {
     if (!spring || compressedCount <= 0) return;
     
     Point position = player.getPosition();
@@ -141,15 +141,15 @@ void releaseSpring(Player& player, SpringData* spring, int compressedCount,
     }
 }
 
-void handleSpringEntry(Player& player, SpringData* spring, const Point& position,
-                      Screen& currentScreen) {
+void SpringLogic::handleSpringEntry(Player& player, SpringData* spring, const Point& position,
+Screen& currentScreen) {
     // Hide this cell
     currentScreen.setCharAt(position, Glyph::Empty);
     currentScreen.refreshCell(position);
 }
 
-bool handleSpringCompression(Player& player, SpringData* spring, int currentIndex,
-                             int entryIndex, const Point& position, Screen& currentScreen) {
+bool SpringLogic::handleSpringCompression(Player& player, SpringData* spring, int currentIndex,
+int entryIndex, const Point& position, Screen& currentScreen) {
     // Check direction: moving toward wall (decreasing index) or away
     if (currentIndex >= 0 && currentIndex < entryIndex) {
         // Moving toward wall (compressing)
@@ -160,8 +160,8 @@ bool handleSpringCompression(Player& player, SpringData* spring, int currentInde
     return false; // Changed direction away from wall
 }
 
-bool shouldReleaseAtWall(const Point& attemptedPos, SpringData* spring, 
-                        int entryIndex, Screen& currentScreen) {
+bool SpringLogic::shouldReleaseAtWall(const Point& attemptedPos, SpringData* spring, 
+int entryIndex, Screen& currentScreen) {
     // Check if we tried to move into the wall from cell 0
     if (entryIndex != 0) return false;
     
@@ -173,8 +173,8 @@ bool shouldReleaseAtWall(const Point& attemptedPos, SpringData* spring,
     return (attemptedPos.x == wallPos.x && attemptedPos.y == wallPos.y);
 }
 
-bool handlePerpendicularMovement(Player& player, SpringData* spring, 
-                                int moveDx, int moveDy, Screen& currentScreen, Game& game) {
+bool SpringLogic::handlePerpendicularMovement(Player& player, SpringData* spring, 
+int moveDx, int moveDy, Screen& currentScreen, Game& game) {
     int springDirX = spring->dirX;
     int springDirY = spring->dirY;
     
@@ -191,7 +191,7 @@ bool handlePerpendicularMovement(Player& player, SpringData* spring,
     return movingPerpendicular;
 }
 
-int boostDirToDirectionIndex(int boostDirX, int boostDirY) {
+int SpringLogic::boostDirToDirectionIndex(int boostDirX, int boostDirY) {
     // Convert boost direction to direction index:
     // 0 = UP (y=-1), 1 = RIGHT (x=1), 2 = DOWN (y=1), 3 = LEFT (x=-1)
     if (boostDirX == 1 && boostDirY == 0) {
@@ -205,5 +205,3 @@ int boostDirToDirectionIndex(int boostDirX, int boostDirY) {
     }
     return 4; // STAY (default)
 }
-
-} // namespace SpringLogic
