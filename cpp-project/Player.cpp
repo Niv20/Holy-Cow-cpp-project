@@ -10,6 +10,15 @@
 #include "SpecialDoor.h"
 #include "DarkRoom.h"
 
+namespace {
+    constexpr int ADJACENT_DISTANCE = 1;
+    constexpr int DEFAULT_PUSH_FORCE = 1;
+    constexpr int ADJACENT_OFFSETS_COUNT = 4;
+    constexpr int ACTION_KEY_INDEX = 5;
+    constexpr int BOMB_DEFAULT_DELAY = 5;
+    constexpr char NO_CARRIED_ITEM = ' ';
+}
+
 /*      (__)
 '\------(oo)    Constructor
   ||    (__)
@@ -53,17 +62,17 @@ Point originalPos = position;
     // Calculate cooperative force based on actual push direction
     int pushDx = (springBoostTicksLeft > 0) ? boostDirX : position.getDiffX();
     int pushDy = (springBoostTicksLeft > 0) ? boostDirY : position.getDiffY();
-    int appliedForce = (springBoostTicksLeft > 0) ? springBoostSpeed : 1;
+    int appliedForce = (springBoostTicksLeft > 0) ? springBoostSpeed : DEFAULT_PUSH_FORCE;
     for (auto& other : game.getPlayersMutable()) {
         if (&other == this) continue;
         if (other.getRoomIdx() != currentRoomIdx) continue;
         Point op = other.getPosition();
-        bool adjacent = (abs(op.getX() - position.getX()) + abs(op.getY() - position.getY())) == 1;
+        bool adjacent = (abs(op.getX() - position.getX()) + abs(op.getY() - position.getY())) == ADJACENT_DISTANCE;
         if (!adjacent) continue;
         int otherPushDx = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirX() : other.getPosition().getDiffX();
         int otherPushDy = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirY() : other.getPosition().getDiffY();
         if (otherPushDx == pushDx && otherPushDy == pushDy && !(pushDx == 0 && pushDy == 0)) {
-            int otherForce = (other.getSpringBoostTicksLeft() > 0) ? other.getSpringBoostSpeed() : 1;
+            int otherForce = (other.getSpringBoostTicksLeft() > 0) ? other.getSpringBoostSpeed() : DEFAULT_PUSH_FORCE;
             appliedForce += otherForce;
         }
     }
@@ -173,7 +182,7 @@ Point originalPos = position;
                 // Check adjacency relative to NEXT position (where we're moving to)
                 // This is key: both players are moving forward, so we need to check
                 // if they'll be adjacent at the obstacle, not at current positions
-                bool adjacentToNext = (abs(op.getX() - next.getX()) + abs(op.getY() - next.getY())) == 1;
+                bool adjacentToNext = (abs(op.getX() - next.getX()) + abs(op.getY() - next.getY())) == ADJACENT_DISTANCE;
                 
                 // Also check if other player will be adjacent to next after their boost step
                 bool willBeAdjacentToNext = false;
@@ -181,7 +190,7 @@ Point originalPos = position;
                     Point predictedOtherPos = op;
                     predictedOtherPos.setX(predictedOtherPos.getX() + other.getBoostDirX());
                     predictedOtherPos.setY(predictedOtherPos.getY() + other.getBoostDirY());
-                    willBeAdjacentToNext = (abs(predictedOtherPos.getX() - next.getX()) + abs(predictedOtherPos.getY() - next.getY())) == 1;
+                    willBeAdjacentToNext = (abs(predictedOtherPos.getX() - next.getX()) + abs(predictedOtherPos.getY() - next.getY())) == ADJACENT_DISTANCE;
                 }
                 
                 if (!adjacentToNext && !willBeAdjacentToNext) continue;
@@ -189,7 +198,7 @@ Point originalPos = position;
                 int otherPushDx = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirX() : other.getPosition().getDiffX();
                 int otherPushDy = (other.getSpringBoostTicksLeft() > 0) ? other.getBoostDirY() : other.getPosition().getDiffY();
                 if (otherPushDx == boostDirX && otherPushDy == boostDirY && !(boostDirX == 0 && boostDirY == 0)) {
-                    int otherForce = (other.getSpringBoostTicksLeft() > 0) ? other.getSpringBoostSpeed() : 1;
+                    int otherForce = (other.getSpringBoostTicksLeft() > 0) ? other.getSpringBoostSpeed() : DEFAULT_PUSH_FORCE;
                     stepForce += otherForce;
                 }
             }
@@ -236,7 +245,7 @@ Point originalPos = position;
                 }
             } else if (Glyph::isBomb(tile)) {
                 if (canTakeObject()) {
-                    setCarried('@');
+                    setCarried(static_cast<char>(Glyph::Bomb));
                     currentScreen.setCharAt(position, Glyph::Empty);
                     currentScreen.refreshCell(position);
                     // Remove bomb from active bombs list (reset timer)
@@ -244,7 +253,7 @@ Point originalPos = position;
                 }
             } else if (Glyph::isTorch(tile)) {
                 if (canTakeObject()) {
-                    setCarried('!');
+                    setCarried(static_cast<char>(Glyph::Torch));
                     currentScreen.setCharAt(position, Glyph::Empty);
                     currentScreen.refreshCell(position);
                 }
@@ -301,7 +310,7 @@ Point originalPos = position;
             }
         } else if (Glyph::isBomb(tile)) {
             if (canTakeObject()) {
-                setCarried('@');
+                setCarried(static_cast<char>(Glyph::Bomb));
                 currentScreen.setCharAt(position, Glyph::Empty);
                 currentScreen.refreshCell(position);
                 // Remove bomb from active bombs list (reset timer)
@@ -309,7 +318,7 @@ Point originalPos = position;
             }
         } else if (Glyph::isTorch(tile)) {
             if (canTakeObject()) {
-                setCarried('!');
+                setCarried(static_cast<char>(Glyph::Torch));
                 currentScreen.setCharAt(position, Glyph::Empty);
                 currentScreen.refreshCell(position);
             }
@@ -463,9 +472,9 @@ Point originalPos = position;
                         // Allow passing through - teleportation will happen after movement
                         position = targetPos;
                         blocked = false;
-                    } else if (getCarried() != ' ' && door->useKey(Key(getCarried()))) {
+                    } else if (getCarried() != NO_CARRIED_ITEM && door->useKey(Key(getCarried()))) {
                         // Consume the key but do NOT remove door or pass through yet
-                        setCarried(' ');
+                        setCarried(NO_CARRIED_ITEM);
                         blocked = true; // still blocked until all conditions met
                     } else {
                         blocked = true; // Blocked until conditions met
@@ -510,7 +519,7 @@ Point originalPos = position;
                     position = targetPos;
                     currentScreen.setCharAt(position, Glyph::Empty);
                     currentScreen.refreshCell(position);
-                    setCarried(' ');
+                    setCarried(NO_CARRIED_ITEM);
                 } else {
                     blocked = true;
                 }
@@ -524,7 +533,7 @@ Point originalPos = position;
             } else if (Glyph::isBomb(tile)) {
                 position = targetPos;
                 if (canTakeObject()) {
-                    setCarried('@');
+                    setCarried(static_cast<char>(Glyph::Bomb));
                     currentScreen.setCharAt(position, Glyph::Empty);
                     currentScreen.refreshCell(position);
                     // Remove bomb from active bombs list (reset timer)
@@ -533,7 +542,7 @@ Point originalPos = position;
             } else if (Glyph::isTorch(tile)) {
                 position = targetPos;
                 if (canTakeObject()) {
-                    setCarried('!');
+                    setCarried(static_cast<char>(Glyph::Torch));
                     currentScreen.setCharAt(position, Glyph::Empty);
                     currentScreen.refreshCell(position);
                 }
@@ -571,7 +580,7 @@ Point originalPos = position;
     // Item drop/pickup handling
     if (actionRequested) {
         char held = getCarried();
-        if (held != ' ') {
+        if (held != NO_CARRIED_ITEM) {
             bool dropped = false;
             Point p = position;
             if (position.getDiffX() != 0 || position.getDiffY() != 0) {
@@ -584,26 +593,26 @@ Point originalPos = position;
                     if (currentScreen.getCharAt(drop) == Glyph::Empty) {
                         currentScreen.setCharAt(drop, (wchar_t)held);
                         currentScreen.refreshCell(drop);
-                        setCarried(' ');
+                        setCarried(NO_CARRIED_ITEM);
                         dropped = true;
                         // If dropped bomb, activate it (start countdown)
-                        if (held == '@') {
-                            game.placeBomb(currentRoomIdx, drop, 5);
+                        if (held == static_cast<char>(Glyph::Bomb)) {
+                            game.placeBomb(currentRoomIdx, drop, BOMB_DEFAULT_DELAY);
                         }
                     }
                 }
             }
             if (!dropped) {
-                Point candidates[4] = { Point(p.getX(), p.getY() - 1), Point(p.getX(), p.getY() + 1), Point(p.getX() + 1, p.getY()), Point(p.getX() - 1, p.getY()) };
+                Point candidates[ADJACENT_OFFSETS_COUNT] = { Point(p.getX(), p.getY() - 1), Point(p.getX(), p.getY() + 1), Point(p.getX() + 1, p.getY()), Point(p.getX() - 1, p.getY()) };
                 for (auto& q : candidates) {
                     if (q.getX() >= 0 && q.getX() < Screen::MAX_X && q.getY() >= 0 && q.getY() < Screen::MAX_Y && currentScreen.getCharAt(q) == Glyph::Empty) {
                         currentScreen.setCharAt(q, (wchar_t)held);
                         currentScreen.refreshCell(q);
-                        setCarried(' ');
+                        setCarried(NO_CARRIED_ITEM);
                         dropped = true;
                         // If dropped bomb, activate it (start countdown)
-                        if (held == '@') {
-                            game.placeBomb(currentRoomIdx, q, 5);
+                        if (held == static_cast<char>(Glyph::Bomb)) {
+                            game.placeBomb(currentRoomIdx, q, BOMB_DEFAULT_DELAY);
                         }
                         break;
                     }
@@ -625,17 +634,17 @@ Point originalPos = position;
     }
 
     // After movement and item handling, auto-use key on adjacent special door
-    if (getCarried() != ' ') {
-        static const int adjDx[4] = { 1, -1, 0, 0 };
-        static const int adjDy[4] = { 0, 0, 1, -1 };
-        for (int i = 0; i < 4; ++i) {
+    if (getCarried() != NO_CARRIED_ITEM) {
+        static const int adjDx[ADJACENT_OFFSETS_COUNT] = { 1, -1, 0, 0 };
+        static const int adjDy[ADJACENT_OFFSETS_COUNT] = { 0, 0, 1, -1 };
+        for (int i = 0; i < ADJACENT_OFFSETS_COUNT; ++i) {
             Point adj(position.getX() + adjDx[i], position.getY() + adjDy[i]);
             if (adj.getX() < 0 || adj.getX() >= Screen::MAX_X || adj.getY() < 0 || adj.getY() >= Screen::MAX_Y) continue;
             wchar_t ch = currentScreen.getCharAt(adj);
             if (Glyph::isSpecialDoor(ch)) {
                 auto* door = game.findSpecialDoorAt(currentRoomIdx, adj);
                 if (door && door->useKey(Key(getCarried()))) {
-                    setCarried(' ');
+                    setCarried(NO_CARRIED_ITEM);
                     break; // consumed one key; door remains until conditions met
                 }
             }
@@ -657,7 +666,7 @@ void Player::handleKey(char key) {
     for (int i = 0; i < NUM_KEYS; i++) {
         if (std::tolower(key) == std::tolower(keys[i])) {
             position.setDirection(intToMoveDirection(i));
-            if (i == 5) actionRequested = true;
+            if (i == ACTION_KEY_INDEX) actionRequested = true;
             return;
         }
     }

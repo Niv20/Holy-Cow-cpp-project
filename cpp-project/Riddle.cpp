@@ -14,6 +14,12 @@ using std::vector;
 using std::string;
 using std::map;
 
+namespace {
+    constexpr int MAX_QUESTION_DISPLAY_LENGTH = 45;
+    constexpr char ANSWER_MIN_KEY = '1';
+    constexpr char ANSWER_MAX_KEY = '4';
+}
+
 Riddle::Riddle() : correctAnswer('1'), points(100)
 {
     question[0] = '\0';
@@ -53,10 +59,10 @@ vector<string> Riddle::buildRiddleScreen(const vector<string>& templateScreen) c
 
     // Place question at its designated position
     string questionText(question);
-    if (questionText.length() > 45) {
-        questionText.resize(45);
+    if (questionText.length() > MAX_QUESTION_DISPLAY_LENGTH) {
+        questionText.resize(MAX_QUESTION_DISPLAY_LENGTH);
     }
-    placeTextAt(QUESTION_ROW, QUESTION_COL, questionText, 45);
+    placeTextAt(QUESTION_ROW, QUESTION_COL, questionText, MAX_QUESTION_DISPLAY_LENGTH);
 
     // Place answers at their designated positions
     placeTextAt(ANSWER1_ROW, ANSWER1_COL, string(answer1), MAX_ANSWER_LENGTH);
@@ -126,7 +132,7 @@ void Riddle::handleEncounter(Player& player,
             answer = _getch();
             
             // ESC - cancel riddle
-            if (answer == 27) { 
+            if (answer == ESC_KEY) { 
                 Point prevPos = pos; 
                 if (pos.getDiffX()) prevPos.setX(prevPos.getX() - pos.getDiffX()); 
                 if (pos.getDiffY()) prevPos.setY(prevPos.getY() - pos.getDiffY()); 
@@ -135,7 +141,7 @@ void Riddle::handleEncounter(Player& player,
                 break; 
             }
             // Answer 1-4
-            else if (answer >= '1' && answer <= '4') {
+            else if (answer >= ANSWER_MIN_KEY && answer <= ANSWER_MAX_KEY) {
                 if (answer == riddle->getCorrectAnswer()) { 
                     // Correct answer
                     game.addPoints(riddle->getPoints());

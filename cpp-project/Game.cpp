@@ -25,6 +25,14 @@ using std::queue;
 using std::pair;
 using std::set;
 
+namespace {
+    constexpr char PAUSE_EXIT_KEY_UPPER = 'H';
+    constexpr char PAUSE_EXIT_KEY_LOWER = 'h';
+    constexpr wchar_t OVERLAP_ICON = L'O';
+    constexpr char NO_INVENTORY_ITEM = ' ';
+    constexpr char TORCH_CHAR = static_cast<char>(Glyph::Torch);
+}
+
 
 /*      (__)
 '\------(oo)    Constructor
@@ -199,8 +207,8 @@ void Game::handlePause() {
 
 
 void Game::refreshLegend() {
-    char p1Inv = players.size() > 0 ? players[0].getCarried() : ' ';
-    char p2Inv = players.size() > 1 ? players[1].getCarried() : ' ';
+    char p1Inv = players.size() > 0 ? players[0].getCarried() : NO_INVENTORY_ITEM;
+    char p2Inv = players.size() > 1 ? players[1].getCarried() : NO_INVENTORY_ITEM;
     legend.drawLegend(visibleRoomIdx, heartsCount, pointsCount, p1Inv, p2Inv);
 }
 
@@ -232,7 +240,7 @@ void Game::drawPlayers() {
                 HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
                 COORD c{ (SHORT)pos.getX(), (SHORT)pos.getY() };
                 SetConsoleCursorPosition(hOut, c);
-                wchar_t combined = L'O'; // Simple ASCII char to show both players (works on all systems)
+                wchar_t combined = OVERLAP_ICON; // Simple ASCII char to show both players (works on all systems)
                 DWORD written;
                 WriteConsoleW(hOut, &combined, 1, &written, nullptr);
             } else {
@@ -334,8 +342,8 @@ if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
 
         bool beforeInRoom = before.roomIdx == visibleRoomIdx;
         bool afterInRoom = after.getRoomIdx() == visibleRoomIdx;
-        bool beforeTorch = before.carried == '!';
-        bool afterTorch = after.getCarried() == '!';
+        bool beforeTorch = before.carried == TORCH_CHAR;
+        bool afterTorch = after.getCarried() == TORCH_CHAR;
 
         // Any movement of a player currently in the room requires redraw (players are drawn via darkness layer)
         if (beforeInRoom || afterInRoom) {

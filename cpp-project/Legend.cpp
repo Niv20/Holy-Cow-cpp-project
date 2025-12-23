@@ -5,9 +5,19 @@
 #include "Screen.h"
 #include "Point.h"
 
+namespace {
+    constexpr char LEGEND_ANCHOR_CHAR = 'L';
+    constexpr int LEGEND_BUFFER_SIZE = 32;
+    constexpr int LEGEND_LINE_WIDTH = 16;
+    constexpr int INVALID_LEGEND_POSITION = -1;
+    constexpr wchar_t PLAYER_ONE_ICON = L'\x263A';
+    constexpr wchar_t PLAYER_TWO_ICON = L'\x263B';
+    constexpr char EMPTY_INVENTORY_SLOT = ' ';
+}
+
 void Legend::ensureRooms(size_t count) { 
     if (roomLegendPos.size() < count) 
-        roomLegendPos.resize(count, Point{ -1, -1 }); 
+        roomLegendPos.resize(count, Point{ INVALID_LEGEND_POSITION, INVALID_LEGEND_POSITION }); 
 }
 
 void Legend::locateLegendForRoom(int roomIdx, const Screen& s) {
@@ -20,13 +30,13 @@ void Legend::locateLegendForRoom(int roomIdx, const Screen& s) {
     for (int y = 0; y < Screen::MAX_Y; ++y) {
         for (int x = 0; x < Screen::MAX_X; ++x) {
             Point p{ x, y }; 
-            if (s.getCharAt(p) == 'L') {
+            if (s.getCharAt(p) == LEGEND_ANCHOR_CHAR) {
                 roomLegendPos[roomIdx] = p; 
                 return;
             }
         }
     }
-    roomLegendPos[roomIdx] = Point{ -1, -1 }; // not found
+    roomLegendPos[roomIdx] = Point{ INVALID_LEGEND_POSITION, INVALID_LEGEND_POSITION }; // not found
 }
 
 
@@ -35,9 +45,9 @@ void Legend::drawAnchor(int roomIdx) const {
     if (roomIdx < 0 || roomIdx >= (int)roomLegendPos.size()) 
         return;
     Point tl = roomLegendPos[roomIdx]; 
-    if (tl.getX() < 0 || tl.getY() < 0) 
+    if (tl.getX() == INVALID_LEGEND_POSITION || tl.getY() == INVALID_LEGEND_POSITION) 
         return;
-    tl.draw('L');
+    tl.draw(LEGEND_ANCHOR_CHAR);
 }
 
 // Written by AI
@@ -52,23 +62,23 @@ void Legend::drawLegend(int roomIdx, int lives, int points, char p1Inv, char p2I
     // anchor is top-left
     Point origin(tl.getX(), tl.getY());
 
-    char line1[32];
-    char line2[32];
+    char line1[LEGEND_BUFFER_SIZE];
+    char line2[LEGEND_BUFFER_SIZE];
 
     snprintf(line1, sizeof(line1), "live: %d", lives);
     snprintf(line2, sizeof(line2), "Pts: %d", points);
 
     // Build line 3 with Unicode player icons using wide strings
-    wchar_t wline3[32];
-    swprintf(wline3, 32, L"Inv: %lc=[%c] %lc=[%c]", 
-             L'\x263A', p1Inv == ' ' ? ' ' : p1Inv, 
-             L'\x263B', p2Inv == ' ' ? ' ' : p2Inv);
+    wchar_t wline3[LEGEND_BUFFER_SIZE];
+    swprintf(wline3, LEGEND_BUFFER_SIZE, L"Inv: %lc=[%c] %lc=[%c]", 
+             PLAYER_ONE_ICON, p1Inv == EMPTY_INVENTORY_SLOT ? EMPTY_INVENTORY_SLOT : p1Inv, 
+             PLAYER_TWO_ICON, p2Inv == EMPTY_INVENTORY_SLOT ? EMPTY_INVENTORY_SLOT : p2Inv);
 
     auto pad16 = [](std::string& s) {
-        if (s.size() < 16)
-            s.append(16 - s.size(), ' ');
-        else if (s.size() > 16)
-            s.resize(16);
+        if (s.size() < LEGEND_LINE_WIDTH)
+            s.append(LEGEND_LINE_WIDTH - s.size(), ' ');
+        else if (s.size() > LEGEND_LINE_WIDTH)
+            s.resize(LEGEND_LINE_WIDTH);
     };
 
     std::string l1(line1), l2(line2); 
@@ -76,7 +86,7 @@ void Legend::drawLegend(int roomIdx, int lives, int points, char p1Inv, char p2I
     pad16(l2);
 
     auto putLine = [&](int dy, const std::string& line) {
-        for (int i = 0; i < 16; ++i) {
+        for (int i = 0; i < LEGEND_LINE_WIDTH; ++i) {
             Point p(origin.getX() + i, origin.getY() + dy);
             if (p.getX() >= 0 && p.getX() < Screen::MAX_X && p.getY() >= 0 && p.getY() < Screen::MAX_Y) {
                 p.draw(line[i]);
@@ -87,7 +97,7 @@ void Legend::drawLegend(int roomIdx, int lives, int points, char p1Inv, char p2I
     auto putWideLine = [&](int dy, const wchar_t* wline) {
         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
         int len = (int)wcslen(wline);
-        if (len > 16) len = 16;
+        if (len > LEGEND_LINE_WIDTH) len = LEGEND_LINE_WIDTH;
         for (int i = 0; i < len; ++i) {
             Point p(origin.getX() + i, origin.getY() + dy);
             if (p.getX() >= 0 && p.getX() < Screen::MAX_X && p.getY() >= 0 && p.getY() < Screen::MAX_Y) {

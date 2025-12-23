@@ -18,6 +18,12 @@ namespace fs = std::filesystem;
 // Static caches for UI templates
 // ============================================
 namespace {
+    constexpr char START_MENU_NEW_GAME_KEY = '1';
+    constexpr char START_MENU_CONTINUE_KEY = '2';
+    constexpr char START_MENU_INSTRUCTIONS_KEY = '8';
+    constexpr char START_MENU_EXIT_KEY = '9';
+    constexpr DWORD MENU_POLL_DELAY_MS = 180;
+
     vector<string> g_riddleTemplate;
     vector<string> g_pauseTemplate;
 }
@@ -140,20 +146,20 @@ MenuAction Menu::showStartMenu() {
         if (_kbhit()) {
             char key = _getch();
             switch (key) {
-                case '1':
+                case START_MENU_NEW_GAME_KEY:
                     return MenuAction::NewGame;
-                case '2':
+                case START_MENU_CONTINUE_KEY:
                     // TODO: TARGIL 3!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                     break;
-                case '8':
+                case START_MENU_INSTRUCTIONS_KEY:
                     return MenuAction::Instructions;
-                case '9':
+                case START_MENU_EXIT_KEY:
                     // Exit: clear screen, print goodbye art, then exit program
                     printGoodbyeArt();
                     return MenuAction::Exit;
             }
         }
-        Sleep(180);
+        Sleep(MENU_POLL_DELAY_MS);
     }
 }
 
@@ -174,7 +180,7 @@ if (instructionsScreen.empty()) {
             (void)_getch();
             return;
         }
-        Sleep(180);
+        Sleep(MENU_POLL_DELAY_MS);
     }
 }
 
@@ -201,7 +207,7 @@ void Menu::showLoseScreen() {
             (void)_getch();
             return;
         }
-        Sleep(180);
+        Sleep(MENU_POLL_DELAY_MS);
     }
 }
 
@@ -229,6 +235,6 @@ void Menu::showWinScreen() {
             (void)_getch();
             return;
         }
-        Sleep(180);
+        Sleep(MENU_POLL_DELAY_MS);
     }
 }
