@@ -71,4 +71,14 @@ public:
     
 private:
     void releaseSpring(Screen& currentScreen, class Game& game);
+    
+    // Helper methods for move() - split for readability
+    int calculateCooperativeForce(class Game& game) const;
+    bool handleSpringPerpendicularMove(Screen& currentScreen, class Game& game, const Point& originalPos, int moveDx, int moveDy);
+    bool processBoostMovement(Screen& currentScreen, class Game& game, const Point& originalPos);
+    void tryCollectItem(Screen& currentScreen, class Game& game, wchar_t tile);
+    bool processNormalMovement(Screen& currentScreen, class Game& game, const Point& originalPos, int appliedForce);
+    void handleItemAction(Screen& currentScreen, class Game& game);
+    void handleAdjacentDoorKeys(Screen& currentScreen, class Game& game);
+    void handleTeleportation(Screen& currentScreen, class Game& game);
 };

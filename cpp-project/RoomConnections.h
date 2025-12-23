@@ -5,7 +5,7 @@
 
 // Forward declaration
 class Screen;
-struct ScreenMetadata;
+class ScreenMetadata;
 
 // Directions for room transitions
 enum class Direction {

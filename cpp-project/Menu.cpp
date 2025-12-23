@@ -198,8 +198,7 @@ void Menu::showLoseScreen() {
     screen.draw();
     
     // Flush keyboard buffer to avoid consuming stale input
-    while (_kbhit()) {
-        _getch();
+    while (_kbhit()) { (void)_getch();
     }
     
     while (true) {
@@ -226,8 +225,7 @@ void Menu::showWinScreen() {
     screen.draw();
     
     // Flush keyboard buffer to avoid consuming stale input
-    while (_kbhit()) {
-        _getch();
+    while (_kbhit()) { (void)_getch();
     }
     
     while (true) {

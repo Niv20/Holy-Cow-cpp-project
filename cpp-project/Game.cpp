@@ -95,7 +95,7 @@ while (!exitProgram) {
                 if (!game.isRunning) {
                     // Game failed to initialize, show error and return to menu
                     std::cerr << "Press any key to return to menu..." << std::endl;
-                    _getch();
+                    (void)_getch();
                 } else {
                     game.start();
                 }
