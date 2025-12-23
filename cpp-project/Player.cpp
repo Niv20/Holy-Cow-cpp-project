@@ -34,7 +34,7 @@ void Player::draw() const {
 }
 
 void Player::stop() {
-    position.setDirection(4);
+    position.setDirection(MoveDirection::Stay);
 }
 
 void Player::move(Screen& currentScreen, Game& game) {
@@ -44,7 +44,7 @@ movedThisFrame = false;
 // Check if player reached final room - if so, prevent all movement
 if (currentRoomIdx == FINAL_ROOM_INDEX) {
     // Player reached final room - cannot move anymore
-    position.setDirection(4); // Force STAY
+    position.setDirection(MoveDirection::Stay);
     return;
 }
     
@@ -275,7 +275,7 @@ Point originalPos = position;
             springBoostSpeed = 0;
             boostDirX = 0;
             boostDirY = 0;
-            position.setDirection(4); // Force STAY
+            position.setDirection(MoveDirection::Stay);
         } else {
             springBoostTicksLeft--;
             if (springBoostTicksLeft == 0) {
@@ -283,7 +283,7 @@ Point originalPos = position;
                 springBoostSpeed = 0;
                 // Keep the direction active: convert boost direction to direction index
                 int dirIndex = SpringLogic::boostDirToDirectionIndex(boostDirX, boostDirY);
-                position.setDirection(dirIndex);
+                position.setDirection(intToMoveDirection(dirIndex));
                 // Clear boost direction variables
                 boostDirX = 0;
                 boostDirY = 0;
@@ -383,7 +383,7 @@ Point originalPos = position;
                 // else stay at original position
                 
                 // Force STAY - stop movement
-                position.setDirection(4);
+                position.setDirection(MoveDirection::Stay);
                 
                 // Refresh cells
                 currentScreen.refreshCell(originalPos);
@@ -656,7 +656,7 @@ Point originalPos = position;
 void Player::handleKey(char key) {
     for (int i = 0; i < NUM_KEYS; i++) {
         if (std::tolower(key) == std::tolower(keys[i])) {
-            position.setDirection(i);
+            position.setDirection(intToMoveDirection(i));
             if (i == 5) actionRequested = true;
             return;
         }
@@ -676,7 +676,7 @@ void Player::inheritSpringLaunch(int speed, int ticks, int dirX, int dirY) {
     currentSpring = nullptr;
     compressedCount = 0;
     // Clear movement direction to prevent interference
-    position.setDirection(4); // STAY
+    position.setDirection(MoveDirection::Stay);
 }
 
 void Player::releaseSpring(Screen& currentScreen, Game& game) {

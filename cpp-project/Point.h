@@ -3,6 +3,26 @@
 
 // This file is based on Amir's tirgol
 
+// Movement direction for Point
+enum class MoveDirection {
+    Up = 0,
+    Right = 1,
+    Down = 2,
+    Left = 3,
+    Stay = 4
+};
+
+// Helper function to convert int to MoveDirection
+inline MoveDirection intToMoveDirection(int dir) {
+    switch (dir) {
+        case 0: return MoveDirection::Up;
+        case 1: return MoveDirection::Right;
+        case 2: return MoveDirection::Down;
+        case 3: return MoveDirection::Left;
+        default: return MoveDirection::Stay;
+    }
+}
+
 class Point {
 private:
     int x_ = 1;
@@ -28,8 +48,8 @@ public:
 
     void move() { x_ += diff_x_; y_ += diff_y_; }
 
-    // Sets the direction based on keyboard input (0=UP, 1=RIGHT, etc.)
-    void setDirection(int dir);
+    // Sets the direction based on keyboard input
+    void setDirection(MoveDirection dir);
 
     void draw(char ch) const {
         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);

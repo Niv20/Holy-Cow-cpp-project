@@ -132,7 +132,7 @@ void SpringLogic::releaseSpring(Player& player, SpringData* spring, int compress
     // If hit obstacle, complete STAY - no boost, no direction
     if (hitObstacle) {
         player.inheritSpringLaunch(0, 0, 0, 0);
-        position.setDirection(4); // Force STAY
+        position.setDirection(MoveDirection::Stay);
         player.setPosition(position);
     } else {
         // SECOND: Set up boost for compressedCount² cycles (after the initial jump)
