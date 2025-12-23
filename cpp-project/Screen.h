@@ -15,7 +15,7 @@
 class Legend;
 class RoomConnections;
 class Riddle;
-struct RiddleKey;
+class RiddleKey;
 
 class Screen {
 public:

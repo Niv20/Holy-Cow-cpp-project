@@ -5,7 +5,8 @@
 SwitchData* SwitchData::findAt(Screen& screen, const Point& p) {
     auto& data = screen.getDataMutable();
     for (auto& sw : data.switches) {
-        if (sw.pos.x == p.x && sw.pos.y == p.y) {
+        Point swPos = sw.getPos();
+        if (swPos.x == p.x && swPos.y == p.y) {
             return &sw;
         }
     }

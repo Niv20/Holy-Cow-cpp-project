@@ -2,21 +2,22 @@
 #include "Screen.h"
 #include "Glyph.h"
 
-PressureButton::PressureButton(int room, Point p) : roomIdx(room), pos(p) {}
+PressureButton::PressureButton(int room, Point p) : roomIdx_(room), pos_(p) {}
 
 void PressureButton::setTargets(const std::vector<Point>& points, const Screen& screen) {
-    targets.clear();
-    targets.reserve(points.size());
+    targets_.clear();
+    targets_.reserve(points.size());
     for (const auto& pt : points) {
         wchar_t original = screen.getCharAt(pt);
-        targets.emplace_back(pt, original == 0 ? Glyph::Empty : original);
+        targets_.emplace_back(pt, original == 0 ? Glyph::Empty : original);
     }
 }
 
 PressureButton* PressureButton::findAt(Screen& screen, const Point& p) {
     auto& data = screen.getDataMutable();
     for (auto& sw : data.pressureButtons) {
-        if (sw.pos.x == p.x && sw.pos.y == p.y) {
+        Point swPos = sw.getPos();
+        if (swPos.x == p.x && swPos.y == p.y) {
             return &sw;
         }
     }

@@ -22,14 +22,18 @@ bool Obstacle::canPush(int dx, int dy, int force, Game& game, int speed) const {
     // Build a quick lookup of current cells positions per room to allow self-overlap during move
     // (when translating rigidly, interior cells move into positions vacated by other cells of the same obstacle)
     auto isOwnCellAt = [&](int room, const Point& p) -> bool {
-        for (const auto& c : cells) if (c.roomIdx == room && c.pos.x == p.x && c.pos.y == p.y) return true; return false;
+        for (const auto& c : cells) {
+            if (c.getRoomIdx() == room && c.getPos().x == p.x && c.getPos().y == p.y) 
+                return true;
+        }
+        return false;
     };
 
     // Check every cell's destination is valid for the entire speed distance
-    for (auto& c : cells) {
-        int nx = c.pos.x + dx * speed; // multiply by speed
-        int ny = c.pos.y + dy * speed;
-        int room = c.roomIdx;
+    for (const auto& c : cells) {
+        int nx = c.getPos().x + dx * speed; // multiply by speed
+        int ny = c.getPos().y + dy * speed;
+        int room = c.getRoomIdx();
 
         // Handle crossing room borders: obstacles can cross rooms
         // Note: multi-step may cross multiple rooms, but for simplicity we handle one crossing
@@ -81,17 +85,17 @@ bool Obstacle::canPush(int dx, int dy, int force, Game& game, int speed) const {
 // Written by AI!!!!!!!! Thanks ChatGPT
 void Obstacle::applyPush(int dx, int dy, Game& game, int speed) {
     // Refresh-aware erase of old cells
-    for (auto& c : cells) {
-        Screen& s = game.getScreen(c.roomIdx);
-        s.setCharAt(c.pos, Glyph::Empty);
-        s.refreshCell(c.pos); // update console immediately so obstacle doesn't appear "swallowed"
+    for (const auto& c : cells) {
+        Screen& s = game.getScreen(c.getRoomIdx());
+        s.setCharAt(c.getPos(), Glyph::Empty);
+        s.refreshCell(c.getPos()); // update console immediately so obstacle doesn't appear "swallowed"
     }
 
     // Perform movement by speed steps, including room crossing
     for (auto& c : cells) {
-        int nx = c.pos.x + dx * speed; // multiply by speed
-        int ny = c.pos.y + dy * speed;
-        int room = c.roomIdx;
+        int nx = c.getPos().x + dx * speed; // multiply by speed
+        int ny = c.getPos().y + dy * speed;
+        int room = c.getRoomIdx();
 
         if (nx < 0 || nx >= Screen::MAX_X || ny < 0 || ny >= Screen::MAX_Y) {
             Direction d = dirFromDelta(dx, dy);
@@ -105,19 +109,18 @@ void Obstacle::applyPush(int dx, int dy, Game& game, int speed) {
             room = targetRoom;
         }
 
-        c.pos.x = nx;
-        c.pos.y = ny;
-        c.roomIdx = room;
+        c.setPos(Point(nx, ny));
+        c.setRoomIdx(room);
     }
 
     // Draw obstacle at new positions only if in visible room
     int visibleRoom = game.getVisibleRoomIdx();
-    for (auto& c : cells) {
-        Screen& s = game.getScreen(c.roomIdx);
-        s.setCharAt(c.pos, Glyph::Obstacle);
+    for (const auto& c : cells) {
+        Screen& s = game.getScreen(c.getRoomIdx());
+        s.setCharAt(c.getPos(), Glyph::Obstacle);
         // Only refresh if this cell is in the currently visible room
-        if (c.roomIdx == visibleRoom) {
-            s.refreshCell(c.pos);
+        if (c.getRoomIdx() == visibleRoom) {
+            s.refreshCell(c.getPos());
         }
         // If not visible, it will be drawn when room is switched
     }
@@ -167,7 +170,7 @@ void Obstacle::scanAllObstacles(std::vector<Screen>& world, const RoomConnection
                     q.pop();
                     int cr = cur.first;
                     Point cp = cur.second;
-                    component.push_back({ cr, cp });
+                    component.push_back(ObCell(cr, cp));
                     
                     const int dx[4] = { 1, -1, 0, 0 };
                     const int dy[4] = { 0, 0, 1, -1 };
@@ -202,7 +205,7 @@ void Obstacle::scanAllObstacles(std::vector<Screen>& world, const RoomConnection
 
                 set<int> roomsInvolved;
                 for (const auto& cell : component) {
-                    roomsInvolved.insert(cell.roomIdx);
+                    roomsInvolved.insert(cell.getRoomIdx());
                 }
                 for (int involvedRoom : roomsInvolved) {
                     world[involvedRoom].getDataMutable().obstacles.push_back(obs);

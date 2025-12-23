@@ -63,8 +63,8 @@ public:
     std::vector<Player>& getPlayersMutable() { return players; }
 
     Obstacle* findObstacleAt(int roomIdx, const Point& p);
-    struct SpringData* findSpringAt(int roomIdx, const Point& p);
-    struct SwitchData* findSwitchAt(int roomIdx, const Point& p);
+    class SpringData* findSpringAt(int roomIdx, const Point& p);
+    class SwitchData* findSwitchAt(int roomIdx, const Point& p);
     SpecialDoor* findSpecialDoorAt(int roomIdx, const Point& p);
 
     int getVisibleRoomIdx() const { return visibleRoomIdx; }

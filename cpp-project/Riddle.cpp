@@ -62,7 +62,7 @@ vector<string> Riddle::buildRiddleScreen(const vector<string>& templateScreen) c
 void Riddle::scanAllRiddles(map<RiddleKey, Riddle*>& riddlesByPosition) {
     vector<RiddleData> riddles = initRiddles();
     for (auto& rd : riddles) {
-        RiddleKey key{ rd.roomIdx, rd.position.x, rd.position.y };
+        RiddleKey key(rd.roomIdx, rd.position.x, rd.position.y);
         riddlesByPosition[key] = new Riddle(rd.riddle);
     }
 }
@@ -75,14 +75,14 @@ void Riddle::handleEncounter(Player& player,
     Point pos = player.getPosition();
 
     // Find the riddle at this position
-    RiddleKey exactKey{ roomIdx, pos.x, pos.y };
+    RiddleKey exactKey(roomIdx, pos.x, pos.y);
     Riddle* riddle = nullptr;
 
     if (riddlesByPosition.find(exactKey) != riddlesByPosition.end()) {
         riddle = riddlesByPosition[exactKey];
     } else {
         for (auto& pair : riddlesByPosition) {
-            if (pair.first.roomIdx == roomIdx) { 
+            if (pair.first.getRoomIdx() == roomIdx) { 
                 riddle = pair.second; 
                 break; 
             }

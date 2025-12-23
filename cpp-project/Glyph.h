@@ -5,29 +5,29 @@ class Glyph {
 public:
     // Basic glyphs (ASCII subset)
     static inline constexpr wchar_t Empty = L' ';
-    static inline constexpr wchar_t First_Player = L'\x263A'; // ☺ (White Smiling Face)
-    static inline constexpr wchar_t Second_Player = L'\x263B'; // ☻ (Black Smiling Face)
+    static inline constexpr wchar_t First_Player = L'\x263A';   // ☺
+    static inline constexpr wchar_t Second_Player = L'\x263B';  // ☻
 
     // Collectables
     static inline constexpr wchar_t Bomb = L'@';
     static inline constexpr wchar_t Torch = L'!';
     static inline constexpr wchar_t Obstacle = L'*';
-    static inline constexpr wchar_t Spring = L'#'; // new spring glyph
+    static inline constexpr wchar_t Spring = L'#'; 
     static inline constexpr wchar_t Riddle = L'?';
-    static inline constexpr wchar_t Switch_Off = L'0'; // switch OFF state
-    static inline constexpr wchar_t Switch_On = L'1'; // switch ON state
-    static inline constexpr wchar_t PressureSwitch = L'$'; // pressure button that clears walls while held down
+    static inline constexpr wchar_t Switch_Off = L'0'; 
+    static inline constexpr wchar_t Switch_On = L'1'; 
+    static inline constexpr wchar_t PressureSwitch = L'$'; 
 
     // Darkness shading characters (light to dark)
-    static inline constexpr wchar_t Dark_Light = L'\x2591';   // ░ - lightest shade
-    static inline constexpr wchar_t Dark_Medium = L'\x2592';  // ▒ - medium shade  
-    static inline constexpr wchar_t Dark_Heavy = L'\x2593';   // ▓ - heavy shade
-    static inline constexpr wchar_t Dark_Full = L'\x2588';    // █ - full block (complete darkness)
+    static inline constexpr wchar_t Dark_Light = L'\x2591';  // ░
+    static inline constexpr wchar_t Dark_Medium = L'\x2592'; // ▒
+    static inline constexpr wchar_t Dark_Heavy = L'\x2593';  // ▓
+    static inline constexpr wchar_t Dark_Full = L'\x2588';   // █
 
     // Bombable walls (weak walls)
     static inline constexpr wchar_t Bombable_Wall_H = L'-';
     static inline constexpr wchar_t Bombable_Wall_V = L'|';
-    static inline constexpr wchar_t Bombable_Wall_Caret = L'^'; // weak wall (caret)
+    static inline constexpr wchar_t Bombable_Wall_Caret = L'^';
 
     // Unicode box drawing
     static inline constexpr wchar_t Wall_Single_TL = L'\x250C';
@@ -48,7 +48,7 @@ public:
     // Classification methods
     static bool isDoor(wchar_t ch) { return ch >= L'A' && ch <= L'Z'; }
     static bool isKey(wchar_t ch) { return ch >= L'a' && ch <= L'z'; }
-    static bool isRiddle(wchar_t ch) { return ch == Riddle || ch == L'\xFF1F'; } // include fullwidth variant
+    static bool isRiddle(wchar_t ch) { return ch == Riddle || ch == L'\xFF1F'; }
     static bool isBomb(wchar_t ch) { return ch == Bomb; }
     static bool isTorch(wchar_t ch) { return ch == Torch; }
     static bool isBombableWall(wchar_t ch) { return ch == Bombable_Wall_Caret; }

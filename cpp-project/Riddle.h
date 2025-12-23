@@ -3,14 +3,23 @@
 #include <string>
 #include <map>
 
-struct RiddleKey {
-    int roomIdx;
-    int x;
-    int y;
+class RiddleKey {
+private:
+    int roomIdx_;
+    int x_;
+    int y_;
+    
+public:
+    RiddleKey(int room, int px, int py) : roomIdx_(room), x_(px), y_(py) {}
+    
+    int getRoomIdx() const { return roomIdx_; }
+    int getX() const { return x_; }
+    int getY() const { return y_; }
+    
     bool operator<(const RiddleKey& other) const {
-        if (roomIdx != other.roomIdx) return roomIdx < other.roomIdx;
-        if (x != other.x) return x < other.x;
-        return y < other.y;
+        if (roomIdx_ != other.roomIdx_) return roomIdx_ < other.roomIdx_;
+        if (x_ != other.x_) return x_ < other.x_;
+        return y_ < other.y_;
     }
 };
 

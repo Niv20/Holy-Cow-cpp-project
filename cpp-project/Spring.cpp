@@ -26,14 +26,14 @@ void SpringLogic::releaseSpring(Player& player, SpringData* spring, int compress
     int currentRoomIdx = player.getRoomIdx();
     
     // Restore all spring cells visually
-    for (auto& cell : spring->cells) {
+    for (const auto& cell : spring->getCells()) {
         currentScreen.setCharAt(cell, Glyph::Spring);
         currentScreen.refreshCell(cell);
     }
     
     // Launch boost: move at speed 'compressedCount' for 'compressedCount²' game cycles
-    int releaseDirX = spring->dirX;
-    int releaseDirY = spring->dirY;
+    int releaseDirX = spring->getDirX();
+    int releaseDirY = spring->getDirY();
     int speed = compressedCount;
     
     // FIRST: Move the player 'speed' cells immediately (this is the initial release jump)
@@ -169,14 +169,14 @@ int entryIndex, Screen& currentScreen) {
     if (!Glyph::isWall(tile)) return false;
     
     // Check if it's the wall at the end of the spring
-    Point wallPos = spring->wallPos;
+    Point wallPos = spring->getWallPos();
     return (attemptedPos.x == wallPos.x && attemptedPos.y == wallPos.y);
 }
 
 bool SpringLogic::handlePerpendicularMovement(Player& player, SpringData* spring, 
 int moveDx, int moveDy, Screen& currentScreen, Game& game) {
-    int springDirX = spring->dirX;
-    int springDirY = spring->dirY;
+    int springDirX = spring->getDirX();
+    int springDirY = spring->getDirY();
     
     // Check if movement is perpendicular (not along spring axis and not backward)
     bool movingPerpendicular = false;

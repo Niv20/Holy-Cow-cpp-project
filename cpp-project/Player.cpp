@@ -456,7 +456,7 @@ Point originalPos = position;
                 SpecialDoor* door = game.findSpecialDoorAt(currentRoomIdx, targetPos);
                 if (door) {
                     // Check if door is open and is a teleport door
-                    if (door->isOpen && door->targetRoomIdx >= 0) {
+                    if (door->isOpen() && door->getTargetRoomIdx() >= 0) {
                         // Allow passing through - teleportation will happen after movement
                         position = targetPos;
                         blocked = false;
@@ -641,11 +641,11 @@ Point originalPos = position;
     
     // Check for teleportation through opened special door
     SpecialDoor* teleportDoor = game.findSpecialDoorAt(currentRoomIdx, position);
-    if (teleportDoor && teleportDoor->isOpen && teleportDoor->targetRoomIdx >= 0) {
+    if (teleportDoor && teleportDoor->isOpen() && teleportDoor->getTargetRoomIdx() >= 0) {
         // Teleport player to target room and position
         currentScreen.refreshCell(position);
-        currentRoomIdx = teleportDoor->targetRoomIdx;
-        position = teleportDoor->targetPosition;
+        currentRoomIdx = teleportDoor->getTargetRoomIdx();
+        position = teleportDoor->getTargetPosition();
         // Trigger screen change if needed - Game will handle camera in update()
     }
 }

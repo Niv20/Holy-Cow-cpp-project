@@ -12,35 +12,35 @@
 // This file written by AI
 
 bool SpecialDoor::areConditionsMet(Game& game) {
-    if (isOpen) return true;
-    if (keysInserted.size() != requiredKeys.size()) return false;
-    for (const auto& rk : requiredKeys) {
-        auto it = std::find_if(keysInserted.begin(), keysInserted.end(), [&](const Key& k){ return k.equals(rk); });
-        if (it == keysInserted.end()) return false;
+    if (isOpen_) return true;
+    if (keysInserted_.size() != requiredKeys_.size()) return false;
+    for (const auto& rk : requiredKeys_) {
+        auto it = std::find_if(keysInserted_.begin(), keysInserted_.end(), [&](const Key& k){ return k.equals(rk); });
+        if (it == keysInserted_.end()) return false;
     }
-    for (const auto& req : requiredSwitches) {
-        SwitchData* sw = game.findSwitchAt(roomIdx, req.pos);
+    for (const auto& req : requiredSwitches_) {
+        SwitchData* sw = game.findSwitchAt(roomIdx_, req.getPos());
         if (!sw) continue;
-        if (sw->isOn != req.requiredState) return false;
+        if (sw->isOn() != req.getRequiredState()) return false;
     }
-    isOpen = true; return true;
+    isOpen_ = true; return true;
 }
 
 bool SpecialDoor::useKey(const Key& key) {
-    if (isOpen || !key.valid()) return false;
-    auto needed = std::find_if(requiredKeys.begin(), requiredKeys.end(), [&](const Key& k){ return k.equals(key); });
-    if (needed == requiredKeys.end()) return false;
-    auto already = std::find_if(keysInserted.begin(), keysInserted.end(), [&](const Key& k){ return k.equals(key); });
-    if (already != keysInserted.end()) return false;
-    keysInserted.push_back(key); return true;
+    if (isOpen_ || !key.valid()) return false;
+    auto needed = std::find_if(requiredKeys_.begin(), requiredKeys_.end(), [&](const Key& k){ return k.equals(key); });
+    if (needed == requiredKeys_.end()) return false;
+    auto already = std::find_if(keysInserted_.begin(), keysInserted_.end(), [&](const Key& k){ return k.equals(key); });
+    if (already != keysInserted_.end()) return false;
+    keysInserted_.push_back(key); return true;
 }
 
 // Helper: Adjust door position to nearest actual door glyph
 static void adjustDoorPosition(SpecialDoor* d, std::vector<Screen>& world) {
-    if (!d || d->roomIdx < 0 || d->roomIdx >= (int)world.size()) return;
+if (!d || d->getRoomIdx() < 0 || d->getRoomIdx() >= (int)world.size()) return;
     
-    Screen& s = world[d->roomIdx];
-    Point cfg = d->position;
+Screen& s = world[d->getRoomIdx()];
+Point cfg = d->getPosition();
     bool inBounds = (cfg.x >= 0 && cfg.x < Screen::MAX_X && cfg.y >= 0 && cfg.y < Screen::MAX_Y);
     bool atDoor = inBounds && s.getCharAt(cfg) == Glyph::SpecialDoor;
     if (atDoor) return;
@@ -64,10 +64,10 @@ static void adjustDoorPosition(SpecialDoor* d, std::vector<Screen>& world) {
     }
     
     if (found) {
-        d->position = bestPos;
+        d->setPosition(bestPos);
     } else {
         // No door glyph found, mark as open (non-blocking)
-        d->isOpen = true;
+        d->setOpen(true);
     }
 }
 
@@ -81,17 +81,17 @@ static void loadDoorsFromMetadata(std::vector<Screen>& world) {
             
             // Add required keys
             for (char key : doorMeta.requiredKeys) {
-                door.requiredKeys.push_back(Key(key));
+                door.addRequiredKey(Key(key));
             }
             
             // Add switch requirements
             for (const auto& [pos, state] : doorMeta.switchRequirements) {
-                door.requiredSwitches.push_back({pos, state});
+                door.addRequiredSwitch(SwitchRequirement(pos, state));
             }
             
             // Set teleport target if specified
-            door.targetRoomIdx = doorMeta.targetRoom;
-            door.targetPosition = doorMeta.targetPosition;
+            door.setTargetRoomIdx(doorMeta.targetRoom);
+            door.setTargetPosition(doorMeta.targetPosition);
             
             // Adjust position to actual door glyph
             adjustDoorPosition(&door, world);
@@ -125,13 +125,14 @@ static void loadDoorsFromLegacyConfig(std::vector<Screen>& world) {
         if (type == 'D') {
             if (currentDoor) { 
                 adjustDoorPosition(currentDoor, world); 
-                if (currentDoor->roomIdx >= 0 && currentDoor->roomIdx < (int)world.size()) {
+                if (currentDoor->getRoomIdx() >= 0 && currentDoor->getRoomIdx() < (int)world.size()) {
                     // Only add if no door already exists from metadata
-                    auto& existingDoors = world[currentDoor->roomIdx].getDataMutable().doors;
+                    auto& existingDoors = world[currentDoor->getRoomIdx()].getDataMutable().doors;
                     bool alreadyExists = false;
                     for (const auto& d : existingDoors) {
-                        if (d.position.x == currentDoor->position.x && 
-                            d.position.y == currentDoor->position.y) {
+                        Point dPos = d.getPosition();
+                        Point curPos = currentDoor->getPosition();
+                        if (dPos.x == curPos.x && dPos.y == curPos.y) {
                             alreadyExists = true;
                             break;
                         }
@@ -149,29 +150,30 @@ static void loadDoorsFromLegacyConfig(std::vector<Screen>& world) {
         else if (type == 'K' && currentDoor) {
             char key; 
             while (ss >> key) {
-                currentDoor->requiredKeys.push_back(Key(key));
+            currentDoor->addRequiredKey(Key(key));
             }
         } 
         else if (type == 'S' && currentDoor) {
             int sx, sy, state; 
             ss >> sx >> sy >> state; 
-            currentDoor->requiredSwitches.push_back({Point(sx, sy), (bool)state});
+            currentDoor->addRequiredSwitch(SwitchRequirement(Point(sx, sy), (bool)state));
         } 
         else if (type == 'T' && currentDoor) {
             int tRoom, tX, tY; 
             ss >> tRoom >> tX >> tY;
-            currentDoor->targetRoomIdx = tRoom;
-            currentDoor->targetPosition = Point(tX, tY);
+            currentDoor->setTargetRoomIdx(tRoom);
+            currentDoor->setTargetPosition(Point(tX, tY));
         } 
         else if (raw.rfind("---", 0) == 0) {
             if (currentDoor) { 
                 adjustDoorPosition(currentDoor, world); 
-                if (currentDoor->roomIdx >= 0 && currentDoor->roomIdx < (int)world.size()) {
-                    auto& existingDoors = world[currentDoor->roomIdx].getDataMutable().doors;
+                if (currentDoor->getRoomIdx() >= 0 && currentDoor->getRoomIdx() < (int)world.size()) {
+                    auto& existingDoors = world[currentDoor->getRoomIdx()].getDataMutable().doors;
                     bool alreadyExists = false;
                     for (const auto& d : existingDoors) {
-                        if (d.position.x == currentDoor->position.x && 
-                            d.position.y == currentDoor->position.y) {
+                        Point dPos = d.getPosition();
+                        Point curPos = currentDoor->getPosition();
+                        if (dPos.x == curPos.x && dPos.y == curPos.y) {
                             alreadyExists = true;
                             break;
                         }
@@ -188,12 +190,13 @@ static void loadDoorsFromLegacyConfig(std::vector<Screen>& world) {
     
     if (currentDoor) { 
         adjustDoorPosition(currentDoor, world); 
-        if (currentDoor->roomIdx >= 0 && currentDoor->roomIdx < (int)world.size()) {
-            auto& existingDoors = world[currentDoor->roomIdx].getDataMutable().doors;
+        if (currentDoor->getRoomIdx() >= 0 && currentDoor->getRoomIdx() < (int)world.size()) {
+            auto& existingDoors = world[currentDoor->getRoomIdx()].getDataMutable().doors;
             bool alreadyExists = false;
             for (const auto& d : existingDoors) {
-                if (d.position.x == currentDoor->position.x && 
-                    d.position.y == currentDoor->position.y) {
+                Point dPos = d.getPosition();
+                Point curPos = currentDoor->getPosition();
+                if (dPos.x == curPos.x && dPos.y == curPos.y) {
                     alreadyExists = true;
                     break;
                 }
@@ -228,15 +231,15 @@ void SpecialDoor::updateAll(Game& game) {
         auto& doors = s.getDataMutable().doors;
         
         for (auto& door : doors) {
-            if (!door.isOpen && door.areConditionsMet(game)) {
+            if (!door.isOpen() && door.areConditionsMet(game)) {
                 // Only remove the door glyph if it's NOT a teleport door
                 // Teleport doors stay visible so players can use them multiple times
-                if (door.targetRoomIdx < 0) {
-                    Screen& doorScreen = game.getScreen(door.roomIdx);
-                    if (doorScreen.getCharAt(door.position) == Glyph::SpecialDoor) {
-                        doorScreen.setCharAt(door.position, Glyph::Empty);
-                        if (door.roomIdx == visibleRoomIdx) {
-                            doorScreen.refreshCell(door.position);
+                if (door.getTargetRoomIdx() < 0) {
+                    Screen& doorScreen = game.getScreen(door.getRoomIdx());
+                    if (doorScreen.getCharAt(door.getPosition()) == Glyph::SpecialDoor) {
+                        doorScreen.setCharAt(door.getPosition(), Glyph::Empty);
+                        if (door.getRoomIdx() == visibleRoomIdx) {
+                            doorScreen.refreshCell(door.getPosition());
                         }
                     }
                 }
@@ -249,7 +252,8 @@ void SpecialDoor::updateAll(Game& game) {
 SpecialDoor* SpecialDoor::findAt(Screen& screen, const Point& p) {
     auto& dataDoors = screen.getDataMutable().doors;
     for (auto& door : dataDoors) {
-        if (door.position.x == p.x && door.position.y == p.y) {
+        Point doorPos = door.getPosition();
+        if (doorPos.x == p.x && doorPos.y == p.y) {
             return &door;
         }
     }

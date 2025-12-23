@@ -487,18 +487,20 @@ void Game::updatePressureButtons() {
 
         for (auto& ps : buttons) {
             bool active = false;
+            Point psPos = ps.getPos();
             for (const auto& pp : roomPlayers) {
-                if (pp.x == ps.pos.x && pp.y == ps.pos.y) {
+                if (pp.x == psPos.x && pp.y == psPos.y) {
                     active = true;
                     break;
                 }
             }
 
-            for (const auto& tgt : ps.targets) {
-                auto key = std::make_pair(tgt.pos.x, tgt.pos.y);
+            for (const auto& tgt : ps.getTargets()) {
+                Point tgtPos = tgt.getPos();
+                auto key = std::make_pair(tgtPos.x, tgtPos.y);
                 auto& state = targets[key];
                 if (!state.hasOriginal) {
-                    state.original = tgt.originalChar;
+                    state.original = tgt.getOriginalChar();
                     state.hasOriginal = true;
                 }
                 if (active) {
@@ -720,11 +722,11 @@ void Game::removeBombAt(int roomIdx, const Point& pos) {
     );
 }
 
-struct SpringData* Game::findSpringAt(int roomIdx, const Point& p) {
+class SpringData* Game::findSpringAt(int roomIdx, const Point& p) {
     return SpringData::findAt(world[roomIdx], p);
 }
 
-struct SwitchData* Game::findSwitchAt(int roomIdx, const Point& p) {
+class SwitchData* Game::findSwitchAt(int roomIdx, const Point& p) {
     return SwitchData::findAt(world[roomIdx], p);
 }
 

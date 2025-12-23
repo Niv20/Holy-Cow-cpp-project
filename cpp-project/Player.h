@@ -14,7 +14,7 @@ Key carried;
 bool actionRequested = false;
 
     // Spring state
-    struct SpringData* currentSpring = nullptr; // which spring we're on
+    class SpringData* currentSpring = nullptr; // which spring we're on
     int entryIndex = -1; // which cell index we entered at
     int compressedCount = 0; // how many cells compressed so far
     
@@ -50,8 +50,8 @@ public:
     void inheritSpringLaunch(int speed, int ticks, int dirX, int dirY);
     
     // Spring state accessors (for SpringLogic namespace)
-    struct SpringData* getCurrentSpring() const { return currentSpring; }
-    void setCurrentSpring(struct SpringData* spring) { currentSpring = spring; }
+    class SpringData* getCurrentSpring() const { return currentSpring; }
+    void setCurrentSpring(class SpringData* spring) { currentSpring = spring; }
     int getEntryIndex() const { return entryIndex; }
     void setEntryIndex(int idx) { entryIndex = idx; }
     int getCompressedCount() const { return compressedCount; }
