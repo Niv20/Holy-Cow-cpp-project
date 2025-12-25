@@ -5,10 +5,12 @@
 #include <fstream>
 #include <filesystem>
 #include <iostream>
+#include <sstream>
 
 #include "Menu.h"
 #include "Screen.h"
 #include "utils.h"
+#include "GameState.h"
 
 using std::vector;
 using std::string;
@@ -23,6 +25,10 @@ namespace {
     constexpr char START_MENU_INSTRUCTIONS_KEY = '8';
     constexpr char START_MENU_EXIT_KEY = '9';
     constexpr DWORD MENU_POLL_DELAY_MS = 180;
+    constexpr int SAVE_NAME_MAX_LENGTH = 30;
+    constexpr int ESC_KEY = 27;
+    constexpr int ENTER_KEY = 13;
+    constexpr int BACKSPACE_KEY = 8;
 
     vector<string> g_riddleTemplate;
     vector<string> g_pauseTemplate;
@@ -149,8 +155,7 @@ MenuAction Menu::showStartMenu() {
                 case START_MENU_NEW_GAME_KEY:
                     return MenuAction::NewGame;
                 case START_MENU_CONTINUE_KEY:
-                    // TODO: TARGIL 3!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    break;
+                    return MenuAction::LoadSavedGame;
                 case START_MENU_INSTRUCTIONS_KEY:
                     return MenuAction::Instructions;
                 case START_MENU_EXIT_KEY:
@@ -234,5 +239,172 @@ void Menu::showWinScreen() {
             return;
         }
         Sleep(MENU_POLL_DELAY_MS);
+    }
+}
+
+// Show save dialog - allows user to enter save name
+bool Menu::showSaveDialog(std::string& saveName) {
+    cls();
+    
+    // Load save game screen
+    vector<string> saveScreen = loadScreen("SaveGame.screen");
+    if (saveScreen.empty()) {
+        std::cerr << "Error: SaveGame.screen not found." << std::endl;
+        return false;
+    }
+    
+    Screen screen(saveScreen);
+    screen.draw();
+    
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    
+    // Position cursor for input (center of screen, row 16)
+    int inputX = 25;  // Centered position
+    int inputY = 16;  // Middle of the screen
+    COORD inputPos{(SHORT)inputX, (SHORT)inputY};
+    SetConsoleCursorPosition(hOut, inputPos);
+    
+    string input;
+    bool done = false;
+    
+    while (!done) {
+        if (_kbhit()) {
+            int key = _getch();
+            
+            if (key == ESC_KEY) {
+                return false;  // Cancelled
+            }
+            else if (key == ENTER_KEY) {
+                done = true;
+            }
+            else if (key == BACKSPACE_KEY) {
+                if (!input.empty()) {
+                    input.pop_back();
+                    // Redraw input area (clear and rewrite)
+                    SetConsoleCursorPosition(hOut, inputPos);
+                    for (int i = 0; i < SAVE_NAME_MAX_LENGTH; ++i) {
+                        std::cout << ' ';
+                    }
+                    SetConsoleCursorPosition(hOut, inputPos);
+                    std::cout << input;
+                }
+            }
+            else if (isprint(key) && input.size() < SAVE_NAME_MAX_LENGTH) {
+                // Only allow safe characters for filenames
+                if (isalnum(key) || key == '_' || key == '-' || key == ' ') {
+                    input += (char)key;
+                    std::cout << (char)key;
+                }
+            }
+        }
+        Sleep(50);
+    }
+    
+    // Use default name (current date and time) if empty
+    if (input.empty()) {
+        // Generate default name with date and time: DD.MM.YYYY_(HH-MM) format
+        // Note: Using dots and dashes because / : ; are not allowed in Windows filenames
+        std::time_t now = std::time(nullptr);
+        std::tm tm_buf;
+        localtime_s(&tm_buf, &now);
+        std::ostringstream oss;
+        oss << std::put_time(&tm_buf, "%d.%m.%Y_(%H-%M)");
+        saveName = oss.str();
+    } else {
+        // Replace spaces with underscores for filename safety
+        saveName = input;
+        for (char& c : saveName) {
+            if (c == ' ') c = '_';
+        }
+    }
+    
+    return true;
+}
+
+// Show load dialog - displays available saves and lets user select
+std::string Menu::showLoadDialog() {
+    cls();
+    
+    // Load the load game screen
+    vector<string> loadScreen = Menu::loadScreen("LoadGame.screen");
+    if (loadScreen.empty()) {
+        std::cerr << "Error: LoadGame.screen not found." << std::endl;
+        return "";
+    }
+    
+    Screen screen(loadScreen);
+    screen.draw();
+    
+    auto saves = GameState::getAvailableSaves();
+    
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    
+    if (saves.empty()) {
+        // Show "No saved games found" message in center
+        COORD msgPos{25, 14};
+        SetConsoleCursorPosition(hOut, msgPos);
+        std::cout << "No saved games found. Press any key...";
+        
+        while (!_kbhit()) Sleep(100);
+        (void)_getch();
+        return "";
+    }
+    
+    // Save positions: (row, column) - converted to 0-based indexing
+    // 1-5 on left side, 6-9 on right side
+    const int savePositions[9][2] = {
+        {13, 14},  // 1
+        {15, 14},  // 2
+        {17, 14},  // 3
+        {19, 14},  // 4
+        {21, 14},  // 5
+        {14, 48},  // 6
+        {16, 48},  // 7
+        {18, 48},  // 8
+        {20, 48}   // 9
+    };
+    
+    // Display save names at their positions
+    int displayCount = (saves.size() > 9) ? 9 : (int)saves.size();
+    for (int i = 0; i < displayCount; ++i) {
+        int row = savePositions[i][0];
+        int col = savePositions[i][1];
+        
+        COORD pos{(SHORT)col, (SHORT)row};
+        SetConsoleCursorPosition(hOut, pos);
+        
+        // Get display name (filename without path and extension)
+        std::string displayName = saves[i].second;
+        // Remove .sav extension if present
+        size_t extPos = displayName.rfind(".sav");
+        if (extPos != std::string::npos) {
+            displayName = displayName.substr(0, extPos);
+        }
+        
+        // Truncate if too long (max ~25 chars to fit in the space)
+        if (displayName.size() > 25) {
+            displayName = displayName.substr(0, 22) + "...";
+        }
+        
+        std::cout << displayName;
+    }
+    
+    // Wait for selection
+    while (true) {
+        if (_kbhit()) {
+            int key = _getch();
+            
+            if (key == ESC_KEY) {
+                return "";  // Cancelled
+            }
+            
+            if (key >= '1' && key <= '9') {
+                int idx = key - '1';
+                if (idx < displayCount) {
+                    return saves[idx].first;  // Return file path
+                }
+            }
+        }
+        Sleep(100);
     }
 }

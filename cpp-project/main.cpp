@@ -1,7 +1,11 @@
 ﻿#include "Game.h"
 #include "FileParser.h"
+#include "GameRecorder.h"
+#include "utils.h"
 #include <iostream>
 #include <exception>
+#include <string>
+#include <cstring>
 
 /*      __  __      __         ______
        / / / /___  / /_  __   / ____/___ _      __  (__)
@@ -13,13 +17,16 @@
                        First version
                 Maor Adirim & Niv Libovich               */
 
-
-int main() {
+int main(int argc, char* argv[]) {
     try {
         // Clear any previous error state
         FileParser::clearErrors();
         
-        Game::runApp();
+        // Parse command line arguments
+        GameMode mode = parseCommandLineArgs(argc, argv);
+        
+        // Run the appropriate game mode
+        Game::runApp(mode);
         
         // Check if any non-fatal errors occurred during execution
         if (FileParser::hasErrors()) {

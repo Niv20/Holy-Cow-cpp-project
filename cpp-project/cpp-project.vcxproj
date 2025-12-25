@@ -187,6 +187,8 @@
     <ClCompile Include="Door.cpp" />
     <ClCompile Include="FileParser.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="GameRecorder.cpp" />
+    <ClCompile Include="GameState.cpp" />
     <ClCompile Include="Legend.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Menu.cpp" />
@@ -209,6 +211,8 @@
     <ClInclude Include="Door.h" />
     <ClInclude Include="FileParser.h" />
     <ClInclude Include="Game.h" />
+    <ClInclude Include="GameRecorder.h" />
+    <ClInclude Include="GameState.h" />
     <ClInclude Include="Glyph.h" />
     <ClInclude Include="Key.h" />
     <ClInclude Include="Legend.h" />
@@ -237,13 +241,22 @@
     <None Include="adv-world_05.screen" />
     <None Include="adv-world_06.screen" />
     <None Include="adv-world_07.screen" />
+    <None Include="examples\example1.result" />
+    <None Include="examples\example1.steps" />
+    <None Include="examples\example2.result" />
+    <None Include="examples\example2.steps" />
+    <None Include="examples\example3.result" />
+    <None Include="examples\example3.steps" />
     <None Include="Instructions.screen" />
+    <None Include="LoadGame.screen" />
     <None Include="Lose.screen" />
     <None Include="Pause.screen" />
     <None Include="Riddle.screen" />
+    <None Include="SaveGame.screen" />
     <None Include="Start.screen" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="files_format.txt" />
     <Text Include="METADATA.txt" />
     <Text Include="riddles.txt" />
   </ItemGroup>

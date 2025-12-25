@@ -1,0 +1,28 @@
+# adv-world Steps File - Example 2: Room Transition Test
+# This example tests moving between rooms
+# Player 1 moves right to reach the next room
+
+SCREENS "adv-world_00.screen" "adv-world_01.screen" "adv-world_02.screen" "adv-world_03.screen" "adv-world_04.screen" "adv-world_05.screen" "adv-world_06.screen" "adv-world_07.screen"
+SEED 54321
+
+# Events
+# Player 1 moves right repeatedly to transition to room 1
+# 'd' = ASCII 100 (move right for player 1)
+10 KEY 0 100
+20 KEY 0 100
+30 KEY 0 100
+40 KEY 0 100
+50 KEY 0 100
+60 KEY 0 100
+70 KEY 0 100
+80 KEY 0 100
+90 KEY 0 100
+100 KEY 0 100
+110 KEY 0 100
+120 KEY 0 100
+130 KEY 0 100
+140 KEY 0 100
+150 KEY 0 100
+
+# Record screen transition when player reaches edge
+150 SCREEN 0 1

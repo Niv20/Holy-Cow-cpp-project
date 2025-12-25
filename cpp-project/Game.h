@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <map>
+#include <memory>
 
 #include "Screen.h"
 #include "Player.h"
@@ -8,9 +9,12 @@
 #include "Bomb.h"
 #include "Legend.h"
 #include "RoomConnections.h"
+#include "GameRecorder.h"
+#include "GameState.h"
 
 constexpr int ESC_KEY = 27;
 constexpr int GAME_TICK_DELAY_MS = 90;
+constexpr int GAME_TICK_DELAY_LOAD_MS = 30;  // Faster for load mode
 constexpr int FINAL_ROOM_INDEX = 7;
 constexpr int FINAL_ROOM_FOCUS_TICKS = 25; // ~2.25 seconds focus on final room
 
@@ -33,10 +37,18 @@ class Game {
     std::vector<bool> playerReachedFinalRoom; // Track which players reached final room
     int finalRoomFocusTicks = 0; // countdown for camera focus on final room
     std::vector<Point> previousPlayerPositions; // Track previous positions for darkness updates
+    
+    // Game mode and recording/playback
+    GameMode gameMode = GameMode::Normal;
+    std::unique_ptr<GameRecorder> recorder;
+    int gameCycle = 0;  // Game tick counter for recording/playback
+    std::vector<std::string> loadedScreenFiles;  // Screen files used in this session
 
     void initGame();
+    void initGame(const GameStateData& savedState);  // Initialize from saved state
 
     void handleInput();
+    void handleInputFromRecorder();  // Handle input from recorded file
     void update();
 
     void drawPlayers();
@@ -47,13 +59,22 @@ class Game {
     void checkAndProcessTransitions();
 
     void handlePause();
+    void handleSaveState();  // Handle saving game state (ESC -> S)
+    
+    // Recording helpers
+    void recordScreenTransition(int playerIndex, int targetScreen);
+    void recordLifeLost(int playerIndex);
+    void recordRiddleEvent(int playerIndex, const std::string& question, const std::string& answer, bool correct);
+    void recordGameEnd(bool isWin);
     
 public:
     
     Game();
+    Game(GameMode mode);
+    Game(const GameStateData& savedState, GameMode mode = GameMode::Normal);  // Load from saved state
 
     void start();
-    static void runApp();
+    static void runApp(GameMode mode = GameMode::Normal);
 
     bool isGameLost() const { 
         return heartsCount <= 0; 
@@ -108,4 +129,16 @@ public:
 
     // Rescan obstacles across all rooms to keep obstacle instances in sync after moves
     void rescanObstacles();
+    
+    // Get current game state for saving
+    GameStateData captureState() const;
+    
+    // Get/set game mode
+    GameMode getGameMode() const { return gameMode; }
+    
+    // Get recorder for external event recording (riddles, etc.)
+    GameRecorder* getRecorder() { return recorder.get(); }
+    int getGameCycle() const { return gameCycle; }
+    int getHeartsCount() const { return heartsCount; }
+    int getPointsCount() const { return pointsCount; }
 };

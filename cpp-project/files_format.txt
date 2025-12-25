@@ -1,0 +1,223 @@
+# Holy Cow Adventure - File Formats Documentation
+# ================================================
+
+This document describes the file formats used for recording and replaying games.
+
+## Overview
+
+The game uses two files for recording/replaying games:
+1. `adv-world.steps` - Contains all game events (inputs, transitions, etc.)
+2. `adv-world.result` - Contains expected results for verification
+
+Both files are created in the current working directory.
+
+## Steps File Format (adv-world.steps)
+
+The steps file records all deterministic game events that can be replayed.
+
+### Header Section
+
+```
+# adv-world Steps File
+# Format: CYCLE EVENT_TYPE PLAYER_INDEX [DATA...]
+
+SCREENS "screen_file_1" "screen_file_2" ...
+SEED random_seed_value
+
+# Events
+```
+
+- `SCREENS` - Lists all screen files used in the game (for verification)
+- `SEED` - Random seed used for reproducible random events
+
+### Event Format
+
+Each event line follows this format:
+```
+CYCLE EVENT_TYPE PLAYER_INDEX [additional_data...]
+```
+
+Where:
+- `CYCLE` - The game tick/cycle when the event occurred (integer)
+- `EVENT_TYPE` - One of: KEY, SCREEN, LIFE, RIDDLE, ANSWER, END
+- `PLAYER_INDEX` - Which player (0 or 1) the event relates to
+
+### Event Types
+
+#### KEY (Key Press)
+```
+CYCLE KEY PLAYER_INDEX key_code
+```
+- `key_code` - ASCII value of the key pressed (integer)
+
+Example: `50 KEY 0 119` (Cycle 50, Player 1 pressed 'w')
+
+#### SCREEN (Screen Transition)
+```
+CYCLE SCREEN PLAYER_INDEX target_screen
+```
+- `target_screen` - Index of the screen the player moved to
+
+Example: `150 SCREEN 1 2` (Cycle 150, Player 2 moved to screen 2)
+
+#### LIFE (Life Lost)
+```
+CYCLE LIFE PLAYER_INDEX
+```
+No additional data needed.
+
+Example: `200 LIFE 0` (Cycle 200, Player 1 lost a life)
+
+#### RIDDLE (Riddle Encountered)
+```
+CYCLE RIDDLE PLAYER_INDEX "question_text"
+```
+- `question_text` - The riddle question (escaped string)
+
+Example: `300 RIDDLE 0 "What do cows use to do math?"`
+
+#### ANSWER (Riddle Answer)
+```
+CYCLE ANSWER PLAYER_INDEX "answer" correct_flag
+```
+- `answer` - The answer given (escaped string)
+- `correct_flag` - 1 if correct, 0 if wrong
+
+Example: `305 ANSWER 0 "2" 1` (Player answered '2', correct)
+
+#### END (Game End)
+```
+CYCLE END PLAYER_INDEX score is_win
+```
+- `score` - Final score
+- `is_win` - 1 if won, 0 if lost
+
+Example: `500 END 0 150 1` (Game ended at cycle 500, score 150, win)
+
+### String Escaping
+
+Strings are enclosed in double quotes. Special characters:
+- `\"` - Literal double quote
+- `\\` - Literal backslash
+- `\n` - Newline
+- `\r` - Carriage return
+
+## Results File Format (adv-world.result)
+
+The results file contains expected outcomes for test verification.
+
+### Format
+
+```
+# adv-world Results File
+# Format: CYCLE DESCRIPTION
+
+CYCLE "description_text"
+```
+
+Each line represents a significant game event with:
+- `CYCLE` - The game tick when the event occurred
+- `description_text` - Human-readable description of the event
+
+### Event Descriptions
+
+The following events are recorded:
+
+1. **Screen Transitions**
+   ```
+   150 "Player 1 moved to screen 2"
+   ```
+
+2. **Life Lost**
+   ```
+   200 "Player 1 lost a life"
+   ```
+
+3. **Riddle Answers**
+   ```
+   305 "Player 1 answered riddle: 2 (CORRECT)"
+   320 "Player 2 answered riddle: 3 (WRONG)"
+   ```
+
+4. **Game End**
+   ```
+   500 "Game ended: WIN with score 150"
+   500 "Game ended: LOSE with score 50"
+   ```
+
+## Command Line Usage
+
+### Recording a Game (-save mode)
+```
+adv-world.exe -save
+```
+- Shows normal menu
+- Records all gameplay to files
+- Overwrites previous recording
+
+### Replaying a Game (-load mode)
+```
+adv-world.exe -load
+```
+- No menu shown
+- Replays from adv-world.steps
+- Visual playback with reduced delay
+
+### Silent Testing (-load -silent mode)
+```
+adv-world.exe -load -silent
+```
+- No visual output
+- Runs as fast as possible
+- Compares actual results with expected results
+- Outputs "TEST PASSED" or "TEST FAILED: <reason>"
+
+### Normal Mode (no flags)
+```
+adv-world.exe
+```
+- Standard gameplay with menu
+- No recording or playback
+
+## Creating Test Files Manually
+
+1. Create a `adv-world.steps` file with:
+   - SCREENS line listing required screen files
+   - SEED line (any integer)
+   - Sequence of KEY events for player inputs
+
+2. Create a `adv-world.result` file with expected outcomes
+
+3. Run with `-load -silent` to verify
+
+## Example Files
+
+### Minimal Steps File
+```
+# adv-world Steps File
+# Format: CYCLE EVENT_TYPE PLAYER_INDEX [DATA...]
+
+SCREENS "adv-world_00.screen" "adv-world_01.screen"
+SEED 12345
+
+# Events
+10 KEY 0 119
+20 KEY 0 119
+30 KEY 0 119
+100 END 0 0 0
+```
+
+### Corresponding Result File
+```
+# adv-world Results File
+# Format: CYCLE DESCRIPTION
+
+100 "Game ended: LOSE with score 0"
+```
+
+## Notes
+
+- The steps file only records inputs, not derived state
+- Screen transitions and life loss are deduced during playback
+- Random events use the saved seed for reproducibility
+- All files use UTF-8 encoding

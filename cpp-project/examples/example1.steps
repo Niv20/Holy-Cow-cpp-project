@@ -1,0 +1,14 @@
+# adv-world Steps File - Example 1: Simple Movement Test
+# This example tests basic player movement
+# Player 1 moves right a few times
+
+SCREENS "adv-world_00.screen" "adv-world_01.screen" "adv-world_02.screen" "adv-world_03.screen" "adv-world_04.screen" "adv-world_05.screen" "adv-world_06.screen" "adv-world_07.screen"
+SEED 12345
+
+# Events
+# Player 1 (index 0) presses 'd' (ASCII 100) to move right multiple times
+10 KEY 0 100
+20 KEY 0 100
+30 KEY 0 100
+40 KEY 0 100
+50 KEY 0 100

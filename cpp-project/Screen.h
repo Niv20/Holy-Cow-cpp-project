@@ -23,6 +23,7 @@ public:
 private:
     struct SpecialChar { wchar_t ch; }; 
     std::vector<std::vector<SpecialChar>> m_grid;
+    std::vector<std::vector<SpecialChar>> m_originalGrid;  // Original state for tracking modifications
 
     void initFromWideLines(const std::vector<std::wstring>& lines);
 
@@ -53,6 +54,10 @@ public:
     void erase(const Point& p);
     void refreshCell(const Point& p) const;
     void refreshCells(const std::vector<Point>& pts) const;
+    
+    // Track modifications from original state
+    void captureOriginalState();  // Call after loading to save original
+    std::vector<std::tuple<int, int, wchar_t>> getModifications() const;  // Get all changes from original
 
     // Access per-screen data
     const Data& getData() const { return data_; }

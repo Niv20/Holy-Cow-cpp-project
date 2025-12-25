@@ -6,6 +6,7 @@
 #include <string>
 #include <utility>
 #include <iostream>
+#include <filesystem>
 
 #include "Game.h"
 #include "utils.h"
@@ -18,16 +19,21 @@
 #include "Obstacle.h"
 #include "FileParser.h"
 #include "DarkRoom.h"
+#include "GameRecorder.h"
+#include "GameState.h"
 
 using std::vector;
 using std::string;
 using std::queue;
 using std::pair;
 using std::set;
+namespace fs = std::filesystem;
 
 namespace {
     constexpr char PAUSE_EXIT_KEY_UPPER = 'H';
     constexpr char PAUSE_EXIT_KEY_LOWER = 'h';
+    constexpr char PAUSE_SAVE_KEY_UPPER = 'S';
+    constexpr char PAUSE_SAVE_KEY_LOWER = 's';
     constexpr wchar_t OVERLAP_ICON = L'O';
     constexpr char NO_INVENTORY_ITEM = ' ';
     constexpr char TORCH_CHAR = static_cast<char>(Glyph::Torch);
@@ -39,19 +45,62 @@ namespace {
   ||    (__)
   ||w--||                */
 
-Game::Game() : visibleRoomIdx(0), isRunning(true) { 
+Game::Game() : visibleRoomIdx(0), isRunning(true), gameMode(GameMode::Normal), gameCycle(0) { 
     initGame(); 
+}
+
+Game::Game(GameMode mode) : visibleRoomIdx(0), isRunning(true), gameMode(mode), gameCycle(0) { 
+    initGame(); 
+    
+    // Initialize recorder for save/load modes
+    if (mode == GameMode::Save) {
+        recorder = std::make_unique<GameRecorder>();
+        recorder->initForSave(loadedScreenFiles);
+    }
+    else if (mode == GameMode::Load || mode == GameMode::LoadSilent) {
+        recorder = std::make_unique<GameRecorder>();
+        if (!recorder->initForLoad()) {
+            FileParser::reportError("Failed to load game recording files");
+            isRunning = false;
+        }
+    }
+}
+
+Game::Game(const GameStateData& savedState, GameMode mode) 
+    : visibleRoomIdx(0), isRunning(true), gameMode(mode), gameCycle(0) { 
+    initGame(savedState);
 }
 
 void Game::initGame() {
 
-    world = Screen::loadScreensFromFiles();
+world = Screen::loadScreensFromFiles();
  
-    if (world.empty()) { 
-        FileParser::reportError("Cannot start game: No level screens could be loaded.");
-        std::cerr << "Please ensure adv-world_*.screen files are present next to the executable." << std::endl;
-        isRunning = false; 
-        return; 
+if (world.empty()) { 
+    FileParser::reportError("Cannot start game: No level screens could be loaded.");
+    std::cerr << "Please ensure adv-world_*.screen files are present next to the executable." << std::endl;
+    isRunning = false; 
+    return; 
+}
+    
+// Capture original state of all screens for tracking modifications
+for (auto& screen : world) {
+    screen.captureOriginalState();
+}
+    
+// Store screen file names for recording
+    try {
+        fs::path baseDir = fs::current_path();
+        for (const auto& entry : fs::directory_iterator(baseDir)) {
+            if (entry.is_regular_file()) {
+                std::string filename = entry.path().filename().string();
+                if (filename.rfind("adv-world", 0) == 0 && 
+                    filename.find(".screen") != std::string::npos) {
+                    loadedScreenFiles.push_back(filename);
+                }
+            }
+        }
+    } catch (...) {
+        // Ignore directory scanning errors
     }
 
     // Load room connections from screen metadata
@@ -67,20 +116,91 @@ void Game::initGame() {
     finalRoomFocusTicks = 0;
 }
 
+void Game::initGame(const GameStateData& savedState) {
+    // First do normal initialization
+    initGame();
+    
+    if (!isRunning) return;
+    
+    // Then apply saved state
+    visibleRoomIdx = savedState.getVisibleRoomIdx();
+    heartsCount = savedState.getHeartsCount();
+    pointsCount = savedState.getPointsCount();
+    gameCycle = savedState.getGameCycle();
+    
+    // Restore player states
+    const auto& savedPlayers = savedState.getPlayers();
+    for (size_t i = 0; i < savedPlayers.size() && i < players.size(); ++i) {
+        const PlayerState& ps = savedPlayers[i];
+        players[i].setRoomIdx(ps.getRoomIdx());
+        players[i].setPosition(Point(ps.getX(), ps.getY()));
+        players[i].getPosition().setDiffX(ps.getDiffX());
+        players[i].getPosition().setDiffY(ps.getDiffY());
+        players[i].setCarried(ps.getCarried());
+    }
+    
+    // Restore final room flags
+    playerReachedFinalRoom = savedState.getPlayerReachedFinalRoom();
+    if (playerReachedFinalRoom.size() < players.size()) {
+        playerReachedFinalRoom.resize(players.size(), false);
+    }
+    
+    // Apply screen modifications
+    const auto& screenMods = savedState.getScreenModifications();
+    for (const auto& kv : screenMods) {
+        int roomIdx = kv.first;
+        const auto& mods = kv.second;
+        if (roomIdx >= 0 && roomIdx < (int)world.size()) {
+            for (const auto& tup : mods) {
+                int x = std::get<0>(tup);
+                int y = std::get<1>(tup);
+                wchar_t ch = std::get<2>(tup);
+                world[roomIdx].setCharAt(Point(x, y), ch);
+            }
+        }
+    }
+    
+    // Apply riddle states (mark answered riddles)
+    const auto& riddleStates = savedState.getRiddleStates();
+    for (const auto& t : riddleStates) {
+        int roomIdx = std::get<0>(t);
+        int x = std::get<1>(t);
+        int y = std::get<2>(t);
+        bool answered = std::get<3>(t);
+        if (answered) {
+            // Remove the riddle from the screen
+            if (roomIdx >= 0 && roomIdx < (int)world.size()) {
+                world[roomIdx].setCharAt(Point(x, y), Glyph::Empty);
+            }
+        }
+    }
+}
+
 /*      (__)
 '\------(oo)    Start the application
   ||    (__)
   ||w--||                           */
 
-void Game::runApp() {
+void Game::runApp(GameMode mode) {
 
 // Initialize console settings once at the start of the application
 try {
     SetConsoleOutputCP(65001); 
     setConsoleFont(); 
-    hideCursor();
+    if (mode != GameMode::LoadSilent) {
+        hideCursor();
+    }
 } catch (...) {
     FileParser::reportError("Warning: Could not initialize console settings");
+}
+
+// Handle load mode - run directly without menu
+if (mode == GameMode::Load || mode == GameMode::LoadSilent) {
+    Game game(mode);
+    if (game.isRunning) {
+        game.start();
+    }
+    return;
 }
 
 bool exitProgram = false;
@@ -91,13 +211,31 @@ while (!exitProgram) {
         switch (action) {
 
             case MenuAction::NewGame: {
-                Game game; 
+                Game game(mode);  // Pass mode (Normal or Save)
                 if (!game.isRunning) {
                     // Game failed to initialize, show error and return to menu
                     std::cerr << "Press any key to return to menu..." << std::endl;
                     (void)_getch();
                 } else {
                     game.start();
+                }
+                break;
+            }
+            
+            case MenuAction::LoadSavedGame: {
+                std::string saveFilePath = Menu::showLoadDialog();
+                if (!saveFilePath.empty()) {
+                    GameStateData savedState;
+                    GameState stateLoader;
+                    if (stateLoader.loadState(saveFilePath, savedState)) {
+                        Game game(savedState, mode);
+                        if (game.isRunning) {
+                            game.start();
+                        }
+                    } else {
+                        std::cerr << "Failed to load saved game. Press any key..." << std::endl;
+                        (void)_getch();
+                    }
                 }
                 break;
             }
@@ -122,46 +260,89 @@ void Game::start() {
 
 if (!isRunning) return;
 
+bool isSilent = (gameMode == GameMode::LoadSilent);
+
 // Get the correct message lines
 std::string line1, line2, line3;
 DarkRoomManager::getDarkRoomMessage(world[visibleRoomIdx], players, visibleRoomIdx, line1, line2, line3);
 
 // Render message box content from metadata (if exists)
-world[visibleRoomIdx].renderMessageBox(line1, line2, line3);
+if (!isSilent) {
+    world[visibleRoomIdx].renderMessageBox(line1, line2, line3);
 
-// Use darkness-aware drawing if room has dark zones
-if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
-    DarkRoomManager::drawWithDarkness(world[visibleRoomIdx], players, visibleRoomIdx);
-} else {
-    world[visibleRoomIdx].draw();
+    // Use darkness-aware drawing if room has dark zones
+    if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
+        DarkRoomManager::drawWithDarkness(world[visibleRoomIdx], players, visibleRoomIdx);
+    } else {
+        world[visibleRoomIdx].draw();
+    }
+    refreshLegend(); 
+    drawPlayers();
 }
-refreshLegend(); 
-drawPlayers();
+
+// Determine tick delay based on mode
+int tickDelay = GAME_TICK_DELAY_MS;
+if (gameMode == GameMode::Load) {
+    tickDelay = GAME_TICK_DELAY_LOAD_MS;
+}
+else if (gameMode == GameMode::LoadSilent) {
+    tickDelay = 0;  // No delay in silent mode
+}
 
     while (isRunning) { 
-        handleInput();
-        if (!isRunning) break;
-        update(); 
-        Sleep(GAME_TICK_DELAY_MS); 
-    }
-    
-    cls();
-    
-    if (heartsCount <= 0) {
-        Menu::showLoseScreen();
-    }
-    else {
-        // Check if both players reached final room (win condition)
-        bool allPlayersWon = true;
-        for (bool reached : playerReachedFinalRoom) {
-            if (!reached) {
-                allPlayersWon = false;
-                break;
-            }
+        // Handle input based on mode
+        if (gameMode == GameMode::Load || gameMode == GameMode::LoadSilent) {
+            handleInputFromRecorder();
+        } else {
+            handleInput();
         }
         
-        if (allPlayersWon) {
-            Menu::showWinScreen();
+        if (!isRunning) break;
+        update(); 
+        
+        gameCycle++;  // Increment game cycle
+        
+        if (tickDelay > 0) {
+            Sleep(tickDelay); 
+        }
+    }
+    
+    // Record game end if in save mode
+    if (recorder && gameMode == GameMode::Save) {
+        recordGameEnd(heartsCount > 0);
+        recorder->finalizeRecording();
+    }
+    
+    // In silent mode, verify results
+    if (gameMode == GameMode::LoadSilent && recorder) {
+        std::string errorMessage;
+        if (recorder->verifyResults(errorMessage)) {
+            std::cout << "TEST PASSED: All results match expected values." << std::endl;
+        } else {
+            std::cout << "TEST FAILED: " << errorMessage << std::endl;
+        }
+        return;  // Don't show win/lose screens in silent mode
+    }
+    
+    if (!isSilent) {
+        cls();
+        
+        if (heartsCount <= 0) {
+            Menu::showLoseScreen();
+        }
+        else {
+            // Check if both players reached final room (win condition)
+            bool allPlayersWon = true;
+            for (bool reached : playerReachedFinalRoom) {
+                if (!reached) {
+                    allPlayersWon = false;
+                    break;
+                }
+            }
+            
+            if (allPlayersWon) {
+                Menu::showWinScreen();
+            }
         }
     }
     
@@ -199,10 +380,76 @@ void Game::handlePause() {
                 isRunning = false;
                 return;
             }
+            else if (key == 'S' || key == 's') {
+                handleSaveState();
+                // Redraw pause screen after save
+                cls();
+                pauseScreen.draw();
+            }
         }
 
         Sleep(GAME_TICK_DELAY_MS);
     }
+}
+
+void Game::handleSaveState() {
+    std::string saveName;
+    if (Menu::showSaveDialog(saveName)) {
+        GameStateData state = captureState();
+        state.setSaveName(saveName);
+        
+        GameState saver;
+        if (saver.saveState(state, saveName)) {
+            // Show success message briefly
+            cls();
+            HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+            COORD pos{30, 12};
+            SetConsoleCursorPosition(hOut, pos);
+            std::cout << "Game saved successfully!";
+            Sleep(1500);
+        } else {
+            cls();
+            HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+            COORD pos{30, 12};
+            SetConsoleCursorPosition(hOut, pos);
+            std::cout << "Failed to save game!";
+            Sleep(1500);
+        }
+    }
+}
+
+GameStateData Game::captureState() const {
+    GameStateData state;
+    
+    state.setTimestamp(std::time(nullptr));
+    state.setVisibleRoomIdx(visibleRoomIdx);
+    state.setHeartsCount(heartsCount);
+    state.setPointsCount(pointsCount);
+    state.setGameCycle(gameCycle);
+    state.setScreenFiles(loadedScreenFiles);
+    state.setPlayerReachedFinalRoom(playerReachedFinalRoom);
+    
+    // Capture player states
+    for (const auto& p : players) {
+        PlayerState ps;
+        ps.setRoomIdx(p.getRoomIdx());
+        ps.setX(p.getPosition().getX());
+        ps.setY(p.getPosition().getY());
+        ps.setDiffX(p.getPosition().getDiffX());
+        ps.setDiffY(p.getPosition().getDiffY());
+        ps.setCarried(p.getCarried());
+        state.addPlayerState(ps);
+    }
+    
+    // Capture screen modifications (cells that changed from original)
+    for (size_t roomIdx = 0; roomIdx < world.size(); ++roomIdx) {
+        auto mods = world[roomIdx].getModifications();
+        if (!mods.empty()) {
+            state.getScreenModificationsMutable()[(int)roomIdx] = mods;
+        }
+    }
+    
+    return state;
 }
 
 
@@ -264,7 +511,7 @@ void Game::handleInput() {
 
         // If both players reached final room, any key returns to start menu
         bool allAtFinal = true;
-        for (size_t i = 0; i < players.size(); ++i) {
+        for (size_t i = 0; i < players.size(); i++) {
             if (players[i].getRoomIdx() != FINAL_ROOM_INDEX) { allAtFinal = false; break; }
         }
         if (allAtFinal) {
@@ -274,11 +521,110 @@ void Game::handleInput() {
         }
 
         // Normal input: prevent moving player who reached final room
-        for (size_t i = 0; i < players.size(); ++i) {
+        for (size_t i = 0; i < players.size(); i++) {
             auto& p = players[i];
-            if (p.getRoomIdx() == visibleRoomIdx && !hasPlayerReachedFinalRoom(i))
+            if (p.getRoomIdx() == visibleRoomIdx && !hasPlayerReachedFinalRoom(i)) {
                 p.handleKey(key);
+                
+                // Record key press if in save mode
+                if (recorder && gameMode == GameMode::Save) {
+                    recorder->recordKeyPress(gameCycle, (int)i, key);
+                }
+            }
         }
+    }
+}
+
+void Game::handleInputFromRecorder() {
+    if (!recorder) {
+        isRunning = false;
+        return;
+    }
+    
+    // Process all events for the current cycle
+    while (recorder->shouldProcessEvent(gameCycle)) {
+        GameEvent event = recorder->consumeNextEvent();
+        
+        switch (event.getType()) {
+            case GameEventType::KeyPress:
+                // Apply key to the appropriate player
+                if (event.getPlayerIndex() >= 0 && event.getPlayerIndex() < (int)players.size()) {
+                    players[event.getPlayerIndex()].handleKey(event.getKeyPressed());
+                }
+                break;
+                
+            case GameEventType::ScreenTransition:
+                // Screen transitions are handled by the game logic, just verify
+                if (gameMode == GameMode::LoadSilent && recorder) {
+                    std::ostringstream oss;
+                    oss << "Player " << (event.getPlayerIndex() + 1) << " moved to screen " << event.getTargetScreen();
+                    recorder->addActualResult(event.getCycle(), oss.str());
+                }
+                break;
+                
+            case GameEventType::LifeLost:
+                // Life loss is handled by game logic, just verify
+                if (gameMode == GameMode::LoadSilent && recorder) {
+                    std::ostringstream oss;
+                    oss << "Player " << (event.getPlayerIndex() + 1) << " lost a life";
+                    recorder->addActualResult(event.getCycle(), oss.str());
+                }
+                break;
+                
+            case GameEventType::RiddleAnswer:
+                // Riddle answers - verify in silent mode
+                if (gameMode == GameMode::LoadSilent && recorder) {
+                    std::ostringstream oss;
+                    oss << "Player " << (event.getPlayerIndex() + 1) << " answered riddle: " 
+                        << event.getRiddleAnswer() << " (" << (event.isRiddleCorrect() ? "CORRECT" : "WRONG") << ")";
+                    recorder->addActualResult(event.getCycle(), oss.str());
+                }
+                break;
+                
+            case GameEventType::GameEnd:
+                // Game end - verify in silent mode
+                if (gameMode == GameMode::LoadSilent && recorder) {
+                    std::ostringstream oss;
+                    oss << "Game ended: " << (event.getIsWin() ? "WIN" : "LOSE") << " with score " << event.getScore();
+                    recorder->addActualResult(event.getCycle(), oss.str());
+                }
+                isRunning = false;
+                break;
+                
+            default:
+                break;
+        }
+    }
+    
+    // If no more events and we're in load mode, end the game
+    if (!recorder->hasNextEvent()) {
+        isRunning = false;
+    }
+}
+
+// Recording helper methods
+void Game::recordScreenTransition(int playerIndex, int targetScreen) {
+    if (recorder && gameMode == GameMode::Save) {
+        recorder->recordScreenTransition(gameCycle, playerIndex, targetScreen);
+    }
+}
+
+void Game::recordLifeLost(int playerIndex) {
+    if (recorder && gameMode == GameMode::Save) {
+        recorder->recordLifeLost(gameCycle, playerIndex);
+    }
+}
+
+void Game::recordRiddleEvent(int playerIndex, const std::string& question, const std::string& answer, bool correct) {
+    if (recorder && gameMode == GameMode::Save) {
+        recorder->recordRiddleEncounter(gameCycle, playerIndex, question);
+        recorder->recordRiddleAnswer(gameCycle, playerIndex, answer, correct);
+    }
+}
+
+void Game::recordGameEnd(bool isWin) {
+    if (recorder && gameMode == GameMode::Save) {
+        recorder->recordGameEnd(gameCycle, pointsCount, isWin);
     }
 }
 
@@ -288,6 +634,8 @@ if (heartsCount <= 0) {
     isRunning = false; 
     return; 
 }
+
+bool isSilent = (gameMode == GameMode::LoadSilent);
 
 // Track player state before movement (room, position, carried) to detect relevant changes
 struct PlayerSnapshot {
@@ -403,7 +751,7 @@ for (size_t i = 0; i < players.size(); ++i) {
 }
     
 // Draw players only if room doesn't have darkness (darkness update includes players)
-if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
+if (!isSilent && !DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
     drawPlayers();
 }
     
@@ -420,10 +768,12 @@ if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
                 // Focus on final room for a brief period
                 visibleRoomIdx = FINAL_ROOM_INDEX;
                 finalRoomFocusTicks = FINAL_ROOM_FOCUS_TICKS;
-                cls();
-                world[visibleRoomIdx].draw();
-                refreshLegend();
-                drawPlayers();
+                if (!isSilent) {
+                    cls();
+                    world[visibleRoomIdx].draw();
+                    refreshLegend();
+                    drawPlayers();
+                }
             }
         }
     }
@@ -436,10 +786,12 @@ if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
             for (size_t j = 0; j < players.size(); ++j) {
                 if (players[j].getRoomIdx() != FINAL_ROOM_INDEX) {
                     visibleRoomIdx = players[j].getRoomIdx();
-                    cls();
-                    world[visibleRoomIdx].draw();
-                    refreshLegend();
-                    drawPlayers();
+                    if (!isSilent) {
+                        cls();
+                        world[visibleRoomIdx].draw();
+                        refreshLegend();
+                        drawPlayers();
+                    }
                     break;
                 }
             }
@@ -456,21 +808,25 @@ if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
     }
     
     if (allPlayersReachedFinal) {
-        // Stop all updates; handleInput will catch key and exit
-        Bomb::tickAndHandleAll(bombs, *this);
-        refreshLegend(); 
-        if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
-            drawPlayers();
+            // Stop all updates; handleInput will catch key and exit
+            Bomb::tickAndHandleAll(bombs, *this);
+            if (!isSilent) {
+                refreshLegend(); 
+                if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
+                    drawPlayers();
+                }
+            }
+            return;
         }
-        return;
-    }
     
-    Bomb::tickAndHandleAll(bombs, *this);
-    refreshLegend(); 
-    if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
-        drawPlayers();
+        Bomb::tickAndHandleAll(bombs, *this);
+        if (!isSilent) {
+            refreshLegend(); 
+            if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
+                drawPlayers();
+            }
+        }
     }
-}
 
 void Game::updatePressureButtons() {
     for (size_t roomIdx = 0; roomIdx < world.size(); ++roomIdx) {

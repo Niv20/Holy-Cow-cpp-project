@@ -1,0 +1,29 @@
+# adv-world Steps File - Example 3: Both Players Move
+# This example tests both players moving simultaneously
+
+SCREENS "adv-world_00.screen" "adv-world_01.screen" "adv-world_02.screen" "adv-world_03.screen" "adv-world_04.screen" "adv-world_05.screen" "adv-world_06.screen" "adv-world_07.screen"
+SEED 99999
+
+# Events
+# Player 1 controls: w/a/s/d (119/97/115/100)
+# Player 2 controls: i/j/k/l (105/106/107/108)
+
+# Both players move up
+10 KEY 0 119
+10 KEY 1 105
+
+# Both players move down
+20 KEY 0 115
+20 KEY 1 107
+
+# Player 1 moves left, Player 2 moves right
+30 KEY 0 97
+30 KEY 1 108
+
+# Player 1 moves right, Player 2 moves left
+40 KEY 0 100
+40 KEY 1 106
+
+# Continue movement
+50 KEY 0 119
+50 KEY 1 105

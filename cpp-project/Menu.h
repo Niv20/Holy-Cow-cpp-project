@@ -6,6 +6,7 @@ enum class MenuAction {
     None,
     NewGame,
     Continue,
+    LoadSavedGame,
     Instructions,
     Exit
 };
@@ -17,6 +18,10 @@ public:
     static void showInstructions();
     static void showLoseScreen();
     static void showWinScreen();
+    
+    // Save/Load game state UI
+    static bool showSaveDialog(std::string& saveName);
+    static std::string showLoadDialog();  // Returns empty string if cancelled, or save file path
     
     // Helper to draw start menu without waiting for input
     static void drawStartMenu();

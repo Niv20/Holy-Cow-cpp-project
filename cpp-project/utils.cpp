@@ -62,3 +62,28 @@ void setConsoleFont() {
     windowSize.Bottom = 24; // 25 rows (0-24)
     SetConsoleWindowInfo(hConsole, TRUE, &windowSize);
 }
+
+// Parse command line arguments and determine game mode
+GameMode parseCommandLineArgs(int argc, char* argv[]) {
+    GameMode mode = GameMode::Normal;
+    
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        
+        if (arg == "-load") {
+            mode = GameMode::Load;
+        }
+        else if (arg == "-save") {
+            mode = GameMode::Save;
+        }
+        else if (arg == "-silent") {
+            // Silent only applies to load mode
+            if (mode == GameMode::Load) {
+                mode = GameMode::LoadSilent;
+            }
+            // If in save mode, -silent is ignored (as per spec)
+        }
+    }
+    
+    return mode;
+}

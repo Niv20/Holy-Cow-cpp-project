@@ -85,6 +85,33 @@ void Screen::refreshCells(const std::vector<Point>& pts) const {
     for (auto& p : pts) refreshCell(p);
 }
 
+// Capture the current grid state as the "original" state for tracking modifications
+void Screen::captureOriginalState() {
+    m_originalGrid = m_grid;
+}
+
+// Get all modifications (differences from original state)
+std::vector<std::tuple<int, int, wchar_t>> Screen::getModifications() const {
+    std::vector<std::tuple<int, int, wchar_t>> mods;
+    
+    // If no original state captured, return empty
+    if (m_originalGrid.empty()) {
+        return mods;
+    }
+    
+    for (int y = 0; y < MAX_Y; ++y) {
+        for (int x = 0; x < MAX_X; ++x) {
+            wchar_t current = m_grid[y][x].ch;
+            wchar_t original = m_originalGrid[y][x].ch;
+            if (current != original) {
+                mods.push_back(std::make_tuple(x, y, current));
+            }
+        }
+    }
+    
+    return mods;
+}
+
 // Static method: Load a screen file and separate content from metadata
 Screen::LoadedScreen Screen::loadScreenFile(const std::string& filepath) {
     LoadedScreen result;
