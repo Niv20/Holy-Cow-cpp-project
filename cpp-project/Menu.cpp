@@ -340,10 +340,20 @@ std::string Menu::showLoadDialog() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     
     if (saves.empty()) {
-        // Show "No saved games found" message in center
-        COORD msgPos{25, 14};
+        // Replace the "Select a save file..." text on row 9 with "No saved games found" message
+        const std::string noSavesMsg = "No saved games found. Press any key";
+        const int screenWidth = 78;  // Inner width (80 - 2 for the ? borders)
+        const int msgRow = 9;  // Row 10 in 1-indexed (the "Select a save file..." line)
+        
+        // Build centered message with spaces on both sides, surrounded by ? borders
+        int totalPadding = screenWidth - (int)noSavesMsg.length();
+        int leftPadding = totalPadding / 2;
+        int rightPadding = totalPadding - leftPadding;
+        std::string centeredMsg = "\xE2\x94\x82" + std::string(leftPadding, ' ') + noSavesMsg + std::string(rightPadding, ' ') + "\xE2\x94\x82";
+        
+        COORD msgPos{0, (SHORT)msgRow};
         SetConsoleCursorPosition(hOut, msgPos);
-        std::cout << "No saved games found. Press any key...";
+        std::cout << centeredMsg;
         
         while (!_kbhit()) Sleep(100);
         (void)_getch();
