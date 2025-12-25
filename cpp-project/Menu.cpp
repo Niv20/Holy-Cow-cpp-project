@@ -1,4 +1,4 @@
-#include <conio.h>
+﻿#include <conio.h>
 #include <windows.h>
 #include <string>
 #include <vector>
@@ -342,10 +342,10 @@ std::string Menu::showLoadDialog() {
     if (saves.empty()) {
         // Replace the "Select a save file..." text on row 9 with "No saved games found" message
         const std::string noSavesMsg = "No saved games found. Press any key";
-        const int screenWidth = 78;  // Inner width (80 - 2 for the ? borders)
+        const int screenWidth = 78;  // Inner width (80 - 2 for the │ borders)
         const int msgRow = 9;  // Row 10 in 1-indexed (the "Select a save file..." line)
         
-        // Build centered message with spaces on both sides, surrounded by ? borders
+        // Build centered message with spaces on both sides, surrounded by │ borders
         int totalPadding = screenWidth - (int)noSavesMsg.length();
         int leftPadding = totalPadding / 2;
         int rightPadding = totalPadding - leftPadding;
