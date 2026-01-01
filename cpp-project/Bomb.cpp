@@ -3,6 +3,7 @@
 #include "Screen.h"
 #include "Glyph.h"
 #include "Obstacle.h"
+#include "ScreenBuffer.h"
 #include <algorithm>
 #include <set>
 
@@ -13,7 +14,7 @@ inline T clamp_min(T a, T b) { return (a < b) ? b : a; }
 template<typename T>
 inline T clamp_max(T a, T b) { return (a > b) ? b : a; }
 
-// Explode a bomb: destroy weak walls AND damage players
+// Explode a bomb: destroy weak walls, obstacles, AND damage players
 void Bomb::explode(Game& game) {
     Screen& s = game.getScreen(roomIdx);
     const int radius = 3;
@@ -44,8 +45,36 @@ void Bomb::explode(Game& game) {
         }
     }
 
-    // NOTE: Obstacles are NOT affected by bombs anymore per requirement.
-    // We intentionally skip any obstacle removal logic here.
+    // Find and destroy obstacles that have at least one cell in the blast radius
+    std::set<Obstacle*> obstaclesToDestroy;
+    for (int y = minY; y <= maxY; ++y) {
+        for (int x = minX; x <= maxX; ++x) {
+            Point p(x, y);
+            wchar_t c = s.getCharAt(p);
+            if (Glyph::isObstacle(c)) {
+                Obstacle* obs = Obstacle::findAt(s, roomIdx, p);
+                if (obs) {
+                    obstaclesToDestroy.insert(obs);
+                }
+            }
+        }
+    }
+
+    // Destroy all affected obstacles (erase all their cells from all rooms)
+    for (Obstacle* obs : obstaclesToDestroy) {
+        for (const auto& cell : obs->getCells()) {
+            Screen& cellScreen = game.getScreen(cell.getRoomIdx());
+            cellScreen.setCharAt(cell.getPos(), Glyph::Empty);
+            if (cell.getRoomIdx() == game.getVisibleRoomIdx()) {
+                cellScreen.refreshCell(cell.getPos());
+            }
+        }
+    }
+
+    // Rescan obstacles if any were destroyed
+    if (!obstaclesToDestroy.empty()) {
+        game.rescanObstacles();
+    }
 
     // Damage players: each player hit = 1 heart lost
     int hits = 0;
