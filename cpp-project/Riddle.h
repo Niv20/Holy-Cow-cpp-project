@@ -60,6 +60,7 @@ public:
 	std::vector<std::string> buildRiddleScreen(const std::vector<std::string>& templateScreen) const;
 	
 	char getCorrectAnswer() const { return correctAnswer; }
+	const char* getQuestion() const { return question; }
 	int getPoints() const { return points; }
 	void halvePoints() { points /= 2; }
 	

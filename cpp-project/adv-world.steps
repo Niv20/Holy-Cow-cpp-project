@@ -1,0 +1,21 @@
+# adv-world Steps File
+# Format: <cycle> <TYPE> <args...>
+# TYPE is one of: KEY SCREEN LIFE RIDDLE ANSWER END
+
+SCREENS "adv-world_00.screen" "adv-world_01.screen" "adv-world_02.screen" "adv-world_03.screen" "adv-world_04.screen" "adv-world_05.screen" "adv-world_06.screen" "adv-world_07.screen"
+
+7 KEY 1 108
+15 KEY 1 108
+17 KEY 1 105
+24 KEY 1 106
+47 KEY 1 105
+50 KEY 1 106
+55 KEY 1 105
+56 KEY 1 106
+79 KEY 1 109
+84 KEY 1 108
+85 RIDDLE 1 "What do cows use to do math?"
+95 ANSWER 1 "2" 1
+101 KEY 1 105
+111 KEY 1 106
+123 END 50 1

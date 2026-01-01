@@ -95,10 +95,6 @@ public:
     bool initForSave(const std::vector<std::string>& screenFiles);
     bool initForLoad();
     
-    // Set random seed (for reproducibility)
-    void setRandomSeed(unsigned int seed);
-    unsigned int getRandomSeed() const { return randomSeed_; }
-    
     // Recording methods (save mode)
     void recordKeyPress(int cycle, int playerIndex, char key);
     void recordScreenTransition(int cycle, int playerIndex, int targetScreen);
@@ -129,11 +125,10 @@ public:
     const std::vector<std::string>& getScreenFiles() const { return screenFiles_; }
     
 private:
-    bool saveMode_;
-    unsigned int randomSeed_;
-    std::vector<std::string> screenFiles_;
+bool saveMode_;
+std::vector<std::string> screenFiles_;
     
-    // For recording
+// For recording
     std::vector<GameEvent> recordedEvents_;
     std::vector<ResultEntry> recordedResults_;
     

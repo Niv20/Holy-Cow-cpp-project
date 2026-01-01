@@ -45,7 +45,7 @@ void ResultEntry::setDescription(const std::string& d) { description_ = d; }
 // Rest of GameRecorder implementation updated to use getters/setters
 
 GameRecorder::GameRecorder() 
-    : saveMode_(false), randomSeed_(0), currentEventIndex_(0) {
+    : saveMode_(false), currentEventIndex_(0) {
 }
 
 GameRecorder::~GameRecorder() {
@@ -56,9 +56,6 @@ bool GameRecorder::initForSave(const std::vector<std::string>& screenFiles) {
     screenFiles_ = screenFiles;
     recordedEvents_.clear();
     recordedResults_.clear();
-    
-    // Generate random seed based on current time
-    randomSeed_ = static_cast<unsigned int>(std::time(nullptr));
     
     return true;
 }
@@ -80,10 +77,6 @@ bool GameRecorder::initForLoad() {
     }
     
     return true;
-}
-
-void GameRecorder::setRandomSeed(unsigned int seed) {
-    randomSeed_ = seed;
 }
 
 // Recording methods
@@ -108,7 +101,7 @@ void GameRecorder::recordScreenTransition(int cycle, int playerIndex, int target
     event.setTargetScreen(targetScreen);
     recordedEvents_.push_back(event);
     
-    // Also add to results
+    // Add to results - screen transitions should be recorded
     std::ostringstream oss;
     oss << "Player " << (playerIndex + 1) << " moved to screen " << targetScreen;
     recordedResults_.emplace_back(cycle, oss.str());
@@ -301,46 +294,42 @@ bool GameRecorder::writeStepsFile() {
         FileParser::reportError("Cannot create steps file: " + std::string(STEPS_FILE));
         return false;
     }
-    
-    // Write header
+
     file << "# adv-world Steps File\n";
-    file << "# Format: CYCLE EVENT_TYPE PLAYER_INDEX [DATA...]\n";
+    file << "# Format: <cycle> <TYPE> <args...>\n";
+    file << "# TYPE is one of: KEY SCREEN LIFE RIDDLE ANSWER END\n";
     file << "\n";
-    
-    // Write screen files (for verification when loading)
-    file << "SCREENS";
-    for (const auto& screen : screenFiles_) {
-        file << " " << escapeString(screen);
+
+    if (!screenFiles_.empty()) {
+        file << "SCREENS";
+        for (const auto& s : screenFiles_) {
+            file << " " << escapeString(s);
+        }
+        file << "\n\n";
     }
-    file << "\n";
-    
-    // Write random seed
-    file << "SEED " << randomSeed_ << "\n";
-    file << "\n";
-    
-    // Write events
-    file << "# Events\n";
+
     for (const auto& event : recordedEvents_) {
-        file << event.getCycle() << " " << eventTypeToString(event.getType()) << " " << event.getPlayerIndex();
-        
+        file << event.getCycle() << " " << eventTypeToString(event.getType()) << " ";
         switch (event.getType()) {
             case GameEventType::KeyPress:
-                file << " " << (int)event.getKeyPressed();
+                file << event.getPlayerIndex() << " " << (int)event.getKeyPressed();
                 break;
             case GameEventType::ScreenTransition:
-                file << " " << event.getTargetScreen();
+                file << event.getPlayerIndex() << " " << event.getTargetScreen();
                 break;
             case GameEventType::LifeLost:
-                // No additional data
+                file << event.getPlayerIndex();
                 break;
             case GameEventType::RiddleEncounter:
-                file << " " << escapeString(event.getRiddleQuestion());
+                file << event.getPlayerIndex() << " " << escapeString(event.getRiddleQuestion());
                 break;
             case GameEventType::RiddleAnswer:
-                file << " " << escapeString(event.getRiddleAnswer()) << " " << (event.isRiddleCorrect() ? 1 : 0);
+                file << event.getPlayerIndex() << " " << escapeString(event.getRiddleAnswer()) << " " << (event.isRiddleCorrect() ? 1 : 0);
                 break;
             case GameEventType::GameEnd:
-                file << " " << event.getScore() << " " << (event.getIsWin() ? 1 : 0);
+                file << event.getScore() << " " << (event.getIsWin() ? 1 : 0);
+                break;
+            default:
                 break;
         }
         file << "\n";
@@ -380,7 +369,6 @@ bool GameRecorder::readStepsFile() {
     
     loadedEvents_.clear();
     screenFiles_.clear();
-    randomSeed_ = 0;
     
     for (const auto& rawLine : lines) {
         std::string line = FileParser::trim(rawLine);
@@ -391,74 +379,114 @@ bool GameRecorder::readStepsFile() {
         std::istringstream iss(line);
         std::string firstToken;
         iss >> firstToken;
-        
-        // Handle special commands
+
+        // Optional metadata lines
         if (firstToken == "SCREENS") {
-            std::string screenFile;
-            while (iss >> screenFile) {
-                screenFiles_.push_back(unescapeString(screenFile));
+            // Example format: SCREENS "adv-world_00.screen" "adv-world_01.screen" ...
+            std::string token;
+            while (iss >> token) {
+                screenFiles_.push_back(unescapeString(token));
             }
             continue;
         }
-        
         if (firstToken == "SEED") {
-            iss >> randomSeed_;
+            // Currently unused, but allowed.
+            continue;
+        }
+
+        // Typed event format: <cycle> <TYPE> <args...>
+        // Examples: 10 KEY 0 100, 150 SCREEN 0 1
+        if (!firstToken.empty() && std::isdigit(static_cast<unsigned char>(firstToken[0]))) {
+            int cycle = FileParser::parseInt(firstToken, -1);
+            if (cycle < 0) continue;
+
+            std::string maybeType;
+            if (!(iss >> maybeType)) {
+                continue;
+            }
+
+            // Backward compatible legacy format: CYCLE PLAYER_INDEX KEY_CODE
+            // (i.e. second token is a number)
+            bool legacySecondIsNumber = !maybeType.empty() && (std::isdigit(static_cast<unsigned char>(maybeType[0])) || maybeType[0] == '-');
+            if (legacySecondIsNumber) {
+                int playerIndex = FileParser::parseInt(maybeType, 0);
+                int keyCode = 0;
+                iss >> keyCode;
+
+                GameEvent event;
+                event.setCycle(cycle);
+                event.setType(GameEventType::KeyPress);
+                event.setPlayerIndex(playerIndex);
+                event.setKeyPressed(static_cast<char>(keyCode));
+                loadedEvents_.push_back(event);
+                continue;
+            }
+
+            GameEventType type = stringToEventType(maybeType);
+            GameEvent event;
+            event.setCycle(cycle);
+            event.setType(type);
+
+            switch (type) {
+                case GameEventType::KeyPress: {
+                    int playerIndex = 0;
+                    int keyCode = 0;
+                    iss >> playerIndex >> keyCode;
+                    event.setPlayerIndex(playerIndex);
+                    event.setKeyPressed(static_cast<char>(keyCode));
+                    break;
+                }
+                case GameEventType::ScreenTransition: {
+                    int playerIndex = 0;
+                    int targetScreen = -1;
+                    iss >> playerIndex >> targetScreen;
+                    event.setPlayerIndex(playerIndex);
+                    event.setTargetScreen(targetScreen);
+                    break;
+                }
+                case GameEventType::LifeLost: {
+                    int playerIndex = 0;
+                    iss >> playerIndex;
+                    event.setPlayerIndex(playerIndex);
+                    break;
+                }
+                case GameEventType::RiddleEncounter: {
+                    int playerIndex = 0;
+                    iss >> playerIndex;
+                    event.setPlayerIndex(playerIndex);
+                    std::string q;
+                    std::getline(iss, q);
+                    q = FileParser::trim(q);
+                    event.setRiddleQuestion(unescapeString(q));
+                    break;
+                }
+                case GameEventType::RiddleAnswer: {
+                    int playerIndex = 0;
+                    std::string answer;
+                    int correctInt = 0;
+                    iss >> playerIndex >> answer >> correctInt;
+                    event.setPlayerIndex(playerIndex);
+                    event.setRiddleAnswer(unescapeString(answer));
+                    event.setRiddleCorrect(correctInt != 0);
+                    break;
+                }
+                case GameEventType::GameEnd: {
+                    int score = 0;
+                    int winInt = 0;
+                    iss >> score >> winInt;
+                    event.setScore(score);
+                    event.setIsWin(winInt != 0);
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            loadedEvents_.push_back(event);
             continue;
         }
         
-        // Parse as event
-        int cycle = FileParser::parseInt(firstToken, -1);
-        if (cycle < 0) continue;
-        
-        std::string eventTypeStr;
-        int playerIndex;
-        iss >> eventTypeStr >> playerIndex;
-        
-        GameEvent event;
-        event.setCycle(cycle);
-        event.setType(stringToEventType(eventTypeStr));
-        event.setPlayerIndex(playerIndex);
-        
-        switch (event.getType()) {
-            case GameEventType::KeyPress: {
-                int keyCode;
-                iss >> keyCode;
-                event.setKeyPressed((char)keyCode);
-                break;
-            }
-            case GameEventType::ScreenTransition: {
-                int tgt;
-                iss >> tgt;
-                event.setTargetScreen(tgt);
-                break;
-            }
-            case GameEventType::LifeLost:
-                // No additional data
-                break;
-            case GameEventType::RiddleEncounter: {
-                std::string question;
-                iss >> question;
-                event.setRiddleQuestion(unescapeString(question));
-                break;
-            }
-            case GameEventType::RiddleAnswer: {
-                std::string answer;
-                int correct;
-                iss >> answer >> correct;
-                event.setRiddleAnswer(unescapeString(answer));
-                event.setRiddleCorrect(correct != 0);
-                break;
-            }
-            case GameEventType::GameEnd: {
-                int score; int isWin;
-                iss >> score >> isWin;
-                event.setScore(score);
-                event.setIsWin(isWin != 0);
-                break;
-            }
-        }
-        
-        loadedEvents_.push_back(event);
+        // Unknown line type - ignore
     }
     
     return !loadedEvents_.empty();

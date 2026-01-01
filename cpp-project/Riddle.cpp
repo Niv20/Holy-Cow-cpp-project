@@ -6,10 +6,12 @@
 #include "ScreenBuffer.h"
 #include "Menu.h"
 #include "Glyph.h"
+#include "GameRecorder.h"
 #include "utils.h"
 #include <conio.h>
 #include <cstring>
 #include <string>
+#include <sstream>
 
 using std::vector;
 using std::string;
@@ -89,6 +91,9 @@ void Riddle::handleEncounter(Player& player,
     
     int roomIdx = player.getRoomIdx();
     Point pos = player.getPosition();
+    GameMode mode = game.getGameMode();
+    bool isSilent = (mode == GameMode::LoadSilent);
+    bool isLoadMode = (mode == GameMode::Load || mode == GameMode::LoadSilent);
 
     // Find the riddle at this position
     RiddleKey exactKey(roomIdx, pos.getX(), pos.getY());
@@ -107,6 +112,90 @@ void Riddle::handleEncounter(Player& player,
 
     if (!riddle) return;
 
+    // Find player index for recording
+    int playerIndex = 0;
+    const auto& players = game.getPlayers();
+    for (size_t i = 0; i < players.size(); ++i) {
+        if (&players[i] == &player) {
+            playerIndex = (int)i;
+            break;
+        }
+    }
+
+    // In load mode, get the answer from the recorder instead of waiting for input
+    if (isLoadMode) {
+        GameRecorder* recorder = game.getRecorder();
+        if (recorder) {
+            // Look for the next recorded answer for this cycle.
+            // Accept either:
+            // 1) KeyPress event with key '1'..'4'
+            // 2) Typed ANSWER event from the steps file
+            // Use shouldProcessEvent to check if the event is ready for this cycle
+            char answer = '\0';
+            int currentCycle = game.getGameCycle();
+            
+            if (recorder->shouldProcessEvent(currentCycle)) {
+                const GameEvent& evt = recorder->peekNextEvent();
+                if (evt.getType() == GameEventType::KeyPress) {
+                    char key = evt.getKeyPressed();
+                    if (key >= '1' && key <= '4') {
+                        answer = key;
+                        recorder->consumeNextEvent();
+                    }
+                }
+                else if (evt.getType() == GameEventType::RiddleAnswer) {
+                    // Stored as a string (usually "1".."4")
+                    const std::string& a = evt.getRiddleAnswer();
+                    if (!a.empty() && a[0] >= '1' && a[0] <= '4') {
+                        answer = a[0];
+                        recorder->consumeNextEvent();
+                    }
+                }
+            }
+            
+            // Process the answer
+            if (answer == '\0') {
+                // No answer found for this cycle - move player back
+                Point prevPos = pos;
+                if (pos.getDiffX()) prevPos.setX(prevPos.getX() - pos.getDiffX());
+                if (pos.getDiffY()) prevPos.setY(prevPos.getY() - pos.getDiffY());
+                player.setPosition(prevPos);
+                player.stop();
+            } else {
+                bool correct = (answer == riddle->getCorrectAnswer());
+                
+                // Record to results for verification
+                if (mode == GameMode::LoadSilent) {
+                    std::ostringstream oss;
+                    oss << "Player " << (playerIndex + 1) << " answered riddle: " << answer 
+                        << " (" << (correct ? "CORRECT" : "WRONG") << ")";
+                    recorder->addActualResult(currentCycle, oss.str());
+                }
+                
+                if (correct) {
+                    game.addPoints(riddle->getPoints());
+                    game.getScreen(roomIdx).setCharAt(pos, Glyph::Empty);
+
+                    if (!isSilent) {
+                        game.getScreen(roomIdx).refreshCell(pos);
+                        ScreenBuffer::getInstance().flush();
+                    }
+                } else {
+                    riddle->halvePoints();
+                    game.reduceHearts(1);
+                    Point prevPos = pos;
+                    if (pos.getDiffX()) prevPos.setX(prevPos.getX() - pos.getDiffX());
+                    if (pos.getDiffY()) prevPos.setY(prevPos.getY() - pos.getDiffY());
+                    player.setPosition(prevPos);
+                    player.stop();
+                }
+            }
+        }
+        return;  // Don't show UI in load mode
+    }
+
+    // Normal mode - show riddle UI and wait for input
+    
     // Get riddle template screen
     const vector<string>& templateScreen = Menu::getRiddleTemplate(); 
     if (templateScreen.empty()) {
@@ -144,7 +233,16 @@ void Riddle::handleEncounter(Player& player,
             }
             // Answer 1-4
             else if (answer >= ANSWER_MIN_KEY && answer <= ANSWER_MAX_KEY) {
-                if (answer == riddle->getCorrectAnswer()) { 
+                bool correct = (answer == riddle->getCorrectAnswer());
+                
+                // Record riddle event if in save mode
+                GameRecorder* recorder = game.getRecorder();
+                if (recorder && mode == GameMode::Save) {
+                    recorder->recordRiddleEncounter(game.getGameCycle(), playerIndex, riddle->getQuestion());
+                    recorder->recordRiddleAnswer(game.getGameCycle(), playerIndex, std::string(1, answer), correct);
+                }
+                
+                if (correct) { 
                     // Correct answer
                     game.addPoints(riddle->getPoints());
                     game.getScreen(roomIdx).setCharAt(pos, Glyph::Empty);

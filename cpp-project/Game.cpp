@@ -553,26 +553,52 @@ void Game::handleInput() {
 }
 
 void Game::handleInputFromRecorder() {
-    if (!recorder) {
-        isRunning = false;
-        return;
-    }
+if (!recorder) {
+    isRunning = false;
+    return;
+}
     
-    // Process all events for the current cycle
-    while (recorder->shouldProcessEvent(gameCycle)) {
-        GameEvent event = recorder->consumeNextEvent();
+// Process all events for the current cycle
+while (recorder->shouldProcessEvent(gameCycle)) {
+    const GameEvent& event = recorder->peekNextEvent();
         
-        switch (event.getType()) {
-            case GameEventType::KeyPress:
-                // Apply key to the appropriate player
-                if (event.getPlayerIndex() >= 0 && event.getPlayerIndex() < (int)players.size()) {
-                    players[event.getPlayerIndex()].handleKey(event.getKeyPressed());
+    switch (event.getType()) {
+        case GameEventType::KeyPress: {
+            char key = event.getKeyPressed();
+            int playerIdx = event.getPlayerIndex();
+                
+            // Riddle answer keys (1-4) are normally consumed by `Riddle::handleEncounter`.
+            // However, if the player isn't currently on a riddle tile, keeping the event
+            // unconsumed will stall playback forever.
+            bool isRiddleAnswerKey = (key >= '1' && key <= '4');
+            bool shouldDeferToRiddle = false;
+            if (isRiddleAnswerKey && playerIdx >= 0 && playerIdx < (int)players.size()) {
+                const Player& p = players[playerIdx];
+                int roomIdx = p.getRoomIdx();
+                if (roomIdx >= 0 && roomIdx < (int)world.size()) {
+                    wchar_t cell = world[roomIdx].getCharAt(p.getPosition());
+                    if (Glyph::isRiddle(cell)) {
+                        shouldDeferToRiddle = true;
+                    }
                 }
-                break;
+            }
+            if (shouldDeferToRiddle) {
+                // Leave it for `Riddle::handleEncounter` to consume.
+                return;
+            }
+                
+            // Consume and apply key
+            recorder->consumeNextEvent();
+            if (playerIdx >= 0 && playerIdx < (int)players.size()) {
+                players[playerIdx].handleKey(key);
+            }
+            break;
+        }
                 
             case GameEventType::ScreenTransition:
                 // Screen transitions are handled by the game logic, just verify
-                if (gameMode == GameMode::LoadSilent && recorder) {
+                recorder->consumeNextEvent();
+                if (gameMode == GameMode::LoadSilent) {
                     std::ostringstream oss;
                     oss << "Player " << (event.getPlayerIndex() + 1) << " moved to screen " << event.getTargetScreen();
                     recorder->addActualResult(event.getCycle(), oss.str());
@@ -581,7 +607,8 @@ void Game::handleInputFromRecorder() {
                 
             case GameEventType::LifeLost:
                 // Life loss is handled by game logic, just verify
-                if (gameMode == GameMode::LoadSilent && recorder) {
+                recorder->consumeNextEvent();
+                if (gameMode == GameMode::LoadSilent) {
                     std::ostringstream oss;
                     oss << "Player " << (event.getPlayerIndex() + 1) << " lost a life";
                     recorder->addActualResult(event.getCycle(), oss.str());
@@ -589,8 +616,19 @@ void Game::handleInputFromRecorder() {
                 break;
                 
             case GameEventType::RiddleAnswer:
-                // Riddle answers - verify in silent mode
-                if (gameMode == GameMode::LoadSilent && recorder) {
+                // Riddle answers should be handled by Riddle::handleEncounter when the player
+                // steps on the riddle. However, handleInputFromRecorder runs BEFORE update(),
+                // so the player hasn't moved yet. If we consume it here, handleEncounter won't see it.
+                
+                // If the event is for the current cycle, defer it to handleEncounter.
+                // If it's from a past cycle (meaning handleEncounter missed it/desync), consume it to avoid infinite loop.
+                if (event.getCycle() == gameCycle) {
+                    return; // Defer to handleEncounter
+                }
+                
+                // Stale event (cycle < gameCycle) - consume it
+                recorder->consumeNextEvent();
+                if (gameMode == GameMode::LoadSilent) {
                     std::ostringstream oss;
                     oss << "Player " << (event.getPlayerIndex() + 1) << " answered riddle: " 
                         << event.getRiddleAnswer() << " (" << (event.isRiddleCorrect() ? "CORRECT" : "WRONG") << ")";
@@ -600,7 +638,8 @@ void Game::handleInputFromRecorder() {
                 
             case GameEventType::GameEnd:
                 // Game end - verify in silent mode
-                if (gameMode == GameMode::LoadSilent && recorder) {
+                recorder->consumeNextEvent();
+                if (gameMode == GameMode::LoadSilent) {
                     std::ostringstream oss;
                     oss << "Game ended: " << (event.getIsWin() ? "WIN" : "LOSE") << " with score " << event.getScore();
                     recorder->addActualResult(event.getCycle(), oss.str());
@@ -609,6 +648,7 @@ void Game::handleInputFromRecorder() {
                 break;
                 
             default:
+                recorder->consumeNextEvent();
                 break;
         }
     }
@@ -686,10 +726,18 @@ for (size_t i = 0; i < players.size(); ++i) {
 
     if (p.getRoomIdx() == visibleRoomIdx) {
         p.move(world[visibleRoomIdx], *this);
+    }
+
+    // Always resolve riddle encounters against the player's actual room.
+    // Camera focus (`visibleRoomIdx`) can differ from the player's room (e.g. final-room focus),
+    // and using `visibleRoomIdx` here can cause clearing the wrong screen.
+    const int playerRoomIdx = p.getRoomIdx();
+    if (playerRoomIdx >= 0 && playerRoomIdx < (int)world.size()) {
         Point pos = p.getPosition();
-        wchar_t cell = world[visibleRoomIdx].getCharAt(pos);
-        if (Glyph::isRiddle(cell))
+        wchar_t cell = world[playerRoomIdx].getCharAt(pos);
+        if (Glyph::isRiddle(cell)) {
             Riddle::handleEncounter(p, riddlesByPosition, *this);
+        }
     }
 }
 
@@ -1045,6 +1093,18 @@ void Game::checkAndProcessTransitions() {
         newPos.setDiffY(transitions[i].originalPos.getDiffY());
         pl->setRoomIdx(transitions[i].targetRoom);
         pl->setPosition(newPos);
+        
+        // Record screen transition for result file
+        int playerIdx = -1;
+        for (size_t j = 0; j < players.size(); ++j) {
+            if (&players[j] == pl) {
+                playerIdx = (int)j;
+                break;
+            }
+        }
+        if (playerIdx >= 0) {
+            recordScreenTransition(playerIdx, transitions[i].targetRoom);
+        }
     }
 
     // Camera logic:
