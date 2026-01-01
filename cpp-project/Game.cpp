@@ -790,8 +790,10 @@ if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
             }
         }
 
-        DarkRoomManager::updateDarknessAroundPlayers(world[visibleRoomIdx], players,
-                                                     visibleRoomIdx, previousPlayerPositions, torchSources);
+        if (!isSilent) {
+            DarkRoomManager::updateDarknessAroundPlayers(world[visibleRoomIdx], players,
+                                                         visibleRoomIdx, previousPlayerPositions, torchSources);
+        }
     }
 }
     
@@ -810,7 +812,9 @@ for (size_t i = 0; i < players.size(); ++i) {
         }
         if (!anyPlayerInCurrentRoom) {
             visibleRoomIdx = roomAfter;
-            drawEverything();
+            if (!isSilent) {
+                drawEverything();
+            }
         }
     }
 }
@@ -898,6 +902,7 @@ if (!isSilent && !DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
     }
 
 void Game::updatePressureButtons() {
+    bool isSilent = (gameMode == GameMode::LoadSilent);
     for (size_t roomIdx = 0; roomIdx < world.size(); ++roomIdx) {
         Screen& screen = world[roomIdx];
         auto& buttons = screen.getDataMutable().pressureButtons;
@@ -950,7 +955,7 @@ void Game::updatePressureButtons() {
             wchar_t desired = (kv.second.activeCount > 0) ? Glyph::Empty : kv.second.original;
             if (screen.getCharAt(p) != desired) {
                 screen.setCharAt(p, desired);
-                if (isVisibleRoom) {
+                if (isVisibleRoom && !isSilent) {
                     if (isDark) {
                         DarkRoomManager::refreshCellWithDarkness(screen, p, players, (int)roomIdx);
                     } else {
@@ -1121,7 +1126,11 @@ void Game::checkAndProcessTransitions() {
 
     int focusRoom = transitions.back().targetRoom;
     visibleRoomIdx = focusRoom;
-    drawEverything();
+    
+    bool isSilent = (gameMode == GameMode::LoadSilent);
+    if (!isSilent) {
+        drawEverything();
+    }
 }
 
 void Game::drawEverything() { 
