@@ -224,8 +224,7 @@ void Menu::showWinScreen() {
     vector<string> winScreen = loadScreen("Win.screen");
 
     if (winScreen.empty()) {
-        // If no Win screen, just show the final room (room 7)
-        std::cerr << "Warning: Win.screen not found." << std::endl;
+        // If no Win screen, just return (the final room is the win screen)
         return;
     }
 

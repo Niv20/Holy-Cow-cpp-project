@@ -315,9 +315,22 @@ else if (gameMode == GameMode::LoadSilent) {
         }
     }
     
+    // In Load/LoadSilent mode, we might have pending events (like GameEnd) that correspond 
+    // to the state after the loop broke (e.g. due to death). Process them now.
+    if ((gameMode == GameMode::Load || gameMode == GameMode::LoadSilent) && recorder) {
+        handleInputFromRecorder();
+    }
+    
     // Record game end if in save mode
     if (recorder && gameMode == GameMode::Save) {
-        recordGameEnd(heartsCount > 0);
+        bool allPlayersWon = true;
+        for (bool reached : playerReachedFinalRoom) {
+            if (!reached) {
+                allPlayersWon = false;
+                break;
+            }
+        }
+        recordGameEnd(heartsCount > 0 && allPlayersWon);
         recorder->finalizeRecording();
     }
     

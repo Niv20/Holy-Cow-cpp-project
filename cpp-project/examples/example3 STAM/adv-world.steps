@@ -1,0 +1,10 @@
+# adv-world Steps File
+# Format: <cycle> <TYPE> <args...>
+# TYPE is one of: KEY SCREEN LIFE RIDDLE ANSWER END
+
+SCREENS "adv-world_00.screen" "adv-world_01.screen" "adv-world_02.screen" "adv-world_03.screen" "adv-world_04.screen" "adv-world_05.screen" "adv-world_06.screen" "adv-world_07.screen"
+
+6 KEY 0 97
+31 KEY 0 100
+42 KEY 0 115
+65 END 0 0
