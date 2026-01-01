@@ -348,7 +348,7 @@ std::string Menu::showLoadDialog() {
     
     if (saves.empty()) {
         // Replace the "Select a save file..." text on row 9 with "No saved games found" message
-        const std::string noSavesMsg = "No saved games found. Press any key";
+        const std::string noSavesMsg = "No saved games found. Press any key to return.";
         const int screenWidth = 78;  // Inner width (80 - 2 for the │ borders)
         const int msgRow = 9;  // Row 10 in 1-indexed (the "Select a save file..." line)
         
