@@ -25,12 +25,16 @@ bool actionRequested = false;
     int boostDirY = 0;
 
 public:
-    Player(Point startPos, const char* keySet, wchar_t sym, int startRoom);
-    void draw() const;
-    void move(Screen& currentScreen, class Game& game);
-    void handleKey(char key);
-    void stop();
-    bool isStationary() const { return position.getDiffX() == 0 && position.getDiffY() == 0; }
+Player(Point startPos, const char* keySet, wchar_t sym, int startRoom);
+void draw() const;
+void move(Screen& currentScreen, class Game& game);
+    
+// Handle key input - returns true if the key was meaningful (should be recorded)
+// A key is meaningful if it changes state: direction change, action that does something
+bool handleKey(char key);
+    
+void stop();
+bool isStationary() const { return position.getDiffX() == 0 && position.getDiffY() == 0; }
     Key getCarriedKey() const { return carried; }
     char getCarried() const { return carried.get(); }
     void setCarried(char ch) { carried = Key(ch); }

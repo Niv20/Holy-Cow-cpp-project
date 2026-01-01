@@ -213,36 +213,84 @@ void GameRecorder::addActualResult(int cycle, const std::string& description) {
 }
 
 bool GameRecorder::verifyResults(std::string& errorMessage) const {
-    if (expectedResults_.empty()) {
-        errorMessage = "No expected results to verify against";
-        return false;
+    std::ostringstream oss;
+    bool hasError = false;
+    
+    if (expectedResults_.empty() && actualResults_.empty()) {
+        // Both empty is OK - no events to verify
+        return true;
     }
     
-    if (actualResults_.size() != expectedResults_.size()) {
-        std::ostringstream oss;
-        oss << "Result count mismatch: expected " << expectedResults_.size() 
-            << ", got " << actualResults_.size();
+    if (expectedResults_.empty()) {
+        oss << "VERIFICATION FAILED: No expected results file (adv-world.result) found!\n";
+        oss << "  Actual events occurred: " << actualResults_.size() << "\n";
         errorMessage = oss.str();
         return false;
     }
     
-    for (size_t i = 0; i < expectedResults_.size(); ++i) {
-        if (actualResults_[i].getCycle() != expectedResults_[i].getCycle()) {
-            std::ostringstream oss;
-            oss << "Result " << i << " cycle mismatch: expected " << expectedResults_[i].getCycle() 
-                << ", got " << actualResults_[i].getCycle();
-            errorMessage = oss.str();
-            return false;
-        }
-        if (actualResults_[i].getDescription() != expectedResults_[i].getDescription()) {
-            std::ostringstream oss;
-            oss << "Result " << i << " description mismatch:\n  Expected: " << expectedResults_[i].getDescription() 
-                << "\n  Got: " << actualResults_[i].getDescription();
-            errorMessage = oss.str();
-            return false;
+    // Compare results
+    size_t maxSize = (std::max)(actualResults_.size(), expectedResults_.size());
+    
+    oss << "\n========== VERIFICATION REPORT ==========\n";
+    oss << "Expected events: " << expectedResults_.size() << "\n";
+    oss << "Actual events:   " << actualResults_.size() << "\n";
+    oss << "------------------------------------------\n";
+    
+    for (size_t i = 0; i < maxSize; ++i) {
+        bool hasExpected = (i < expectedResults_.size());
+        bool hasActual = (i < actualResults_.size());
+        
+        if (hasExpected && hasActual) {
+            const ResultEntry& exp = expectedResults_[i];
+            const ResultEntry& act = actualResults_[i];
+            
+            bool cycleMatch = (exp.getCycle() == act.getCycle());
+            bool descMatch = (exp.getDescription() == act.getDescription());
+            
+            if (cycleMatch && descMatch) {
+                oss << "[OK]    Cycle " << exp.getCycle() << ": " << exp.getDescription() << "\n";
+            } else {
+                hasError = true;
+                oss << "[FAIL]  Event " << i << ":\n";
+                oss << "        Expected: Cycle " << exp.getCycle() << " - " << exp.getDescription() << "\n";
+                oss << "        Actual:   Cycle " << act.getCycle() << " - " << act.getDescription() << "\n";
+                if (!cycleMatch) {
+                    oss << "        ^ CYCLE MISMATCH!\n";
+                }
+                if (!descMatch) {
+                    oss << "        ^ DESCRIPTION MISMATCH!\n";
+                }
+            }
+        } else if (hasExpected && !hasActual) {
+            hasError = true;
+            const ResultEntry& exp = expectedResults_[i];
+            oss << "[MISS]  Event " << i << " - Expected but not occurred:\n";
+            oss << "        Cycle " << exp.getCycle() << ": " << exp.getDescription() << "\n";
+        } else if (!hasExpected && hasActual) {
+            hasError = true;
+            const ResultEntry& act = actualResults_[i];
+            oss << "[EXTRA] Event " << i << " - Occurred but not expected:\n";
+            oss << "        Cycle " << act.getCycle() << ": " << act.getDescription() << "\n";
         }
     }
     
+    oss << "------------------------------------------\n";
+    
+    if (hasError) {
+        if (actualResults_.size() != expectedResults_.size()) {
+            oss << "SUMMARY: Event count mismatch!\n";
+            oss << "  Expected " << expectedResults_.size() << " events, got " << actualResults_.size() << "\n";
+        } else {
+            oss << "SUMMARY: Event content mismatch detected\n";
+        }
+        oss << "==========================================\n";
+        errorMessage = oss.str();
+        return false;
+    }
+    
+    oss << "SUMMARY: All " << expectedResults_.size() << " events verified successfully!\n";
+    oss << "==========================================\n";
+    errorMessage = oss.str();  // Contains success report
     return true;
 }
 

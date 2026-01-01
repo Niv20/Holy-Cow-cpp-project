@@ -182,6 +182,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Board.cpp" />
     <ClCompile Include="Bomb.cpp" />
     <ClCompile Include="DarkRoom.cpp" />
     <ClCompile Include="Door.cpp" />
@@ -207,6 +208,7 @@
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Board.h" />
     <ClInclude Include="Bomb.h" />
     <ClInclude Include="DarkRoom.h" />
     <ClInclude Include="Door.h" />

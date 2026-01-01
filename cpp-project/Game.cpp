@@ -9,6 +9,7 @@
 #include <filesystem>
 
 #include "Game.h"
+#include "Board.h"
 #include "ScreenBuffer.h"
 #include "utils.h"
 #include "Glyph.h"
@@ -38,6 +39,11 @@ namespace {
     constexpr wchar_t OVERLAP_ICON = L'O';
     constexpr char NO_INVENTORY_ITEM = ' ';
     constexpr char TORCH_CHAR = static_cast<char>(Glyph::Torch);
+    
+    // Tick delays for different modes
+    constexpr int TICK_DELAY_NORMAL = 90;   // Normal play
+    constexpr int TICK_DELAY_LOAD = 10;     // Load mode (visual playback) - faster
+    constexpr int TICK_DELAY_SILENT = 0;    // Silent mode - as fast as possible
 }
 
 
@@ -283,12 +289,12 @@ if (!isSilent) {
 }
 
 // Determine tick delay based on mode
-int tickDelay = GAME_TICK_DELAY_MS;
+int tickDelay = TICK_DELAY_NORMAL;
 if (gameMode == GameMode::Load) {
-    tickDelay = GAME_TICK_DELAY_LOAD_MS;
+    tickDelay = TICK_DELAY_LOAD;
 }
 else if (gameMode == GameMode::LoadSilent) {
-    tickDelay = 0;  // No delay in silent mode
+    tickDelay = TICK_DELAY_SILENT;  // No delay in silent mode
 }
 
     while (isRunning) { 
@@ -317,11 +323,16 @@ else if (gameMode == GameMode::LoadSilent) {
     
     // In silent mode, verify results
     if (gameMode == GameMode::LoadSilent && recorder) {
-        std::string errorMessage;
-        if (recorder->verifyResults(errorMessage)) {
-            std::cout << "TEST PASSED: All results match expected values." << std::endl;
+        std::string verificationReport;
+        bool passed = recorder->verifyResults(verificationReport);
+        
+        // Print verification report
+        std::cout << verificationReport;
+        
+        if (passed) {
+            std::cout << "\n*** TEST PASSED ***\n" << std::endl;
         } else {
-            std::cout << "TEST FAILED: " << errorMessage << std::endl;
+            std::cout << "\n*** TEST FAILED ***\n" << std::endl;
         }
         return;  // Don't show win/lose screens in silent mode
     }
@@ -505,6 +516,7 @@ void Game::handleInput() {
 
         char key = _getch();
 
+        // ESC opens pause menu - never record this
         if (key == ESC_KEY) { 
             handlePause(); 
             return; 
@@ -521,15 +533,19 @@ void Game::handleInput() {
             return;
         }
 
-        // Normal input: prevent moving player who reached final room
+        // Try key on each player - only record if at least one player found it meaningful
+        bool anyMeaningful = false;
         for (size_t i = 0; i < players.size(); i++) {
             auto& p = players[i];
             if (p.getRoomIdx() == visibleRoomIdx && !hasPlayerReachedFinalRoom(i)) {
-                p.handleKey(key);
-                
-                // Record key press if in save mode
-                if (recorder && gameMode == GameMode::Save) {
-                    recorder->recordKeyPress(gameCycle, (int)i, key);
+                bool meaningful = p.handleKey(key);
+                if (meaningful) {
+                    anyMeaningful = true;
+                    
+                    // Record key press if in save mode and key was meaningful
+                    if (recorder && gameMode == GameMode::Save) {
+                        recorder->recordKeyPress(gameCycle, (int)i, key);
+                    }
                 }
             }
         }

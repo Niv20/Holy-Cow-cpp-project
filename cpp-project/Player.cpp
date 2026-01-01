@@ -82,19 +82,39 @@ void Player::move(Screen& currentScreen, Game& game) {
     handleTeleportation(currentScreen, game);
 }
 
-void Player::handleKey(char key) {
+bool Player::handleKey(char key) {
     for (int i = 0; i < NUM_KEYS; i++) {
         if (std::tolower(key) == std::tolower(keys[i])) {
             if (i == ACTION_KEY_INDEX) {
-                // Action key: don't change direction, just request action
+                // Action key: check if we actually have something to do
+                // Only meaningful if holding an item (can drop) or standing on an item (can pick up)
+                if (carried.valid()) {
+                    // Holding something - action will try to drop it
+                    actionRequested = true;
+                    return true;  // Meaningful - will attempt to drop
+                }
+                // Not holding anything - action would pick up if standing on item
+                // We can't check if on item here (need Screen), so mark as potentially meaningful
+                // The actual action will be evaluated during move()
                 actionRequested = true;
+                return true;  // Could be meaningful
             } else {
-                // Movement key: set direction
+                // Movement key: only meaningful if it changes direction
+                int oldDiffX = position.getDiffX();
+                int oldDiffY = position.getDiffY();
                 position.setDirection(intToMoveDirection(i));
+                int newDiffX = position.getDiffX();
+                int newDiffY = position.getDiffY();
+                
+                // Only meaningful if direction actually changed
+                if (oldDiffX != newDiffX || oldDiffY != newDiffY) {
+                    return true;
+                }
+                return false;  // Same direction - not meaningful
             }
-            return;
         }
     }
+    return false;  // Key not recognized by this player
 }
 
 /*      (__)
