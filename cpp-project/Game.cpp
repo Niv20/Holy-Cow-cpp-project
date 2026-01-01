@@ -9,6 +9,7 @@
 #include <filesystem>
 
 #include "Game.h"
+#include "ScreenBuffer.h"
 #include "utils.h"
 #include "Glyph.h"
 #include "Menu.h"
@@ -278,6 +279,7 @@ if (!isSilent) {
     }
     refreshLegend(); 
     drawPlayers();
+    ScreenBuffer::getInstance().flush();  // Single flush after all drawing
 }
 
 // Determine tick delay based on mode
@@ -363,6 +365,7 @@ void Game::handlePause() {
 
     cls();
     pauseScreen.draw();
+    ScreenBuffer::getInstance().flush();
 
     while (true) {
 
@@ -385,6 +388,7 @@ void Game::handlePause() {
                 // Redraw pause screen after save
                 cls();
                 pauseScreen.draw();
+                ScreenBuffer::getInstance().flush();
             }
         }
 
@@ -460,6 +464,8 @@ void Game::refreshLegend() {
 }
 
 void Game::drawPlayers() {
+    ScreenBuffer& buffer = ScreenBuffer::getInstance();
+    
     // Collect positions of players in current room
     std::vector<std::pair<Point, size_t>> playerPositions;
     for (size_t i = 0; i < players.size(); ++i) {
@@ -484,12 +490,7 @@ void Game::drawPlayers() {
             
             if (overlapping) {
                 // Draw a combined symbol when players overlap
-                HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-                COORD c{ (SHORT)pos.getX(), (SHORT)pos.getY() };
-                SetConsoleCursorPosition(hOut, c);
-                wchar_t combined = OVERLAP_ICON; // Simple ASCII char to show both players (works on all systems)
-                DWORD written;
-                WriteConsoleW(hOut, &combined, 1, &written, nullptr);
+                buffer.setChar(pos.getX(), pos.getY(), OVERLAP_ICON);
             } else {
                 players[idx].draw();
             }
@@ -773,6 +774,7 @@ if (!isSilent && !DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
                     world[visibleRoomIdx].draw();
                     refreshLegend();
                     drawPlayers();
+                    ScreenBuffer::getInstance().flush();
                 }
             }
         }
@@ -791,6 +793,7 @@ if (!isSilent && !DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
                         world[visibleRoomIdx].draw();
                         refreshLegend();
                         drawPlayers();
+                        ScreenBuffer::getInstance().flush();
                     }
                     break;
                 }
@@ -815,6 +818,7 @@ if (!isSilent && !DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
                 if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
                     drawPlayers();
                 }
+                ScreenBuffer::getInstance().flush();
             }
             return;
         }
@@ -825,6 +829,7 @@ if (!isSilent && !DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
             if (!DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
                 drawPlayers();
             }
+            ScreenBuffer::getInstance().flush();  // Single flush at end of update
         }
     }
 
@@ -1060,7 +1065,8 @@ void Game::drawEverything() {
         world[visibleRoomIdx].draw();
     }
     refreshLegend(); 
-    drawPlayers(); 
+    drawPlayers();
+    ScreenBuffer::getInstance().flush();  // Single flush after all drawing
 }
 
 /*      (__)

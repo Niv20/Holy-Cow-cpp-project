@@ -1,6 +1,9 @@
 #pragma once
 #include <windows.h>
 
+// Forward declaration to avoid circular include
+class ScreenBuffer;
+
 // This file is based on Amir's tirgol
 
 // Movement direction for Point
@@ -51,16 +54,6 @@ public:
     // Sets the direction based on keyboard input
     void setDirection(MoveDirection dir);
 
-    void draw(char ch) const {
-        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-        COORD pos{ (SHORT)x_, (SHORT)y_ };
-        SetConsoleCursorPosition(hOut, pos);
-        wchar_t wc;
-        unsigned char uc = static_cast<unsigned char>(ch);
-        // Preserve legacy mapping for specific CP437 codes
-        if (uc == 148) wc = L'ö';
-        else if (uc == 129) wc = L'ü';
-        else wc = (wchar_t)uc;
-        DWORD written; WriteConsoleW(hOut, &wc, 1, &written, nullptr);
-    }
+    // Draw character to screen buffer (declared here, defined in Point.cpp)
+    void draw(char ch) const;
 };

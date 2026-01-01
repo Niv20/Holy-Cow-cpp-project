@@ -200,6 +200,7 @@
     <ClCompile Include="RiddleData.cpp" />
     <ClCompile Include="RoomConnections.cpp" />
     <ClCompile Include="Screen.cpp" />
+    <ClCompile Include="ScreenBuffer.cpp" />
     <ClCompile Include="SpecialDoor.cpp" />
     <ClCompile Include="Spring.cpp" />
     <ClCompile Include="Switch.cpp" />
@@ -225,6 +226,7 @@
     <ClInclude Include="RiddleData.h" />
     <ClInclude Include="RoomConnections.h" />
     <ClInclude Include="Screen.h" />
+    <ClInclude Include="ScreenBuffer.h" />
     <ClInclude Include="ScreenMetadata.h" />
     <ClInclude Include="SpecialDoor.h" />
     <ClInclude Include="SpecialDoorsData.h" />

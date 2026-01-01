@@ -1,4 +1,5 @@
 ﻿#include "DarkRoom.h"
+#include "ScreenBuffer.h"
 #include "Screen.h"
 #include "Player.h"
 #include "Glyph.h"
@@ -244,7 +245,7 @@ wchar_t DarkRoomManager::getDisplayChar(const Screen& screen, const Point& pos,
 
 // Draw the screen with darkness overlay (includes player drawing to prevent flicker)
 void DarkRoomManager::drawWithDarkness(const Screen& screen, const std::vector<Player>& players, int roomIdx) {
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    ScreenBuffer& buffer = ScreenBuffer::getInstance();
     
     bool hasDarkZones = roomHasDarkness(screen);
     
@@ -275,9 +276,6 @@ void DarkRoomManager::drawWithDarkness(const Screen& screen, const std::vector<P
     
     
     for (int y = 0; y < Screen::MAX_Y; ++y) {
-        std::wstring out;
-        out.reserve(Screen::MAX_X);
-        
         for (int x = 0; x < Screen::MAX_X; ++x) {
             Point p(x, y);
             wchar_t ch;
@@ -300,13 +298,8 @@ void DarkRoomManager::drawWithDarkness(const Screen& screen, const std::vector<P
                 }
             }
             
-            out.push_back(ch);
+            buffer.setChar(x, y, ch);
         }
-        
-        COORD linePos{0, (SHORT)y};
-        SetConsoleCursorPosition(hOut, linePos);
-        DWORD written;
-        WriteConsoleW(hOut, out.c_str(), (DWORD)out.size(), &written, nullptr);
     }
 }
 
@@ -322,11 +315,7 @@ void DarkRoomManager::refreshCellWithDarkness(const Screen& screen, const Point&
         ch = screen.getCharAt(p);
     }
     
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    COORD pos{(SHORT)p.getX(), (SHORT)p.getY()};
-    SetConsoleCursorPosition(hOut, pos);
-    DWORD written;
-    WriteConsoleW(hOut, &ch, 1, &written, nullptr);
+    ScreenBuffer::getInstance().setChar(p.getX(), p.getY(), ch);
 }
 
 
@@ -335,7 +324,7 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
                                                    int roomIdx, const std::vector<Point>& previousPositions,
                                                    const std::vector<Point>& extraLightSources) {
     if (!roomHasDarkness(screen)) return;
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    ScreenBuffer& buffer = ScreenBuffer::getInstance();
     
     // Collect all cells that need updating (within light radius of current and previous positions)
     std::set<std::pair<int,int>> cellsToUpdate;
@@ -437,9 +426,6 @@ void DarkRoomManager::updateDarknessAroundPlayers(const Screen& screen, const st
             ch = screen.getCharAt(p);
         }
         
-        COORD pos{(SHORT)p.getX(), (SHORT)p.getY()};
-        SetConsoleCursorPosition(hOut, pos);
-        DWORD written;
-        WriteConsoleW(hOut, &ch, 1, &written, nullptr);
+        buffer.setChar(p.getX(), p.getY(), ch);
     }
 }

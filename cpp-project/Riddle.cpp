@@ -3,6 +3,7 @@
 #include "Player.h"
 #include "Game.h"
 #include "Screen.h"
+#include "ScreenBuffer.h"
 #include "Menu.h"
 #include "Glyph.h"
 #include "utils.h"
@@ -124,6 +125,7 @@ void Riddle::handleEncounter(Player& player,
     
     // Refresh legend (need to call through game)
     game.refreshLegendPublic();
+    ScreenBuffer::getInstance().flush();
 
     // Wait for player answer
     char answer = '\0';

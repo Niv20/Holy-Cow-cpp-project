@@ -9,6 +9,7 @@
 
 #include "Menu.h"
 #include "Screen.h"
+#include "ScreenBuffer.h"
 #include "utils.h"
 #include "GameState.h"
 
@@ -142,6 +143,7 @@ void Menu::drawStartMenu() {
     Screen screen(startScreen);
     cls();
     screen.draw();
+    ScreenBuffer::getInstance().flush();
 }
 
 MenuAction Menu::showStartMenu() {
@@ -179,6 +181,7 @@ if (instructionsScreen.empty()) {
     Screen screen(instructionsScreen);
     cls();
     screen.draw();
+    ScreenBuffer::getInstance().flush();
     
     while (true) {
         if (_kbhit()) {
@@ -201,6 +204,7 @@ void Menu::showLoseScreen() {
     Screen screen(loseScreen);
     cls();
     screen.draw();
+    ScreenBuffer::getInstance().flush();
     
     // Flush keyboard buffer to avoid consuming stale input
     while (_kbhit()) { (void)_getch();
@@ -228,6 +232,7 @@ void Menu::showWinScreen() {
     Screen screen(winScreen);
     cls();
     screen.draw();
+    ScreenBuffer::getInstance().flush();
     
     // Flush keyboard buffer to avoid consuming stale input
     while (_kbhit()) { (void)_getch();
@@ -255,6 +260,7 @@ bool Menu::showSaveDialog(std::string& saveName) {
     
     Screen screen(saveScreen);
     screen.draw();
+    ScreenBuffer::getInstance().flush();
     
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     
@@ -334,6 +340,7 @@ std::string Menu::showLoadDialog() {
     
     Screen screen(loadScreen);
     screen.draw();
+    ScreenBuffer::getInstance().flush();
     
     auto saves = GameState::getAvailableSaves();
     

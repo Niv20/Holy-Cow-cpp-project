@@ -1,4 +1,5 @@
 #include "Legend.h"
+#include "ScreenBuffer.h"
 #include <string>
 #include <vector>
 #include <windows.h>
@@ -95,23 +96,20 @@ void Legend::drawLegend(int roomIdx, int lives, int points, char p1Inv, char p2I
     };
 
     auto putWideLine = [&](int dy, const wchar_t* wline) {
-        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        ScreenBuffer& buffer = ScreenBuffer::getInstance();
         int len = (int)wcslen(wline);
         if (len > LEGEND_LINE_WIDTH) len = LEGEND_LINE_WIDTH;
         for (int i = 0; i < len; ++i) {
             Point p(origin.getX() + i, origin.getY() + dy);
             if (p.getX() >= 0 && p.getX() < Screen::MAX_X && p.getY() >= 0 && p.getY() < Screen::MAX_Y) {
-                COORD pos{ (SHORT)p.getX(), (SHORT)p.getY() };
-                SetConsoleCursorPosition(hOut, pos);
-                DWORD written;
-                WriteConsoleW(hOut, &wline[i], 1, &written, nullptr);
+                buffer.setChar(p.getX(), p.getY(), wline[i]);
             }
         }
         // Pad remaining with spaces
         for (int i = len; i < 16; ++i) {
             Point p(origin.getX() + i, origin.getY() + dy);
             if (p.getX() >= 0 && p.getX() < Screen::MAX_X && p.getY() >= 0 && p.getY() < Screen::MAX_Y) {
-                p.draw(' ');
+                buffer.setChar(p.getX(), p.getY(), L' ');
             }
         }
     };

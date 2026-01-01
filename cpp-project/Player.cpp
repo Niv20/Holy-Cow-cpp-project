@@ -1,4 +1,5 @@
 ﻿#include "Player.h"
+#include "ScreenBuffer.h"
 #include <cctype>
 #include "Screen.h"
 #include "Glyph.h"
@@ -36,10 +37,7 @@ Player::Player(Point startPos, const char* keySet, wchar_t sym, int startRoom)
   ||w--||                    */
 
 void Player::draw() const {
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    COORD pos{ (SHORT)position.getX(), (SHORT)position.getY() };
-    SetConsoleCursorPosition(hOut, pos);
-    wchar_t out = symbol; DWORD written; WriteConsoleW(hOut, &out, 1, &written, nullptr);
+    ScreenBuffer::getInstance().setChar(position.getX(), position.getY(), symbol);
 }
 
 void Player::stop() {

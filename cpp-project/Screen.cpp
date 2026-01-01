@@ -1,4 +1,5 @@
 ﻿#include "Screen.h"
+#include "ScreenBuffer.h"
 #include <iostream>
 #include <cctype>
 #include "Point.h"
@@ -46,17 +47,11 @@ Screen::Screen(const std::vector<std::string>& mapData) {
 }
 
 void Screen::draw() const {
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    ScreenBuffer& buffer = ScreenBuffer::getInstance();
     for (int y = 0; y < MAX_Y; ++y) {
-        std::wstring out;
-        out.reserve(MAX_X);
         for (int x = 0; x < MAX_X; ++x) {
-            wchar_t c = m_grid[y][x].ch;
-            out.push_back(c);
+            buffer.setChar(x, y, m_grid[y][x].ch);
         }
-        COORD linePos{0,(SHORT)y};
-        SetConsoleCursorPosition(hOut, linePos);
-        DWORD written; WriteConsoleW(hOut, out.c_str(), (DWORD)out.size(), &written, nullptr);
     }
 }
 
@@ -73,12 +68,9 @@ void Screen::setCharAt(const Point& p, wchar_t newChar) {
 void Screen::erase(const Point& p) { setCharAt(p, Glyph::Empty); }
 
 void Screen::refreshCell(const Point& p) const {
-if (p.getX() < 0 || p.getX() >= MAX_X || p.getY() < 0 || p.getY() >= MAX_Y) return;
-wchar_t c = m_grid[p.getY()][p.getX()].ch;
-HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-COORD pos{ (SHORT)p.getX(), (SHORT)p.getY() };
-    SetConsoleCursorPosition(hOut, pos);
-    DWORD written; WriteConsoleW(hOut, &c, 1, &written, nullptr);
+    if (p.getX() < 0 || p.getX() >= MAX_X || p.getY() < 0 || p.getY() >= MAX_Y) return;
+    wchar_t c = m_grid[p.getY()][p.getX()].ch;
+    ScreenBuffer::getInstance().setChar(p.getX(), p.getY(), c);
 }
 
 void Screen::refreshCells(const std::vector<Point>& pts) const {
