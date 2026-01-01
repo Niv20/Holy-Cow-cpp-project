@@ -1,6 +1,7 @@
 #include <iostream>
 #include <windows.h>
 #include "utils.h"
+#include "ScreenBuffer.h"
 
 // This file base on Amir's tirgol
 
@@ -22,6 +23,8 @@ void hideCursor() {
 
 void cls() {
     system("cls");
+    // Invalidate the screen buffer so next flush redraws everything
+    ScreenBuffer::getInstance().invalidate();
 }
 
 void setConsoleFont() {

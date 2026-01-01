@@ -30,6 +30,10 @@ public:
     
     // Check if buffer is dirty
     bool isDirty() const { return dirty_; }
+    
+    // Invalidate the previous buffer to force full redraw on next flush
+    // Call this after cls() to ensure screen is fully redrawn
+    void invalidate();
 
 private:
     ScreenBuffer();

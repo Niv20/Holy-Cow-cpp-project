@@ -67,3 +67,13 @@ void ScreenBuffer::flush() {
     
     dirty_ = false;
 }
+
+void ScreenBuffer::invalidate() {
+    // Reset previousBuffer to force full redraw on next flush
+    for (int y = 0; y < HEIGHT; ++y) {
+        for (int x = 0; x < WIDTH; ++x) {
+            previousBuffer_[y][x] = L'\0';
+        }
+    }
+    dirty_ = true;
+}
