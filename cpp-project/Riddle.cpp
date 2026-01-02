@@ -122,39 +122,30 @@ void Riddle::handleEncounter(Player& player,
         }
     }
 
-    // In load mode, get the answer from the recorder instead of waiting for input
+    // In load mode, get the answer directly from the recorder
+    // The riddle answer key event should be the next event in the queue
     if (isLoadMode) {
         GameRecorder* recorder = game.getRecorder();
         if (recorder) {
-            // Look for the next recorded answer for this cycle.
-            // Accept either:
-            // 1) KeyPress event with key '1'..'4' (Legacy or if recorded as KEY)
-            // 2) Typed ANSWER event from the steps file (New format)
-            // Use shouldProcessEvent to check if the event is ready for this cycle
-            char answer = '\0';
             int currentCycle = game.getGameCycle();
+            char answer = '\0';
             
-            if (recorder->shouldProcessEvent(currentCycle)) {
+            // Peek at the next event to see if it's a riddle answer key
+            if (recorder->hasNextEvent()) {
                 const GameEvent& evt = recorder->peekNextEvent();
                 if (evt.getType() == GameEventType::KeyPress) {
                     char key = evt.getKeyPressed();
                     if (key >= '1' && key <= '4') {
                         answer = key;
-                        recorder->consumeNextEvent();
+                        recorder->consumeNextEvent();  // Consume the riddle answer event
                     }
                 }
-                // Removed explicit RiddleAnswer check as everything is now KeyPress
             }
             
             // Process the answer
             if (answer == '\0') {
-                // No answer found for this cycle - move player back
-                // This is correct behavior: if no answer recorded, player didn't answer this cycle.
-                // But wait, if the player stepped on the riddle, they MUST answer or back off.
-                // If the recording says they answered later, we should wait?
-                // No, the game loop increments cycle. If answer is not for THIS cycle, we back off.
-                // But if the recording has the answer at this cycle, we process it.
-                
+                // No answer found - move player back
+                // This happens when the player stepped on the riddle but no answer was recorded yet
                 Point prevPos = pos;
                 if (pos.getDiffX()) prevPos.setX(prevPos.getX() - pos.getDiffX());
                 if (pos.getDiffY()) prevPos.setY(prevPos.getY() - pos.getDiffY());

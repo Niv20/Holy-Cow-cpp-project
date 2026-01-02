@@ -661,29 +661,12 @@ void Game::handleInputFromRecorder() {
                     break;
                 }
                 
-                // Riddle answer keys (1-4) are normally consumed by `Riddle::handleEncounter`.
-                // However, if the player isn't currently on a riddle tile, keeping the event
-                // unconsumed will stall playback forever.
+                // Riddle answer keys (1-4) should NOT be processed here.
+                // They will be handled by Riddle::handleEncounter when the player is on a riddle.
+                // Just skip riddle answer keys here - they'll be consumed by Riddle::handleEncounter.
                 bool isRiddleAnswerKey = (key >= '1' && key <= '4');
-                bool shouldDeferToRiddle = false;
-                
-                // Check if ANY player is on a riddle
-                for (size_t i = 0; i < players.size(); ++i) {
-                    const Player& p = players[i];
-                    int roomIdx = p.getRoomIdx();
-                    if (roomIdx >= 0 && roomIdx < (int)world.size()) {
-                        wchar_t cell = world[roomIdx].getCharAt(p.getPosition());
-                        if (Glyph::isRiddle(cell)) {
-                            if (isRiddleAnswerKey) {
-                                shouldDeferToRiddle = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                if (shouldDeferToRiddle) {
-                    // Leave it for `Riddle::handleEncounter` to consume.
+                if (isRiddleAnswerKey) {
+                    // Don't consume here - let Riddle::handleEncounter handle it
                     return;
                 }
                     
