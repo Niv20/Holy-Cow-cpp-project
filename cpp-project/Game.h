@@ -43,6 +43,7 @@ class Game {
     std::unique_ptr<GameRecorder> recorder;
     int gameCycle = 0;  // Game tick counter for recording/playback
     std::vector<std::string> loadedScreenFiles;  // Screen files used in this session
+    bool inPauseMenu = false; // Track if we are in pause menu during playback
 
     void initGame();
     void initGame(const GameStateData& savedState);  // Initialize from saved state

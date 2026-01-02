@@ -128,8 +128,8 @@ void Riddle::handleEncounter(Player& player,
         if (recorder) {
             // Look for the next recorded answer for this cycle.
             // Accept either:
-            // 1) KeyPress event with key '1'..'4'
-            // 2) Typed ANSWER event from the steps file
+            // 1) KeyPress event with key '1'..'4' (Legacy or if recorded as KEY)
+            // 2) Typed ANSWER event from the steps file (New format)
             // Use shouldProcessEvent to check if the event is ready for this cycle
             char answer = '\0';
             int currentCycle = game.getGameCycle();
@@ -143,19 +143,18 @@ void Riddle::handleEncounter(Player& player,
                         recorder->consumeNextEvent();
                     }
                 }
-                else if (evt.getType() == GameEventType::RiddleAnswer) {
-                    // Stored as a string (usually "1".."4")
-                    const std::string& a = evt.getRiddleAnswer();
-                    if (!a.empty() && a[0] >= '1' && a[0] <= '4') {
-                        answer = a[0];
-                        recorder->consumeNextEvent();
-                    }
-                }
+                // Removed explicit RiddleAnswer check as everything is now KeyPress
             }
             
             // Process the answer
             if (answer == '\0') {
                 // No answer found for this cycle - move player back
+                // This is correct behavior: if no answer recorded, player didn't answer this cycle.
+                // But wait, if the player stepped on the riddle, they MUST answer or back off.
+                // If the recording says they answered later, we should wait?
+                // No, the game loop increments cycle. If answer is not for THIS cycle, we back off.
+                // But if the recording has the answer at this cycle, we process it.
+                
                 Point prevPos = pos;
                 if (pos.getDiffX()) prevPos.setX(prevPos.getX() - pos.getDiffX());
                 if (pos.getDiffY()) prevPos.setY(prevPos.getY() - pos.getDiffY());
@@ -174,9 +173,11 @@ void Riddle::handleEncounter(Player& player,
                 
                 if (correct) {
                     game.addPoints(riddle->getPoints());
+                    // Explicitly remove the riddle glyph from the screen
                     game.getScreen(roomIdx).setCharAt(pos, Glyph::Empty);
 
                     if (!isSilent) {
+                        // Force refresh of the cell to ensure it disappears visually
                         game.getScreen(roomIdx).refreshCell(pos);
                         ScreenBuffer::getInstance().flush();
                     }

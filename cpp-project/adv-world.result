@@ -1,0 +1,10 @@
+# adv-world Results File
+# Format: CYCLE DESCRIPTION
+
+171 "Player 2 moved to screen 1"
+187 "Player 1 moved to screen 1"
+238 "Player 1 answered riddle: 1 (WRONG)"
+279 "Player 2 answered riddle: 2 (CORRECT)"
+320 "Player 1 moved to screen 0"
+347 "Player 2 moved to screen 2"
+363 "Game ended: LOSE with score 50"

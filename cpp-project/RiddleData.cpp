@@ -66,6 +66,16 @@ vector<RiddleData> RiddleData::loadFromFile() {
             return false;
         }
         
+        // Truncate text to fit buffer limits (50 for question, 15 for answers)
+        // Note: Riddle.h defines MAX_QUESTION_LENGTH=50 and MAX_ANSWER_LENGTH=16 (15 chars + null)
+        if (question.length() >= 50) {
+            question = question.substr(0, 49); // 49 chars + null terminator = 50
+        }
+        if (answer1.length() >= 16) answer1 = answer1.substr(0, 15);
+        if (answer2.length() >= 16) answer2 = answer2.substr(0, 15);
+        if (answer3.length() >= 16) answer3 = answer3.substr(0, 15);
+        if (answer4.length() >= 16) answer4 = answer4.substr(0, 15);
+        
         // Create riddle
         riddles.push_back({
             roomIdx,

@@ -56,7 +56,7 @@ Game::Game() : visibleRoomIdx(0), isRunning(true), gameMode(GameMode::Normal), g
     initGame(); 
 }
 
-Game::Game(GameMode mode) : visibleRoomIdx(0), isRunning(true), gameMode(mode), gameCycle(0) { 
+Game::Game(GameMode mode) : visibleRoomIdx(0), isRunning(true), gameMode(mode), gameCycle(0), inPauseMenu(false) { 
     initGame(); 
     
     // Initialize recorder for save/load modes
@@ -74,7 +74,7 @@ Game::Game(GameMode mode) : visibleRoomIdx(0), isRunning(true), gameMode(mode), 
 }
 
 Game::Game(const GameStateData& savedState, GameMode mode) 
-    : visibleRoomIdx(0), isRunning(true), gameMode(mode), gameCycle(0) { 
+    : visibleRoomIdx(0), isRunning(true), gameMode(mode), gameCycle(0), inPauseMenu(false) { 
     initGame(savedState);
 }
 
@@ -317,9 +317,8 @@ else if (gameMode == GameMode::LoadSilent) {
     
     // In Load/LoadSilent mode, we might have pending events (like GameEnd) that correspond 
     // to the state after the loop broke (e.g. due to death). Process them now.
-    if ((gameMode == GameMode::Load || gameMode == GameMode::LoadSilent) && recorder) {
-        handleInputFromRecorder();
-    }
+    // Also, if the loop broke because isRunning became false inside handleInputFromRecorder (due to no more events),
+    // we might still want to verify results one last time or ensure we didn't miss the very last state update.
     
     // Record game end if in save mode
     if (recorder && gameMode == GameMode::Save) {
@@ -336,6 +335,26 @@ else if (gameMode == GameMode::LoadSilent) {
     
     // In silent mode, verify results
     if (gameMode == GameMode::LoadSilent && recorder) {
+        // If we stopped because we ran out of events, we might need to record the final state (GameEnd)
+        // if it wasn't explicitly in the steps file (which it isn't anymore).
+        // The game loop stops when isRunning becomes false.
+        // If it stopped because of handleInputFromRecorder returning false, we are done with steps.
+        // But we might have missed recording the GameEnd event if the game logic didn't trigger it yet.
+        
+        // Check if game end condition is met
+        bool allPlayersWon = true;
+        for (bool reached : playerReachedFinalRoom) {
+            if (!reached) {
+                allPlayersWon = false;
+                break;
+            }
+        }
+        
+        // If game ended naturally (win or lose), record it
+        if (heartsCount <= 0 || allPlayersWon) {
+             recordGameEnd(heartsCount > 0 && allPlayersWon);
+        }
+        
         std::string verificationReport;
         bool passed = recorder->verifyResults(verificationReport);
         
@@ -391,6 +410,11 @@ void Game::handlePause() {
     pauseScreen.draw();
     ScreenBuffer::getInstance().flush();
 
+    // Record ESC key press to enter pause menu
+    if (recorder && gameMode == GameMode::Save) {
+        recorder->recordKeyPress(gameCycle, 0, ESC_KEY);
+    }
+
     while (true) {
 
         if (_kbhit()) {
@@ -398,16 +422,32 @@ void Game::handlePause() {
             char key = _getch();
 
             if (key == ESC_KEY) {
+                // Record ESC key press to exit pause menu
+                if (recorder && gameMode == GameMode::Save) {
+                    recorder->recordKeyPress(gameCycle, 0, ESC_KEY);
+                }
                 // Use drawEverything to properly handle darkness rendering
                 drawEverything();
                 return;
             }
             else if (key == 'H' || key == 'h') {
+                // Record H/h key press to exit game
+                if (recorder && gameMode == GameMode::Save) {
+                    recorder->recordKeyPress(gameCycle, 0, key);
+                }
                 cls();
                 isRunning = false;
                 return;
             }
             else if (key == 'S' || key == 's') {
+                // Save is not supported during recording as per requirements (only one save file)
+                // But if user presses it, we should probably record it or ignore it.
+                // The requirement says: "In the -save mode there is a menu and the game is the same as in Ex2, except that files are saved."
+                // And "Note that each new game overrides the files of the previous game".
+                // So saving mid-game might be weird if it overwrites the current recording.
+                // Let's assume we don't record 'S' for now or treat it as just a key press that does nothing in playback.
+                // However, the user specifically asked about ESC, H, S.
+                // If S is pressed, we handle save state.
                 handleSaveState();
                 // Redraw pause screen after save
                 cls();
@@ -529,7 +569,7 @@ void Game::handleInput() {
 
         char key = _getch();
 
-        // ESC opens pause menu - never record this
+        // ESC opens pause menu
         if (key == ESC_KEY) { 
             handlePause(); 
             return; 
@@ -566,135 +606,154 @@ void Game::handleInput() {
 }
 
 void Game::handleInputFromRecorder() {
-if (!recorder) {
-    isRunning = false;
-    return;
-}
+    if (!recorder) {
+        isRunning = false;
+        return;
+    }
+
+    // Check if we have any events left to process.
+    if (!recorder->hasNextEvent()) {
+        isRunning = false;
+        return;
+    }
     
-// Process all events for the current cycle
-while (recorder->shouldProcessEvent(gameCycle)) {
-    const GameEvent& event = recorder->peekNextEvent();
+    // Process all events for the current cycle
+    while (recorder->shouldProcessEvent(gameCycle)) {
+        const GameEvent& event = recorder->peekNextEvent();
         
-    switch (event.getType()) {
-        case GameEventType::KeyPress: {
-            char key = event.getKeyPressed();
-            int playerIdx = event.getPlayerIndex();
+        switch (event.getType()) {
+            case GameEventType::KeyPress: {
+                char key = event.getKeyPressed();
                 
-            // Riddle answer keys (1-4) are normally consumed by `Riddle::handleEncounter`.
-            // However, if the player isn't currently on a riddle tile, keeping the event
-            // unconsumed will stall playback forever.
-            bool isRiddleAnswerKey = (key >= '1' && key <= '4');
-            bool shouldDeferToRiddle = false;
-            if (isRiddleAnswerKey && playerIdx >= 0 && playerIdx < (int)players.size()) {
-                const Player& p = players[playerIdx];
-                int roomIdx = p.getRoomIdx();
-                if (roomIdx >= 0 && roomIdx < (int)world.size()) {
-                    wchar_t cell = world[roomIdx].getCharAt(p.getPosition());
-                    if (Glyph::isRiddle(cell)) {
-                        shouldDeferToRiddle = true;
+                // Handle Pause Menu logic during playback
+                if (inPauseMenu) {
+                    recorder->consumeNextEvent();
+                    if (key == ESC_KEY) {
+                        // Exit pause menu
+                        inPauseMenu = false;
+                    } else if (key == 'H' || key == 'h') {
+                        // Exit game from pause menu
+                        isRunning = false;
+                        // Record game end if needed (though usually H means quit without win/lose logic, 
+                        // but user said "Game ended: LOSE with score 0" should appear in result)
+                        // If the user quits, it might be considered a loss or just end.
+                        // The user's example shows "Game ended: LOSE with score 0".
+                        // So we should probably treat it as a loss or just record the end state.
+                        if (gameMode == GameMode::LoadSilent) {
+                             std::ostringstream oss;
+                             // If quitting via H, it's usually not a standard win/lose, but let's follow the user's implication
+                             // that it produces a result entry.
+                             // If hearts > 0, it's just an exit. But maybe the user implies it counts as a loss?
+                             // Or maybe the user just wants the "Game ended" message.
+                             // Let's use the standard recordGameEnd logic which checks hearts/win condition.
+                             // If we quit, we haven't won.
+                             recordGameEnd(false); 
+                        }
+                    }
+                    // Ignore other keys in pause menu during playback (like 'S')
+                    break;
+                }
+
+                // Enter Pause Menu
+                if (key == ESC_KEY) {
+                    recorder->consumeNextEvent();
+                    inPauseMenu = true;
+                    break;
+                }
+                
+                // Riddle answer keys (1-4) are normally consumed by `Riddle::handleEncounter`.
+                // However, if the player isn't currently on a riddle tile, keeping the event
+                // unconsumed will stall playback forever.
+                bool isRiddleAnswerKey = (key >= '1' && key <= '4');
+                bool shouldDeferToRiddle = false;
+                
+                // Check if ANY player is on a riddle
+                for (size_t i = 0; i < players.size(); ++i) {
+                    const Player& p = players[i];
+                    int roomIdx = p.getRoomIdx();
+                    if (roomIdx >= 0 && roomIdx < (int)world.size()) {
+                        wchar_t cell = world[roomIdx].getCharAt(p.getPosition());
+                        if (Glyph::isRiddle(cell)) {
+                            if (isRiddleAnswerKey) {
+                                shouldDeferToRiddle = true;
+                                break;
+                            }
+                        }
                     }
                 }
+                
+                if (shouldDeferToRiddle) {
+                    // Leave it for `Riddle::handleEncounter` to consume.
+                    return;
+                }
+                    
+                // Consume and apply key
+                recorder->consumeNextEvent();
+                
+                // Apply to all players (each will check if it's their key)
+                for (size_t i = 0; i < players.size(); ++i) {
+                    players[i].handleKey(key);
+                }
+                break;
             }
-            if (shouldDeferToRiddle) {
-                // Leave it for `Riddle::handleEncounter` to consume.
-                return;
-            }
-                
-            // Consume and apply key
-            recorder->consumeNextEvent();
-            if (playerIdx >= 0 && playerIdx < (int)players.size()) {
-                players[playerIdx].handleKey(key);
-            }
-            break;
-        }
-                
-            case GameEventType::ScreenTransition:
-                // Screen transitions are handled by the game logic, just verify
-                recorder->consumeNextEvent();
-                if (gameMode == GameMode::LoadSilent) {
-                    std::ostringstream oss;
-                    oss << "Player " << (event.getPlayerIndex() + 1) << " moved to screen " << event.getTargetScreen();
-                    recorder->addActualResult(event.getCycle(), oss.str());
-                }
-                break;
-                
-            case GameEventType::LifeLost:
-                // Life loss is handled by game logic, just verify
-                recorder->consumeNextEvent();
-                if (gameMode == GameMode::LoadSilent) {
-                    std::ostringstream oss;
-                    oss << "Player " << (event.getPlayerIndex() + 1) << " lost a life";
-                    recorder->addActualResult(event.getCycle(), oss.str());
-                }
-                break;
-                
-            case GameEventType::RiddleAnswer:
-                // Riddle answers should be handled by Riddle::handleEncounter when the player
-                // steps on the riddle. However, handleInputFromRecorder runs BEFORE update(),
-                // so the player hasn't moved yet. If we consume it here, handleEncounter won't see it.
-                
-                // If the event is for the current cycle, defer it to handleEncounter.
-                // If it's from a past cycle (meaning handleEncounter missed it/desync), consume it to avoid infinite loop.
-                if (event.getCycle() == gameCycle) {
-                    return; // Defer to handleEncounter
-                }
-                
-                // Stale event (cycle < gameCycle) - consume it
-                recorder->consumeNextEvent();
-                if (gameMode == GameMode::LoadSilent) {
-                    std::ostringstream oss;
-                    oss << "Player " << (event.getPlayerIndex() + 1) << " answered riddle: " 
-                        << event.getRiddleAnswer() << " (" << (event.isRiddleCorrect() ? "CORRECT" : "WRONG") << ")";
-                    recorder->addActualResult(event.getCycle(), oss.str());
-                }
-                break;
-                
-            case GameEventType::GameEnd:
-                // Game end - verify in silent mode
-                recorder->consumeNextEvent();
-                if (gameMode == GameMode::LoadSilent) {
-                    std::ostringstream oss;
-                    oss << "Game ended: " << (event.getIsWin() ? "WIN" : "LOSE") << " with score " << event.getScore();
-                    recorder->addActualResult(event.getCycle(), oss.str());
-                }
-                isRunning = false;
-                break;
-                
+            
             default:
                 recorder->consumeNextEvent();
                 break;
         }
     }
-    
-    // If no more events and we're in load mode, end the game
-    if (!recorder->hasNextEvent()) {
-        isRunning = false;
-    }
 }
+
+
+
 
 // Recording helper methods
 void Game::recordScreenTransition(int playerIndex, int targetScreen) {
-    if (recorder && gameMode == GameMode::Save) {
-        recorder->recordScreenTransition(gameCycle, playerIndex, targetScreen);
+    if (recorder) {
+        if (gameMode == GameMode::Save) {
+            recorder->recordScreenTransition(gameCycle, playerIndex, targetScreen);
+        } else if (gameMode == GameMode::LoadSilent) {
+            std::ostringstream oss;
+            oss << "Player " << (playerIndex + 1) << " moved to screen " << targetScreen;
+            recorder->addActualResult(gameCycle, oss.str());
+        }
     }
 }
 
 void Game::recordLifeLost(int playerIndex) {
-    if (recorder && gameMode == GameMode::Save) {
-        recorder->recordLifeLost(gameCycle, playerIndex);
+    if (recorder) {
+        if (gameMode == GameMode::Save) {
+            recorder->recordLifeLost(gameCycle, playerIndex);
+        } else if (gameMode == GameMode::LoadSilent) {
+            std::ostringstream oss;
+            oss << "Player " << (playerIndex + 1) << " lost a life";
+            recorder->addActualResult(gameCycle, oss.str());
+        }
     }
 }
 
 void Game::recordRiddleEvent(int playerIndex, const std::string& question, const std::string& answer, bool correct) {
-    if (recorder && gameMode == GameMode::Save) {
-        recorder->recordRiddleEncounter(gameCycle, playerIndex, question);
-        recorder->recordRiddleAnswer(gameCycle, playerIndex, answer, correct);
+    if (recorder) {
+        if (gameMode == GameMode::Save) {
+            recorder->recordRiddleEncounter(gameCycle, playerIndex, question);
+            recorder->recordRiddleAnswer(gameCycle, playerIndex, answer, correct);
+        }
+        // Note: Riddle answer verification is handled in Riddle::handleEncounter for LoadSilent mode
+        // because that's where we know the result of the answer processing.
+        // But wait, Riddle::handleEncounter calls addActualResult directly.
+        // So we don't need to do anything here for LoadSilent.
     }
 }
 
 void Game::recordGameEnd(bool isWin) {
-    if (recorder && gameMode == GameMode::Save) {
-        recorder->recordGameEnd(gameCycle, pointsCount, isWin);
+    if (recorder) {
+        if (gameMode == GameMode::Save) {
+            recorder->recordGameEnd(gameCycle, pointsCount, isWin);
+        } else if (gameMode == GameMode::LoadSilent) {
+            std::ostringstream oss;
+            oss << "Game ended: " << (isWin ? "WIN" : "LOSE") << " with score " << pointsCount;
+            recorder->addActualResult(gameCycle, oss.str());
+        }
     }
 }
 
@@ -762,7 +821,7 @@ if (DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
     bool needsDarkUpdate = false;
     bool torchChange = false;
 
-    for (size_t i = 0; i < players.size(); ++i) {
+    for (size_t i = 0; i < players.size(); i++) {
         const auto& before = beforeSnapshots[i];
         const auto& after = players[i];
 
