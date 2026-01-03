@@ -1,9 +1,9 @@
-                                  __  __      __         ______
-                                 / / / /___  / /_  __   / ____/___ _      __  (__)
-                                / /_/ / __ \/ / / / /  / /   / __ \ | /| / /--(oo)
-                               / __  / /_/ / / /_/ /  / /___/ /_/ / |/ |/ /   (__)
-                              /_/ /_/\____/_/\__, /   \____/\____/|__/|__/---||
-                                            /____/
+                              __  __      __         ______
+                             / / / /___  / /_  __   / ____/___ _      __  (__)
+                            / /_/ / __ \/ / / / /  / /   / __ \ | /| / /--(oo)
+                           / __  / /_/ / / /_/ /  / /___/ /_/ / |/ |/ /   (__)
+                          /_/ /_/\____/_/\__, /   \____/\____/|__/|__/---||
+                                        /____/
 
 Welcome to **Holy Cow**, a console-based adventure game built with C++20. Navigate through a maze of rooms, solve riddles, avoid bombs, and help the cows find their way!
 
@@ -15,6 +15,18 @@ Welcome to **Holy Cow**, a console-based adventure game built with C++20. Naviga
 - **Save/Load System**: Full game state serialization to save your progress.
 - **Replay System**: Record your gameplay and replay it later (perfect for testing or sharing runs).
 - **Silent Testing**: Automated verification mode to ensure game logic integrity.
+
+## Level Design & Architecture
+
+The world of Holy Cow wasn't just typed out randomly. Every room, puzzle, and hidden passage was meticulously drafted using visual design tools before being converted into the final .screen ASCII format. This "blueprint approach" allowed for complex multi-room structures and precise alignment of game mechanics across the entire map. Here is a glimpse of the world layout during the design phase:
+
+<img width="1512" height="982" alt="Design   Architecture" src="https://github.com/user-attachments/assets/b00b82b7-5f4a-4715-bbef-4a5b23d0aad3" />
+
+## See it in Action
+
+Want to see how a C++ console game comes to life? Check out this gameplay walkthrough demonstrating the smooth room transitions and puzzle mechanics.
+
+[![Watch the video](https://img.youtube.com/vi/93vQ-oczcMo/maxresdefault.jpg)](https://youtu.be/93vQ-oczcMo)
 
 ## Game Elements
 
