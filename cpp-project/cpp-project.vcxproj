@@ -234,7 +234,6 @@
     <ClInclude Include="ScreenBuffer.h" />
     <ClInclude Include="ScreenMetadata.h" />
     <ClInclude Include="SpecialDoor.h" />
-    <ClInclude Include="SpecialDoorsData.h" />
     <ClInclude Include="Spring.h" />
     <ClInclude Include="Switch.h" />
     <ClInclude Include="utils.h" />

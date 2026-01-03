@@ -4,7 +4,6 @@
 #include <string>
 #include "Riddle.h"
 #include "Point.h"
-#include "FileParser.h"
 
 using std::vector;
 using std::string;
@@ -38,48 +37,7 @@ public:
     static vector<RiddleData> loadFromFile();
 };
 
-// Fallback: Initialize hardcoded riddles (used if file loading fails completely)
-inline vector<RiddleData> initRiddlesFallback() {
-    vector<RiddleData> riddles;
-    
-    riddles.push_back(RiddleData(
-        1,  // Room index
-        Point(40, 12),  // Position in the room (x, y)
-        Riddle(
-            "What do cows use to do math?",
-            "computer",      // 1 //
-            "cow-culator",   // 2 //
-            "their fingers", // 3 //
-            "abacus",        // 4 //
-            '2'  // cow-culator is correct
-        )
-    ));
-    
-    riddles.push_back(RiddleData(
-        3,  // Room index
-        Point(45, 10),  // Position in the room (x, y)
-        Riddle(
-            "What is a cow's favorite type of movie?",
-            "action",     // 1 //
-            "horror",     // 2 //
-            "moo-sicals", // 3 //
-            "comedy",     // 4 //
-            '3'  // moo-sicals is correct
-        )
-    ));
-    
-    return riddles;
-}
-
-// Initialize all riddles - tries file first, falls back to hardcoded
+// Initialize all riddles from file
 inline vector<RiddleData> initRiddles() {
-    vector<RiddleData> riddles = RiddleData::loadFromFile();
-    
-    // If file loading returned empty, use fallback
-    if (riddles.empty()) {
-        FileParser::reportError("Using fallback riddles (file loading failed)");
-        return initRiddlesFallback();
-    }
-    
-    return riddles;
+    return RiddleData::loadFromFile();
 }

@@ -3,10 +3,8 @@
 #include "Switch.h"
 #include "Screen.h"
 #include "Glyph.h"
-#include "SpecialDoorsData.h"
 #include "FileParser.h"
 #include <algorithm>
-#include <sstream>
 #include <climits>
 
 // This file written by AI
@@ -103,125 +101,14 @@ static void loadDoorsFromMetadata(std::vector<Screen>& world) {
     }
 }
 
-// Load doors from legacy fallback config (for screens without metadata)
-static void loadDoorsFromLegacyConfig(std::vector<Screen>& world) {
-    std::vector<std::string> lines;
-    std::string config(SPECIAL_DOORS_CONFIG);
-    std::istringstream iss(config);
-    std::string line;
-    while (std::getline(iss, line)) {
-        lines.push_back(line);
-    }
-    
-    if (lines.empty()) return;
-
-    SpecialDoor* currentDoor = nullptr;
-
-    for (auto& raw : lines) {
-        if (raw.empty() || raw[0] == '#') continue;
-        std::stringstream ss(raw); 
-        char type; 
-        ss >> type;
-        
-        if (type == 'D') {
-            if (currentDoor) { 
-                adjustDoorPosition(currentDoor, world); 
-                if (currentDoor->getRoomIdx() >= 0 && currentDoor->getRoomIdx() < (int)world.size()) {
-                    // Only add if no door already exists from metadata
-                    auto& existingDoors = world[currentDoor->getRoomIdx()].getDataMutable().doors;
-                    bool alreadyExists = false;
-                    for (const auto& d : existingDoors) {
-                        Point dPos = d.getPosition();
-                        Point curPos = currentDoor->getPosition();
-                        if (dPos.getX() == curPos.getX() && dPos.getY() == curPos.getY()) {
-                            alreadyExists = true;
-                            break;
-                        }
-                    }
-                    if (!alreadyExists) {
-                        existingDoors.push_back(*currentDoor);
-                    }
-                }
-                delete currentDoor; 
-            }
-            int room, x, y; 
-            ss >> room >> x >> y; 
-            currentDoor = new SpecialDoor(room, Point(x, y));
-        } 
-        else if (type == 'K' && currentDoor) {
-            char key; 
-            while (ss >> key) {
-            currentDoor->addRequiredKey(Key(key));
-            }
-        } 
-        else if (type == 'S' && currentDoor) {
-            int sx, sy, state; 
-            ss >> sx >> sy >> state; 
-            currentDoor->addRequiredSwitch(SwitchRequirement(Point(sx, sy), (bool)state));
-        } 
-        else if (type == 'T' && currentDoor) {
-            int tRoom, tX, tY; 
-            ss >> tRoom >> tX >> tY;
-            currentDoor->setTargetRoomIdx(tRoom);
-            currentDoor->setTargetPosition(Point(tX, tY));
-        } 
-        else if (raw.rfind("---", 0) == 0) {
-            if (currentDoor) { 
-                adjustDoorPosition(currentDoor, world); 
-                if (currentDoor->getRoomIdx() >= 0 && currentDoor->getRoomIdx() < (int)world.size()) {
-                    auto& existingDoors = world[currentDoor->getRoomIdx()].getDataMutable().doors;
-                    bool alreadyExists = false;
-                    for (const auto& d : existingDoors) {
-                        Point dPos = d.getPosition();
-                        Point curPos = currentDoor->getPosition();
-                        if (dPos.getX() == curPos.getX() && dPos.getY() == curPos.getY()) {
-                            alreadyExists = true;
-                            break;
-                        }
-                    }
-                    if (!alreadyExists) {
-                        existingDoors.push_back(*currentDoor);
-                    }
-                }
-                delete currentDoor; 
-                currentDoor = nullptr; 
-            }
-        }
-    }
-    
-    
-    if (currentDoor) { 
-        adjustDoorPosition(currentDoor, world); 
-        if (currentDoor->getRoomIdx() >= 0 && currentDoor->getRoomIdx() < (int)world.size()) {
-            auto& existingDoors = world[currentDoor->getRoomIdx()].getDataMutable().doors;
-            bool alreadyExists = false;
-            for (const auto& d : existingDoors) {
-                Point dPos = d.getPosition();
-                Point curPos = currentDoor->getPosition();
-                if (dPos.getX() == curPos.getX() && dPos.getY() == curPos.getY()) {
-                    alreadyExists = true;
-                    break;
-                }
-            }
-            if (!alreadyExists) {
-                existingDoors.push_back(*currentDoor);
-            }
-        }
-        delete currentDoor; 
-    }
-}
-
 void SpecialDoor::scanAndPopulate(std::vector<Screen>& world) {
     // Clear all screen doors first
     for (size_t room = 0; room < world.size(); ++room) {
         world[room].getDataMutable().doors.clear();
     }
     
-    // First, load doors from screen metadata (preferred)
+    // Load doors from screen metadata
     loadDoorsFromMetadata(world);
-    
-    // Then, load from legacy config for any doors not defined in metadata
-    loadDoorsFromLegacyConfig(world);
 }
 
 void SpecialDoor::updateAll(Game& game) {
