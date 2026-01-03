@@ -7,7 +7,8 @@
 #include <algorithm>
 #include <set>
 
-// Written by AI
+// This file written by AI :)
+
 // Helper to avoid Windows.h min/max macro conflict
 template<typename T>
 inline T clamp_min(T a, T b) { return (a < b) ? b : a; }

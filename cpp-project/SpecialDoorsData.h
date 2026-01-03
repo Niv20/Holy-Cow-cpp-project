@@ -22,14 +22,4 @@ K c o w
 S 31 2 0
 S 31 6 0
 S 31 10 1
-S 31 14 1
----			
-D 0 2 2
-K a
-T 1 2 2
----
-D 1 2 2
-T 0 2 2
----)";
-
-// Note: The last two doors are optional teleport doors - add the door glyph (■) in the map to enable them
+S 31 14 1)";

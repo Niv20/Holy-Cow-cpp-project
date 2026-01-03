@@ -9,11 +9,6 @@
 using std::vector;
 using std::string;
 
-//         (__)
-// '\------(oo)
-//   ||    (__)
-//   ||w--||    
-
 // Structure to hold riddle data with room and position association
 class RiddleData {
 private:

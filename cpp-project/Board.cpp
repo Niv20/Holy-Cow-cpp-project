@@ -13,9 +13,11 @@ Board* Board::create(bool silent) {
     return new DisplayBoard();
 }
 
-// ============================================
-// DisplayBoard Implementation
-// ============================================
+//                                 (__)
+//'\-------------------------------(oo)
+//  || DisplayBoard Implementation (__)
+//  ||----------------------------||
+
 
 void DisplayBoard::drawScreen(Screen& screen) {
     screen.draw();
@@ -87,9 +89,10 @@ void DisplayBoard::clearScreen() {
     cls();
 }
 
-// ============================================
-// SilentBoard Implementation - All methods do nothing
-// ============================================
+//                                (__)
+//'\------------------------------(oo)
+//  || SilentBoard Implementation (__)
+//  ||---------------------------||
 
 void SilentBoard::drawScreen(Screen& /*screen*/) {
     // Silent mode - no display

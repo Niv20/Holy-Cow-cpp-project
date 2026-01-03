@@ -5,13 +5,10 @@
 #include <string>
 #include <map>
 
-/*
-                                                               (__)
-'\-------------------------------------------------------------(oo)
-  || For more info about metadata, read the METADATA.txt file  (__)
-  ||----------------------------------------------------------||
-
-  */
+//                                                               (__)
+//'\-------------------------------------------------------------(oo)
+//  || For more info about metadata, read the METADATA.txt file  (__)
+//  ||----------------------------------------------------------||
 
 // Dark zone - rectangular area in the room
 class DarkZone {

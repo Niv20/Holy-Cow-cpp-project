@@ -8,8 +8,6 @@ class Screen;
 class Player;
 class Game;
 
-// DarkRoomManager - Handles darkness rendering and torch light effects
-// 
 // Dark zones are defined in screen metadata as rectangular areas.
 // When a dark zone exists:
 // - The area is rendered as full darkness █ by default

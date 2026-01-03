@@ -440,13 +440,6 @@ void Game::handlePause() {
                 return;
             }
             else if (key == 'S' || key == 's') {
-                // Save is not supported during recording as per requirements (only one save file)
-                // But if user presses it, we should probably record it or ignore it.
-                // The requirement says: "In the -save mode there is a menu and the game is the same as in Ex2, except that files are saved."
-                // And "Note that each new game overrides the files of the previous game".
-                // So saving mid-game might be weird if it overwrites the current recording.
-                // Let's assume we don't record 'S' for now or treat it as just a key press that does nothing in playback.
-                // However, the user specifically asked about ESC, H, S.
                 // If S is pressed, we handle save state.
                 handleSaveState();
                 // Redraw pause screen after save
@@ -721,10 +714,6 @@ void Game::recordRiddleEvent(int playerIndex, const std::string& question, const
             recorder->recordRiddleEncounter(gameCycle, playerIndex, question);
             recorder->recordRiddleAnswer(gameCycle, playerIndex, answer, correct);
         }
-        // Note: Riddle answer verification is handled in Riddle::handleEncounter for LoadSilent mode
-        // because that's where we know the result of the answer processing.
-        // But wait, Riddle::handleEncounter calls addActualResult directly.
-        // So we don't need to do anything here for LoadSilent.
     }
 }
 

@@ -17,9 +17,11 @@ using std::vector;
 using std::string;
 namespace fs = std::filesystem;
 
-// ============================================
-// Static caches for UI templates
-// ============================================
+//                  (__)
+//'\----------------(oo)
+//  || UI templates (__)
+//  ||-------------||
+
 namespace {
     constexpr char START_MENU_NEW_GAME_KEY = '1';
     constexpr char START_MENU_CONTINUE_KEY = '2';
@@ -35,9 +37,10 @@ namespace {
     vector<string> g_pauseTemplate;
 }
 
-// ============================================
-// Private helpers
-// ============================================
+//                     (__)
+//'\-------------------(oo)
+//  || Private helpers (__)
+//  ||----------------||
 
 static fs::path getExeDir() {
     wchar_t buffer[MAX_PATH];
@@ -116,9 +119,10 @@ void Menu::ensureLoaded(vector<string>& cache, const string& filename) {
     }
 }
 
-// ============================================
-// UI Template Accessors (cached)
-// ============================================
+//                           (__)
+//'\-------------------------(oo)
+//  || UI Template Accessors (__)
+//  ||----------------------||
 
 const vector<string>& Menu::getRiddleTemplate() {
     ensureLoaded(g_riddleTemplate, "riddle.screen");
@@ -130,9 +134,10 @@ const vector<string>& Menu::getPauseTemplate() {
     return g_pauseTemplate;
 }
 
-// ============================================
-// Menu Actions
-// ============================================
+//                  (__)
+//'\----------------(oo)
+//  || Menu Actions (__)
+//  ||-------------||
 
 void Menu::drawStartMenu() {
     vector<string> startScreen = loadScreen("Start.screen");

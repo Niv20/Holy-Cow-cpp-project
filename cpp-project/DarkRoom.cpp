@@ -11,6 +11,8 @@
 #include <set>
 #include <map>
 
+// This file written by AI :)
+
 // Ensure Windows min/max macros do not clash with std::min/std::max if windows.h was pulled in earlier
 #ifdef max
 #undef max

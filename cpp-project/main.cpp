@@ -14,7 +14,6 @@
     /_/ /_/\____/_/\__, /   \____/\____/|__/|__/---||
                   /____/
 
-                       First version
                 Maor Adirim & Niv Libovich               */
 
 int main(int argc, char* argv[]) {
