@@ -606,7 +606,30 @@ void Game::handleInputFromRecorder() {
 
     // Check if we have any events left to process.
     if (!recorder->hasNextEvent()) {
-        isRunning = false;
+        // If no more input events, we should continue running until the game ends naturally
+        // or until we've passed the last expected result cycle by a safe margin.
+        
+        int lastExpectedCycle = 0;
+        const auto& expected = recorder->getExpectedResults();
+        if (!expected.empty()) {
+            lastExpectedCycle = expected.back().getCycle();
+            
+            // If the last expected event is "Game ended", we should stop exactly at that cycle
+            // This handles cases where the game ends without a final key press (or key press wasn't recorded)
+            const std::string& desc = expected.back().getDescription();
+            if (desc.find("Game ended") == 0) {
+                 if (gameCycle >= lastExpectedCycle) {
+                     isRunning = false;
+                     return;
+                 }
+            }
+        }
+        
+        // If we are way past the last expected event, terminate to avoid infinite loop
+        // Give it a buffer (e.g. 200 cycles) to allow for final animations/transitions
+        if (gameCycle > lastExpectedCycle + 200) {
+            isRunning = false;
+        }
         return;
     }
     
@@ -615,6 +638,14 @@ void Game::handleInputFromRecorder() {
         const GameEvent& event = recorder->peekNextEvent();
         
         switch (event.getType()) {
+            case GameEventType::GameEnd: {
+                // If we encounter a GameEnd event, we should stop the simulation
+                // This ensures we stop exactly when the recording stopped
+                recorder->consumeNextEvent();
+                isRunning = false;
+                return;
+            }
+
             case GameEventType::KeyPress: {
                 char key = event.getKeyPressed();
                 
@@ -652,6 +683,17 @@ void Game::handleInputFromRecorder() {
                     recorder->consumeNextEvent();
                     inPauseMenu = true;
                     break;
+                }
+
+                // If both players reached final room, any key returns to start menu (just like in handleInput)
+                bool allAtFinal = true;
+                for (size_t i = 0; i < players.size(); i++) {
+                    if (players[i].getRoomIdx() != FINAL_ROOM_INDEX) { allAtFinal = false; break; }
+                }
+                if (allAtFinal) {
+                    recorder->consumeNextEvent();
+                    isRunning = false;
+                    return;
                 }
                 
                 // Riddle answer keys (1-4) should NOT be processed here.
@@ -924,6 +966,13 @@ if (!isSilent && !DarkRoomManager::roomHasDarkness(world[visibleRoomIdx])) {
     
     if (allPlayersReachedFinal) {
             // Stop all updates; handleInput will catch key and exit
+            
+            // In Load/LoadSilent mode, we should exit automatically when game is won
+            // REVERTED: This caused premature termination. We should rely on recorded events (GameEnd or KeyPress) to exit.
+            // if (gameMode == GameMode::Load || gameMode == GameMode::LoadSilent) {
+            //    isRunning = false;
+            // }
+            
             Bomb::tickAndHandleAll(bombs, *this);
             if (!isSilent) {
                 refreshLegend(); 
