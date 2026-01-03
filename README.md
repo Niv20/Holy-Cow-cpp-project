@@ -18,17 +18,17 @@ Welcome to **Holy Cow**, a console-based adventure game built with C++20. Naviga
 
 ## Game Elements
 
-- **Players (☺/☻)**: You! Move around and interact with the world.
-- **Walls (-|)**: Solid obstacles you cannot pass through.
-- **Keys (a-z)**: Collect these to open matching doors.
-- **Doors (A-Z)**: Locked barriers. Require the corresponding lowercase key to open.
-- **Special Doors (■)**: Advanced doors that may require multiple keys or specific switch configurations.
-- **Switches (0/1)**: Toggle these to activate mechanisms or open special doors.
-- **Springs (#)**: Step on these to get launched in a specific direction!
-- **Pressure Buttons ($)**: Stand on these to temporarily remove specific walls.
-- **Bombs (@)**: Dangerous explosives! They tick down and explode, destroying weak walls and hurting players.
-- **Dark Zones (█)**: Areas shrouded in darkness. You might need a light source (Torch `!`) to see.
-- **Riddles (?)**: Encounter question marks that challenge your knowledge. Answer correctly to gain points!
+- **Players (`☺` `☻`)**: You! Move around and interact with the world.
+- **Walls (`┌` `┐` `└` `┘` `─` `│` `├` `┤` `┬` `┴` `┼`)**: Solid obstacles you cannot pass through.
+- **Keys (`a`-`z`)**: Collect these to open matching doors.
+- **Doors (`A`-`Z`)**: Locked barriers. Require the corresponding lowercase key to open.
+- **Special Doors (`■`)**: Advanced doors that may require multiple keys or specific switch configurations.
+- **Switches (`0` `1`)**: Toggle these to activate mechanisms or open special doors.
+- **Springs (`#`)**: Step on these to get launched in a specific direction!
+- **Pressure Buttons (`$`)**: Stand on these to temporarily remove specific walls.
+- **Bombs (`@`)**: Dangerous explosives! They tick down and explode, destroying weak walls and hurting players.
+- **Dark Zones (`█` `▓` `▒` `░`)**: Areas shrouded in darkness. You might need a light source (Torch `!`) to see.
+- **Riddles (`?`)**: Encounter question marks that challenge your knowledge. Answer correctly to gain points!
 
 ## File Formats
 
