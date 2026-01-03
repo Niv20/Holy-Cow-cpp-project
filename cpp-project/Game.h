@@ -62,9 +62,8 @@ class Game {
     void handlePause();
     void handleSaveState();  // Handle saving game state (ESC -> S)
     
-    // Recording helpers
+    // Recording helpers (private)
     void recordScreenTransition(int playerIndex, int targetScreen);
-    void recordLifeLost(int playerIndex);
     void recordRiddleEvent(int playerIndex, const std::string& question, const std::string& answer, bool correct);
     void recordGameEnd(bool isWin);
     
@@ -142,4 +141,7 @@ public:
     int getGameCycle() const { return gameCycle; }
     int getHeartsCount() const { return heartsCount; }
     int getPointsCount() const { return pointsCount; }
+    
+    // Record life lost event (public for Bomb class)
+    void recordLifeLost(int playerIndex);
 };

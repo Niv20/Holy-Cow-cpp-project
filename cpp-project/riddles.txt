@@ -12,7 +12,7 @@
 # The "---" marks the end of each riddle definition.
 # Lines starting with # are comments and are ignored...
 
-RIDDLE 0 40 12
+RIDDLE 1 40 12
 QUESTION What do cows use to do math?
 ANSWER1 computer
 ANSWER2 cow-culator

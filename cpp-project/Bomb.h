@@ -25,7 +25,8 @@ public:
     void setPosition(Point p) { position = p; }
     
     // Explode: destroy weak walls, obstacles, damage players
-    void explode(Game& game);
+    // Returns indices of players who were hit
+    std::vector<int> explode(Game& game);
     
     // Static methods for managing all bombs
     static void tickAndHandleAll(std::vector<Bomb>& bombs, Game& game);

@@ -56,11 +56,18 @@ Here all the event types recorded:
 1. **Screen Transitions** - When a player moves to a new screen
    150 "Player 1 moved to screen 2"
 
-2. **Riddle Answers** - When a player answers a riddle
+2. **Life Lost** - When a player loses a life from bomb explosion
+   75 "Player 1 lost a life"
+   75 "Player 2 lost a life"
+   Note: If both players are hit by the same bomb, both events are recorded.
+   Note: Life lost from wrong riddle answer is NOT recorded separately 
+         (the riddle answer event already shows it was wrong).
+
+3. **Riddle Answers** - When a player answers a riddle
    15 "Player 1 answered riddle: 2 (CORRECT)"
    20 "Player 1 answered riddle: 1 (WRONG)"
 
-3. **Game End** - When the game ends (win or lose)
+4. **Game End** - When the game ends (win or lose)
    100 "Game ended: WIN with score 150"
    100 "Game ended: LOSE with score 0"
 
@@ -100,3 +107,47 @@ for example:
 	cpp-project.exe
 - Standard gameplay with menu
 - No recording or playback
+
+                         (__) 
+'\-----------------------(oo) 
+  || Verification Report (__) 
+  ||--------------------||    
+
+When running the game in silent mode (`-load -silent`), the program compares 
+the current gameplay events against the expected events in `adv-world.result`.
+
+The report uses three tags to indicate status:
+
+1. Perfect Match: 
+- The event occurred exactly at the expected Cycle with the exact Description.
+
+    [OK]    Cycle 280: Game ended: LOSE with score 50
+
+2. Mismatch: 
+An event occurred, but it did not match the recording. This happens if:
+- The description is different (Logic change)
+- The timing (Cycle) is different (Performance/Speed change)
+
+Example A: Wrong Event Logic
+The cycle is correct, but the event is different (Player 1 died instead of Player 2).
+
+    [FAIL]  Event 0:
+            Expected: Cycle 49 - Player 2 lost a life
+            Actual:   Cycle 49 - Player 1 lost a life
+            ^ DESCRIPTION MISMATCH!
+
+Example B: Major Divergence
+The game expected a riddle answer, but the game ended instead (due to a bug or code change).
+
+    [FAIL]  Event 1:
+            Expected: Cycle 104 - Player 1 answered riddle: 1 (WRONG)
+            Actual:   Cycle 280 - Game ended: LOSE with score 0
+            ^ CYCLE MISMATCH!
+            ^ DESCRIPTION MISMATCH!
+
+3. Missing Event:
+The simulation finished (or crashed) before this expected event could happen. 
+This usually means the game ended earlier than in the recording.
+
+    [MISS]  Event 2 - Expected but not occurred:
+            Cycle 121: Player 1 answered riddle: 2 (CORRECT)

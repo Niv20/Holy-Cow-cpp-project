@@ -396,6 +396,32 @@ std::string Menu::showLoadDialog() {
         if (extPos != std::string::npos) {
             displayName = displayName.substr(0, extPos);
         }
+
+        // Format timestamp for display if it matches the pattern DD.MM.YYYY_(HH-MM)
+        // Example: 03.01.2026_(19-43)
+        // Note: This string is typically 18 chars long (not 19).
+        auto isTwoDigits = [](char a, char b) {
+            return a >= '0' && a <= '9' && b >= '0' && b <= '9';
+        };
+        auto isFourDigits = [](char a, char b, char c, char d) {
+            return (a >= '0' && a <= '9') && (b >= '0' && b <= '9') &&
+                   (c >= '0' && c <= '9') && (d >= '0' && d <= '9');
+        };
+
+        const size_t n = displayName.size();
+        if ((n == 18 || n == 19) &&
+            isTwoDigits(displayName[0], displayName[1]) && displayName[2] == '.' &&
+            isTwoDigits(displayName[3], displayName[4]) && displayName[5] == '.' &&
+            isFourDigits(displayName[6], displayName[7], displayName[8], displayName[9]) &&
+            displayName[10] == '_' && displayName[11] == '(' &&
+            isTwoDigits(displayName[12], displayName[13]) && displayName[14] == '-' &&
+            isTwoDigits(displayName[15], displayName[16]) && displayName[17] == ')') {
+
+            // Replace _ with space
+            displayName[10] = ' ';
+            // Replace - with :
+            displayName[14] = ':';
+        }
         
         // Truncate if too long (max ~25 chars to fit in the space)
         if (displayName.size() > 25) {
