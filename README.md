@@ -7,6 +7,24 @@
 
 Welcome to **Holy Cow**, a console-based adventure game built with C++20. Navigate through a maze of rooms, solve riddles, avoid bombs, and help the cows find their way!
 
+## Level Design & Architecture
+
+We didn't just write code; we meticulously crafted an experience. Massive effort was poured into the **Game Design and User Experience** to push the boundaries of what a console game can be. Our goal was simple: to create a project so polished and detailed that your first reaction upon seeing the world map is literally: *"Holy Cow!"*
+
+To achieve this level of precision, the game world wasn't randomly typed out. Every room, puzzle, and hidden passage was first drafted using visual design tools before being converted into the final `.screen` ASCII format.
+
+<img width="1512" height="948" alt="Design   Architecture" src="https://github.com/user-attachments/assets/17e37ce9-f89b-40ee-8149-f7a98f378ee5" />
+
+This "blueprint approach" allowed us to construct complex multi-room structures and ensure perfect alignment of game mechanics across the entire map. Here is a glimpse of the "Master Blueprint" used to orchestrate the world:
+
+<img width="1512" height="947" alt="Design   Architecture 2" src="https://github.com/user-attachments/assets/beeb862c-0d95-4f82-b937-e27d55d79bb1" />
+
+## See it in Action
+
+Want to see how a C++ console game comes to life? Check out this gameplay walkthrough demonstrating the smooth room transitions and puzzle mechanics.
+
+[![Watch the video](https://img.youtube.com/vi/93vQ-oczcMo/maxresdefault.jpg)](https://youtu.be/93vQ-oczcMo)
+
 ## Key Features
 
 - **C++20 Codebase**: Utilizes modern C++ features for robust and efficient code.
@@ -15,18 +33,6 @@ Welcome to **Holy Cow**, a console-based adventure game built with C++20. Naviga
 - **Save/Load System**: Full game state serialization to save your progress.
 - **Replay System**: Record your gameplay and replay it later (perfect for testing or sharing runs).
 - **Silent Testing**: Automated verification mode to ensure game logic integrity.
-
-## Level Design & Architecture
-
-The world of Holy Cow wasn't just typed out randomly. Every room, puzzle, and hidden passage was meticulously drafted using visual design tools before being converted into the final .screen ASCII format. This "blueprint approach" allowed for complex multi-room structures and precise alignment of game mechanics across the entire map. Here is a glimpse of the world layout during the design phase:
-
-<img width="1512" height="982" alt="Design   Architecture" src="https://github.com/user-attachments/assets/b00b82b7-5f4a-4715-bbef-4a5b23d0aad3" />
-
-## See it in Action
-
-Want to see how a C++ console game comes to life? Check out this gameplay walkthrough demonstrating the smooth room transitions and puzzle mechanics.
-
-[![Watch the video](https://img.youtube.com/vi/93vQ-oczcMo/maxresdefault.jpg)](https://youtu.be/93vQ-oczcMo)
 
 ## Game Elements
 
